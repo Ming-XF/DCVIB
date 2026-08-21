@@ -3,6 +3,8 @@
 import torch
 import torch.nn as nn
 
+from .utils import build_hidden_layers, flatten
+
 
 class MLP(nn.Module):
     """一个简单的多层感知机，用于 MNIST 手写数字分类。
@@ -20,22 +22,9 @@ class MLP(nn.Module):
     ):
         super().__init__()
 
-        layers = []
-        prev_dim = input_dim
-        for hidden_dim in hidden_dims:
-            layers.append(nn.Linear(prev_dim, hidden_dim))
-            layers.append(nn.ReLU(inplace=True))
-            if dropout > 0:
-                layers.append(nn.Dropout(dropout))
-            prev_dim = hidden_dim
-
-        layers.append(nn.Linear(prev_dim, num_classes))
+        layers = build_hidden_layers(input_dim, hidden_dims, dropout)
+        layers.append(nn.Linear(hidden_dims[-1], num_classes))
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, 1, 28, 28) 或 (B, 784)
-        if x.dim() == 4:
-            x = x.flatten(1)
-        elif x.dim() == 3:
-            x = x.flatten(1)
-        return self.net(x)
+        return self.net(flatten(x))
