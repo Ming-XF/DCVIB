@@ -13,8 +13,8 @@ class SCVIB(nn.Module):
 
     编码器输出 h 后，由两个线性头得到后验 q(z|x) 的均值和对数方差，
     重参数化采样得到 z，分类器输出 logits；同时用一个无激活的线性层
-    把 one-hot 标签映射为先验 r(z|y) 的均值和对数方差，训练损失中加入
-    KL(q(z|x) || r(z|y))。
+    把标签映射为先验 r(z|y) 的均值和对数方差（分类时 one-hot，
+    continuous_y=True 时为连续 y），训练损失中加入 KL(q(z|x) || r(z|y))。
     """
 
     def __init__(
@@ -25,17 +25,20 @@ class SCVIB(nn.Module):
         z_dim: int = 256,
         num_classes: int = 10,
         dropout: float = 0.2,
+        continuous_y: bool = False,
     ):
         super().__init__()
         self.num_classes = num_classes
+        self.continuous_y = continuous_y
 
         self.encoder = build_cnn_encoder(
             input_channels, conv_channels, hidden_dim, dropout
         )
         self.mu_head = nn.Linear(hidden_dim, z_dim)
         self.logvar_head = nn.Linear(hidden_dim, z_dim)
-        # 标签先验线性层：无激活，one-hot 标签 -> (mu_prior, logvar_prior)
-        self.prior_net = nn.Linear(num_classes, 2 * z_dim)
+        # 标签先验线性层：无激活，one-hot 标签（或连续 y）-> (mu_prior, logvar_prior)
+        prior_in = 1 if continuous_y else num_classes
+        self.prior_net = nn.Linear(prior_in, 2 * z_dim)
         self.classifier = nn.Linear(z_dim, num_classes)
 
         # 置零初始化：训练开始时 sigma = sigma_p = 1、mu_p = 0，KL 接近 0
@@ -59,8 +62,11 @@ class SCVIB(nn.Module):
         if labels is None:
             return logits, None
 
-        y_onehot = F.one_hot(labels, num_classes=self.num_classes).float()
-        mu_p, logvar_p = self.prior_net(y_onehot).chunk(2, dim=1)
+        if self.continuous_y:
+            y_feat = labels.float().unsqueeze(-1)
+        else:
+            y_feat = F.one_hot(labels, num_classes=self.num_classes).float()
+        mu_p, logvar_p = self.prior_net(y_feat).chunk(2, dim=1)
 
         kl = kl_divergence(mu, logvar, mu_p, logvar_p)
         return logits, kl
