@@ -1,10 +1,12 @@
-"""MNIST 多层感知机（MLP）/ VIB / SCVIB / DCVIB 训练脚本。
+"""MNIST 训练脚本：MLP / CNN 基线及 VIB / SCVIB / DCVIB 变体。
 
 用法：
     python train.py                 # 使用默认参数训练 MLP
-    python train.py --model vib     # 训练 VIB
-    python train.py --model scvib   # 训练 SCVIB（随机瓶颈）
-    python train.py --model dcvib   # 训练 DCVIB（确定性主路 + 旁路瓶颈）
+    python train.py --model cnn     # 训练 CNN 基线
+    python train.py --model vib     # 训练 MLP 版 VIB
+    python train.py --backbone cnn --model vib    # 训练 CNN 版 VIB
+    python train.py --backbone cnn --model scvib  # 训练 CNN 版 SCVIB
+    python train.py --backbone cnn --model dcvib  # 训练 CNN 版 DCVIB
     python train.py --epochs 20 --batch-size 128 --lr 1e-3
     python train.py --runs 5 --seed 0   # 重复训练 5 次并报告测试集平均指标
 """
@@ -19,7 +21,8 @@ from sklearn.metrics import precision_score, recall_score, roc_auc_score
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 
-from model import DCVIB, MLP, SCVIB, VIB
+from model import CNN, DCVIB, MLP, SCVIB, VIB
+from model.cnn import DCVIB as CNDCVIB, SCVIB as CNNSCVIB, VIB as CNNVIB
 
 
 def get_dataloaders(batch_size: int, data_dir: str = "./data"):
@@ -54,10 +57,10 @@ def get_dataloaders(batch_size: int, data_dir: str = "./data"):
 
 
 def run_model(model, images, labels, stochastic):
-    """统一 MLP / VIB / SCVIB / DCVIB 的前向接口，返回 (logits, kl)。"""
-    if isinstance(model, (VIB, SCVIB)):
+    """统一 MLP / CNN 骨干下各模型的前向接口，返回 (logits, kl)。"""
+    if isinstance(model, (VIB, SCVIB, CNNVIB, CNNSCVIB)):
         return model(images, labels, stochastic=stochastic)
-    if isinstance(model, DCVIB):
+    if isinstance(model, (DCVIB, CNDCVIB)):
         return model(images, labels)
     return model(images), None
 
@@ -117,13 +120,38 @@ def evaluate(model, loader, criterion, beta, device):
     return total_loss / total, correct / total, auc, precision, recall
 
 
+MODEL_CLASSES = {
+    ("mlp", "mlp"): MLP,
+    ("cnn", "cnn"): CNN,
+    ("vib", "mlp"): VIB,
+    ("vib", "cnn"): CNNVIB,
+    ("scvib", "mlp"): SCVIB,
+    ("scvib", "cnn"): CNNSCVIB,
+    ("dcvib", "mlp"): DCVIB,
+    ("dcvib", "cnn"): CNDCVIB,
+}
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Train MNIST MLP / VIB / SCVIB / DCVIB model")
-    parser.add_argument("--model", type=str, choices=["mlp", "vib", "scvib", "dcvib"], default="mlp")
+    parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / SCVIB / DCVIB variants")
+    parser.add_argument("--model", type=str, choices=["mlp", "cnn", "vib", "scvib", "dcvib"], default="mlp")
+    parser.add_argument(
+        "--backbone",
+        type=str,
+        choices=["mlp", "cnn"],
+        default="mlp",
+        help="backbone of VIB variants; ignored when --model is mlp or cnn",
+    )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--hidden-dims", type=int, nargs="+", default=[512, 256])
+    parser.add_argument(
+        "--hidden-dims",
+        type=int,
+        nargs="+",
+        default=[512, 256],
+        help="hidden layer dims of the MLP backbone",
+    )
     parser.add_argument("--dropout", type=float, default=0.2)
     parser.add_argument("--z-dim", type=int, default=256, help="dimension of z in VIB/SCVIB/DCVIB")
     parser.add_argument("--beta", type=float, default=1e-3, help="weight of the KL term in VIB/SCVIB/DCVIB")
@@ -160,12 +188,24 @@ def main():
     )
     args = parser.parse_args()
 
-    output_dir = os.path.join("output", args.model)
+    # mlp/cnn 为自带骨干的基线；变体由 --backbone 指定骨干
+    if args.model in ("mlp", "cnn"):
+        backbone = args.model
+    else:
+        backbone = args.backbone
+
+    # MLP 骨干沿用 output/{model}（与已有结果一致），CNN 骨干用 output/cnn_{model}
+    if args.model in ("mlp", "cnn"):
+        output_name = args.model
+    else:
+        output_name = args.model if backbone == "mlp" else f"cnn_{args.model}"
+
+    output_dir = os.path.join("output", output_name)
     os.makedirs(output_dir, exist_ok=True)
     if args.save_path is None:
-        args.save_path = os.path.join(output_dir, f"mnist_{args.model}.pt")
+        args.save_path = os.path.join(output_dir, f"mnist_{output_name}.pt")
     if args.log_path is None:
-        args.log_path = os.path.join(output_dir, f"train_{args.model}.log")
+        args.log_path = os.path.join(output_dir, f"train_{output_name}.log")
 
     logging.basicConfig(
         level=logging.INFO,
@@ -185,9 +225,11 @@ def main():
         args.batch_size, args.data_dir
     )
 
-    model_cls = {"mlp": MLP, "vib": VIB, "scvib": SCVIB, "dcvib": DCVIB}[args.model]
-    model_kwargs = dict(hidden_dims=tuple(args.hidden_dims), dropout=args.dropout)
-    if args.model != "mlp":
+    model_cls = MODEL_CLASSES[(args.model, backbone)]
+    model_kwargs = dict(dropout=args.dropout)
+    if backbone == "mlp":
+        model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
+    if args.model not in ("mlp", "cnn"):
         model_kwargs["z_dim"] = args.z_dim
 
     criterion = nn.CrossEntropyLoss()
