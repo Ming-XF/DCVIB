@@ -57,7 +57,7 @@ def kl_divergence_masked(mu, logvar, mu_p, logvar_p, mask=None):
 
     与 model/mlp/utils.py 的 kl_divergence 同款闭式解和 clamp 约定，区别是
     支持按节点 mask 计算——转导式图训练中 KL 只在训练节点上计算，避免
-    SCVIB/DCVIB 的标签条件先验用到验证/测试节点标签（标签泄漏）。
+    CEB/DCVIB 的标签条件先验用到验证/测试节点标签（标签泄漏）。
     """
     logvar = logvar.clamp(-10.0, 10.0)
     logvar_p = logvar_p.clamp(-10.0, 10.0)

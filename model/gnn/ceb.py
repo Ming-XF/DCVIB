@@ -1,4 +1,4 @@
-"""SCVIB（随机标签条件变分信息瓶颈）GNN 模型定义。"""
+"""CEB（条件熵瓶颈，Fischer 2020）GNN 模型定义。"""
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,16 +7,18 @@ from ..mlp.utils import reparameterize
 from .utils import build_gcn_encoder, kl_divergence_masked
 
 
-class SCVIB(nn.Module):
-    """在 GCN 节点特征上引入随机标签条件变分信息瓶颈（SCVIB）机制。
+class CEB(nn.Module):
+    """在 GCN 节点特征上引入条件熵瓶颈（CEB）机制。
 
-    编码器输出 h 后，由两个线性头得到后验 q(z|x) 的均值和对数方差，
-    重参数化采样得到 z，分类器输出 logits；同时用一个无激活的线性层
-    把 one-hot 标签映射为先验 r(z|y) 的均值和对数方差，训练损失中加入
-    KL(q(z|x) || r(z|y))。
+    目标为 VCEB = KL(e(z|x) || b(z|y)) + γ·交叉熵（项目损失约定下等价于
+    CE + β·KL，β = 1/γ）。编码器输出 h 后，由两个线性头得到后验 q(z|x)
+    的均值和对数方差，重参数化采样得到 z，分类器输出 logits；反向编码器
+    b(z|y) 用无激活的线性层把 one-hot 标签映射为先验 r(z|y) 的均值和对数
+    方差，训练损失中加入 KL(q(z|x) || r(z|y))。
 
     图转导设置：KL 按 mask（训练时为 train_mask）只在训练节点上计算，
     标签条件先验只接触训练节点的标签（避免标签泄漏）。
+    本实现为对角高斯版本（Fischer 2020 原版为全协方差小瓶颈）。
     """
 
     def __init__(

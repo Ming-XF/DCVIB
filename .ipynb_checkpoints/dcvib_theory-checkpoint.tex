@@ -1,0 +1,122 @@
+% dcvib_theory.tex —— DCVIB 旁路瓶颈与 CEB 主路瓶颈的等价性推导
+% 记号沿用 Fischer (2020) "The Conditional Entropy Bottleneck"
+% 用法：导言区 \usepackage{amsmath,amssymb,amsthm}，正文处 \input{dcvib_theory.tex}
+% 若论文已定义 lemma/proposition/remark 环境，删除下面三行 \newtheorem
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\textbf{Notation.}
+Let $X$ be the input and $Y$ the label.
+The main (deterministic) path of DCVIB computes the representation
+$H = f_{\mathrm{enc}}(X) \in \mathbb{R}^{d}$, and the classifier consumes $H$ directly.
+The side path parameterizes $q(z|x) = \mathcal{N}(\mu_q(x), \Sigma_q(x))$ with mean head
+$\mu_q(x) = A\,h(x)$ for a linear map $A \in \mathbb{R}^{z \times d}$; $Z$ never feeds the classifier.
+The label-conditional prior (backward encoder) is $r(z|y) = \mathcal{N}(\mu_p(y), \Sigma_p(y))$.
+The side-path regularizer is $\operatorname{KL}(q(z|x)\,\|\,r(z|y))$, added to the
+cross-entropy with weight $\beta$, with gradients reaching the main path only through the
+shared encoder (the classification gradient does not enter the side heads, and vice versa).
+Following Fischer (2020), we write the residual information $I(X;Z|Y)$ (Eq.~4), the CEB
+objective $\min_Z I(X;Z|Y) - \gamma I(Y;Z)$ (Eq.~5), the MNI point
+$I(X;Y) = I(X;Z) = I(Y;Z)$ (Eq.~1), and the variational upper bound
+$I(X;Z|Y) \le \mathbb{E}[\operatorname{KL}(q(z|x)\,\|\,r(z|y))]$ (Eqs.~9--11).
+
+\begin{lemma}[Linear invariance of the Gaussian KL]\label{lem:kl-invariance}
+Let $q = \mathcal{N}(\mu_q, \Sigma_q)$ and $p = \mathcal{N}(\mu_p, \Sigma_p)$ on $\mathbb{R}^{z}$,
+and let $A \in \mathbb{R}^{z \times z}$ be invertible. Define the common pushforwards
+$q' = A_\# q = \mathcal{N}(A\mu_q, A\Sigma_q A^\top)$ and $p' = A_\# p$. Then
+$\operatorname{KL}(q'\,\|\,p') = \operatorname{KL}(q\,\|\,p)$.
+\end{lemma}
+
+\begin{proof}
+With $d = z$, the closed form reads
+$\operatorname{KL}(q\,\|\,p)
+= \tfrac{1}{2}\big[\operatorname{tr}(\Sigma_p^{-1}\Sigma_q)
++ (\mu_q - \mu_p)^\top \Sigma_p^{-1}(\mu_q - \mu_p)
+- d + \ln|\Sigma_p| - \ln|\Sigma_q|\big]$.
+Under the common map $A$ the three non-constant terms are unchanged:
+\begin{align*}
+\operatorname{tr}\big((A\Sigma_p A^\top)^{-1}(A\Sigma_q A^\top)\big)
+&= \operatorname{tr}(A^{-\top}\Sigma_p^{-1}A^{-1} A\,\Sigma_q A^\top)
+ = \operatorname{tr}(A^{-\top}\Sigma_p^{-1}\Sigma_q A^\top) \\
+&= \operatorname{tr}(\Sigma_p^{-1}\Sigma_q A^\top A^{-\top})
+ = \operatorname{tr}(\Sigma_p^{-1}\Sigma_q), \\[2pt]
+(A\Delta\mu)^\top (A\Sigma_p A^\top)^{-1} (A\Delta\mu)
+&= \Delta\mu^\top A^\top A^{-\top}\Sigma_p^{-1}A^{-1}A\,\Delta\mu
+ = \Delta\mu^\top \Sigma_p^{-1}\Delta\mu, \\[2pt]
+\ln|A\Sigma_p A^\top| - \ln|A\Sigma_q A^\top|
+&= \big(\ln|\Sigma_p| + 2\ln|A|\big) - \big(\ln|\Sigma_q| + 2\ln|A|\big)
+ = \ln|\Sigma_p| - \ln|\Sigma_q|,
+\end{align*}
+where $\Delta\mu = \mu_q - \mu_p$ and the trace step uses the cyclic property. \hfill\qed
+\end{proof}
+
+\begin{lemma}[Invariance of the CEB objective and the MNI point]\label{lem:mi-invariance}
+For any bijective measurable map $\phi$,
+$I(X;\phi(Z)|Y) = I(X;Z|Y)$ and $I(Y;\phi(Z)) = I(Y;Z)$.
+Consequently the CEB objective (Eq.~5) is invariant under bijections of $Z$, and
+$Z$ attains the MNI point (Eq.~1) if and only if $\phi(Z)$ does.
+\end{lemma}
+
+\begin{proof}
+Mutual information is invariant under bijective transformations of either argument
+(data processing inequality applied in both directions). \hfill\qed
+\end{proof}
+
+\begin{proposition}[The DCVIB side path is a CEB bottleneck on the main path]\label{prop:dcvib}
+Assume $z = d$ and $A$ invertible, and define $\tilde{z} = A^{-1} z$. Let
+$q'(\tilde{z}|x) = \mathcal{N}(h(x), A^{-1}\Sigma_q(x) A^{-\top})$ and
+$r'(\tilde{z}|y) = \mathcal{N}(A^{-1}\mu_p(y), A^{-1}\Sigma_p(y) A^{-\top})$.
+Then, pointwise for every $(x, y)$,
+\begin{equation}
+\operatorname{KL}\big(q(z|x)\,\|\,r(z|y)\big)
+= \operatorname{KL}\big(q'(\tilde{z}|x)\,\|\,r'(\tilde{z}|y)\big),
+\label{eq:dcvib-ceb}
+\end{equation}
+where $q'(\cdot|x)$ is centered at the main-path representation $h(x)$.
+That is, the DCVIB side-path regularizer is pointwise identical to a CEB bottleneck
+applied to a noisy version of the main-path representation,
+$\tilde{z} = h + \tilde{\epsilon}$ with $\tilde{\epsilon} \sim \mathcal{N}(0, A^{-1}\Sigma_q A^{-\top})$,
+using the transformed backward encoder $r'$.
+Hence its gradient with respect to $h$ (through the shared encoder) coincides, up to the
+fixed linear map $A$, with the gradient that a CEB model applies to its representation mean.
+\end{proposition}
+
+\begin{proof}
+The map $z \mapsto \tilde{z} = A^{-1}z$ is a bijection, and
+$q' = (A^{-1})_\# q$, $r' = (A^{-1})_\# r$.
+Equation~\eqref{eq:dcvib-ceb} is Lemma~\ref{lem:kl-invariance} applied to $A^{-1}$.
+The mean of $q'$ is $A^{-1}\mu_q(x) = A^{-1}A\,h(x) = h(x)$, and sampling
+$\tilde{z} \sim q'$ is equivalent to $\tilde{z} = h + \tilde{\epsilon}$ with the stated noise.
+Combined with the variational bound of Fischer (2020, Eqs.~9--11), the regularizer
+upper-bounds the residual information of the noisy main-path representation:
+$I(X;\tilde{Z}|Y) \le \mathbb{E}[\operatorname{KL}(q'(\tilde{z}|x)\,\|\,r'(\tilde{z}|y))]$.
+\hfill\qed
+\end{proof}
+
+\begin{remark}[Family closure]\label{rem:closure}
+Lemma~\ref{lem:kl-invariance} holds for the underlying Gaussian distributions. Within a
+restricted variational family the equality of Proposition~\ref{prop:dcvib} is exact only if
+the family is closed under linear maps. The full-covariance family is closed (and is the
+parameterization used by Fischer 2020); the diagonal family is not --- for diagonal $q, r$
+the equality is exact only for maps preserving diagonality (e.g., permutations and sign
+flips) and approximate otherwise. A full-covariance side path makes the proposition exact
+in the variational implementation.
+\end{remark}
+
+\begin{remark}[Rank deficiency]\label{rem:rank}
+If $z < d$ or $A$ is rank-deficient, only the projection of $h$ onto the image of $A$
+receives gradient from the regularizer; the null-space component is unconstrained.
+In the default configuration $z = d$ and a randomly initialized $A$ is almost surely invertible.
+\end{remark}
+
+\begin{remark}[Noise-free limit]\label{rem:limit}
+The equivalence of Proposition~\ref{prop:dcvib} should be understood at the level of the
+variational objective, not as a mutual-information limit: as the side-path noise vanishes,
+$I(X;Z|Y)$ diverges for continuous deterministic $H$ (the pathology of deterministic
+networks discussed by Amjad \& Geiger and Kolchinsky et al.), and the variational KL bound
+becomes loose. Keeping the side-path covariance finite --- without injecting noise into the
+inference path --- is precisely what keeps the regularizer well-defined; this is the design
+rationale of DCVIB.
+\end{remark}

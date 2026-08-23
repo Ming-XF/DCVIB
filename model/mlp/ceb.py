@@ -1,4 +1,4 @@
-"""SCVIB（随机标签条件变分信息瓶颈）模型定义。"""
+"""CEB（条件熵瓶颈，Fischer 2020）MLP 模型定义。"""
 
 import torch
 import torch.nn as nn
@@ -7,13 +7,18 @@ import torch.nn.functional as F
 from .utils import build_hidden_layers, flatten, kl_divergence, reparameterize
 
 
-class SCVIB(nn.Module):
-    """在 MLP 中间表示上引入随机标签条件变分信息瓶颈（SCVIB）机制。
+class CEB(nn.Module):
+    """在 MLP 中间表示上引入条件熵瓶颈（CEB）机制。
 
-    编码器输出 h 后，由两个线性头得到后验 q(z|x) 的均值和对数方差，
-    重参数化采样得到 z，分类器输出 logits；同时用一个无激活的线性层
-    把标签映射为先验 r(z|y) 的均值和对数方差（分类时 one-hot，
-    continuous_y=True 时为连续 y），训练损失中加入 KL(q(z|x) || r(z|y))。
+    目标为 VCEB = KL(e(z|x) || b(z|y)) + γ·交叉熵（项目损失约定下等价于
+    CE + β·KL，β = 1/γ）。编码器输出 h 后，由两个线性头得到后验 q(z|x)
+    的均值和对数方差，重参数化采样得到 z，分类器输出 logits；反向编码器
+    b(z|y) 用无激活的线性层把标签映射为先验 r(z|y) 的均值和对数方差
+    （分类时 one-hot，continuous_y=True 时为连续 y），训练损失中加入
+    KL(q(z|x) || r(z|y))。
+
+    本实现为对角高斯版本（Fischer 2020 原版为全协方差小瓶颈，对角化使
+    瓶颈可扩展到高维 z）。
     """
 
     def __init__(
