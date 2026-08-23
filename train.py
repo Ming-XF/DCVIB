@@ -268,7 +268,7 @@ def main():
         if args.model in ("scvib", "dcvib"):
             model_kwargs["continuous_y"] = True
     elif args.task == "imagenet100":
-        model_kwargs["input_dim"] = 2048
+        model_kwargs["input_dim"] = 1024
         model_kwargs["num_classes"] = 100
 
     criterion = nn.MSELoss() if args.task == "regression" else nn.CrossEntropyLoss()
