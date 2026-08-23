@@ -96,11 +96,14 @@ def get_cora_data(
     val_ratio: float = 0.2,
     test_ratio: float = 0.2,
     seed: int = 42,
+    random_labels: bool = False,
 ):
     """加载 Cora 并返回 (x, adj_norm, y, train_mask, val_mask, test_mask)。
 
     60/20/20 分层划分（seed 固定），mask 为 bool 张量；GCN 训练为全图批
     （转导式），DataLoader 不适用，由 train.py 的 cora 分支直接消费。
+    random_labels=True 时把训练节点标签按固定 seed 随机化（信息自由数据集
+    I(X;Y)=0 的记忆实验），验证/测试节点保持真实标签。
     """
     cache_dir = download_cora(data_dir)
     x, adj_norm, y = parse_cora(cache_dir)
@@ -124,7 +127,16 @@ def get_cora_data(
         mask[idx] = True
         return mask
 
-    return (
-        x, adj_norm, y,
-        make_mask(train_idx), make_mask(val_idx), make_mask(test_idx),
+    train_mask, val_mask, test_mask = (
+        make_mask(train_idx), make_mask(val_idx), make_mask(test_idx)
     )
+
+    if random_labels:
+        rng = torch.Generator().manual_seed(42)
+        y = y.clone()
+        y[train_mask] = torch.randint(
+            0, int(y.max().item()) + 1, (int(train_mask.sum()),), generator=rng
+        )
+        logging.info("随机标签实验：训练节点标签已随机化（I(X;Y)=0，固定 seed 42）")
+
+    return x, adj_norm, y, train_mask, val_mask, test_mask

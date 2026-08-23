@@ -108,6 +108,7 @@ def get_imdb_dataloaders(
     val_ratio: float = 0.2,
     test_ratio: float = 0.2,
     seed: int = 42,
+    random_labels: bool = False,
 ):
     """加载 IMDb 并返回 (train_loader, val_loader, test_loader, vocab_size)。
 
@@ -115,6 +116,8 @@ def get_imdb_dataloaders(
     词表仅从训练集构建（pad_idx=0、unk_idx=1，其余按词频编号 2..V+1），
     序列截断到 max_len（先截断后建词表，词表只含模型实际可见的词）。
     返回的 vocab_size 含 pad/unk 两个保留位，供模型构造 Embedding。
+    random_labels=True 时把训练集标签按固定 seed 随机化（信息自由数据集
+    I(X;Y)=0 的记忆实验），验证/测试集保持真实标签。
     """
     extract_dir = download_imdb(data_dir)
     texts, labels = read_imdb(extract_dir)
@@ -131,6 +134,11 @@ def get_imdb_dataloaders(
         "IMDb 划分（60/20/20 分层）：train %d / val %d / test %d（共 %d 条影评）",
         len(X_train), len(X_val), len(X_test), len(tokens_list),
     )
+
+    if random_labels:
+        rng = torch.Generator().manual_seed(42)
+        y_train = torch.randint(0, 2, (len(y_train),), generator=rng).tolist()
+        logging.info("随机标签实验：训练集标签已随机化（I(X;Y)=0，固定 seed 42）")
 
     counter = Counter(tok for tokens in X_train for tok in tokens)
     vocab = {word: i + 2 for i, (word, _) in enumerate(counter.most_common())}

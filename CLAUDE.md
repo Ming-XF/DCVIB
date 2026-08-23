@@ -20,16 +20,17 @@ python train.py --task cora --model gcn             # Cora 节点分类（GCN �
 python train.py --task cora --backbone gnn --model vib     # GNN 版 VIB（ceb/dcvib 同理）
 python train.py --task imdb --model rnn             # IMDb 情感分析（RNN 基线）
 python train.py --task imdb --backbone rnn --model vib     # RNN 版 VIB（ceb/dcvib 同理）
-python train.py --task regression                       # California Housing 回归（MLP 基线）
-python train.py --task regression --model vib           # VIB 回归
-python train.py --task regression --model ceb           # CEB 回归（连续 y 条件先验）
-python train.py --task regression --model dcvib         # DCVIB 回归（连续 y 条件先验）
+python train.py --task housing                          # California Housing 回归（MLP 基线）
+python train.py --task housing --model vib              # VIB 回归
+python train.py --task housing --model ceb              # CEB 回归（连续 y 条件先验）
+python train.py --task housing --model dcvib            # DCVIB 回归（连续 y 条件先验）
 python train.py --model mlp --epochs 20 --batch-size 128 --lr 1e-3 --beta 1e-3
 python train.py --model vib --runs 5 --seed 0   # 多 run 取测试集平均指标
+python train.py --random-labels --patience 1000   # 随机标签记忆实验（信息自由数据集，看 Train Acc）
 ```
 
 - 没有测试套件、linter 配置或 requirements.txt。环境：Python 3.12，torch 2.9.0+cu128，torchvision 0.24.0，scikit-learn 1.7.2（CUDA 可用）。
-- 完整参数见 `train.py` 的 argparse：`--task`（默认 classification；imagenet100 用预训练 ResNet50 特征、仅 MLP 骨干；cora 仅 GNN 骨干；imdb 仅 RNN 骨干；regression 使用 California Housing、仅 MLP 骨干）、`--backbone`（默认 mlp；`--model` 为 mlp/cnn/gcn/rnn 时被忽略）、`--hidden-dims`（默认 512 256，MLP/GNN 的各层维度；RNN 首元素为词嵌入维度、列表为逐层 LSTM 隐层维度，层数 = 列表长度）、`--dropout`（0.2）、`--z-dim`（256，仅 VIB 系）、`--max-len`（500，仅 IMDb）、`--beta`（KL 权重，1e-3）、`--patience`（早停，10）、`--data-dir`、`--save-path`、`--log-path`。
+- 完整参数见 `train.py` 的 argparse：`--task`（默认 mnist（MNIST 分类）；housing 为 California Housing 回归、仅 MLP 骨干；imagenet100 用预训练 ResNet50 特征、仅 MLP 骨干；cora 仅 GNN 骨干；imdb 仅 RNN 骨干）、`--backbone`（默认 mlp；`--model` 为 mlp/cnn/gcn/rnn 时被忽略）、`--hidden-dims`（默认 512 256，MLP/GNN 的各层维度；RNN 首元素为词嵌入维度、列表为逐层 LSTM 隐层维度，层数 = 列表长度）、`--dropout`（0.2）、`--z-dim`（256，仅 VIB 系）、`--max-len`（500，仅 IMDb）、`--random-labels`（随机化训练标签，固定 seed 42，仅分类任务；信息自由数据集记忆实验）、`--beta`（KL 权重，1e-3）、`--patience`（早停，10）、`--data-dir`、`--save-path`、`--log-path`。
 
 ## 架构
 
@@ -60,7 +61,7 @@ python train.py --model vib --runs 5 --seed 0   # 多 run 取测试集平均指�
 - 数据（cora）：全图批转导训练，无 DataLoader（`datasets/cora.py`，划分固定 seed 42）。
 - 数据（imdb）：斯坦福官方 aclImdb_v1.tar.gz（官方 train/test 各 25k 已标注影评）合并后 60/20/20 分层划分（seed 42）→ 30k/10k/10k；词表仅从训练集构建（pad_idx=0、unk_idx=1 保留位，其余按词频编号，约 9 万词）；去 HTML 标签后纯字母分词、截断到 `--max-len`（500）；collate 用 `pad_sequence` 后填充。二分类评估时 `evaluate` 把 (n,2) 概率取第 1 列再算 AUC（sklearn 二分类要求 (n,)）。
 - 数据（回归）：`fetch_california_housing`（20640 样本、8 特征），60/20/20 划分（seed 42），特征用 StandardScaler 标准化、目标用 MinMaxScaler 归一化到 [0,1]（均仅在训练集上拟合）。损失 MSELoss 在归一化目标上计算，MAE 用 y_scaler 逆归一化回原始单位（十万美元；R² 与量纲无关），按验证 R² 早停。CNN 骨干不支持回归（argparse 直接报错）。
-- 每 run 使用 seed+i-1；分类按验证集宏平均 AUC、回归按验证 R² 早停（patience=10），保存最优 state dict 到 `output/<name>/<name>_run{i}.pt`，训练日志写入 `output/<name>/train_<name>.log`（logging 同时输出到控制台和文件）。`<name>` 按 `{dataset}_{backbone}_{model}` 命名（基线为 `{dataset}_{model}`），dataset 为 `mnist`/`imagenet100`/`cora`/`imdb`/`california`，如 `output/mnist_mlp_vib/`、`output/mnist_cnn_vib/`、`output/cora_gnn_vib/`、`output/imdb_rnn_vib/`、`output/california_mlp_ceb/`——每个 任务×骨干×模型 组合对应唯一目录。
+- 每 run 使用 seed+i-1；分类按验证集宏平均 AUC、回归按验证 R² 早停（patience=10），保存最优 state dict 到 `output/<name>/<name>_run{i}.pt`，训练日志写入 `output/<name>/train_<name>.log`（logging 同时输出到控制台和文件）。训练日志每 epoch 报告 Train Loss + **Train Acc**（回归无 Acc）——随机标签实验靠 Train Acc 爬升识别记忆（val/test 始终 ~随机水平；MLP 约 40 epoch 开始记忆，实验时用 `--patience 1000` 避免早停）。开启 `--random-labels` 时结束后额外报告所有 run 的**最终 epoch Train Acc 均值±标准差**。`<name>` 按 `{dataset}_{backbone}_{model}` 命名（基线为 `{dataset}_{model}`），dataset 为 `mnist`/`imagenet100`/`cora`/`imdb`/`california`，如 `output/mnist_mlp_vib/`、`output/mnist_cnn_vib/`、`output/cora_gnn_vib/`、`output/imdb_rnn_vib/`、`output/california_mlp_ceb/`——每个 任务×骨干×模型 组合对应唯一目录。
 - 早停结束后加载最优 checkpoint 在测试集评估（分类报告 Loss/Acc/宏平均 AUC/Precision/Recall，回归报告 Loss/MAE/R²，其中 Loss 含 beta·KL 项、MAE/R² 为纯预测指标），最后对全部 runs 取均值±标准差。
 - 评估指标用 sklearn 计算（`roc_auc_score(multi_class="ovr")`、`precision_score`/`recall_score` 均 macro 平均、`mean_absolute_error`/`r2_score`），因此 `evaluate` 需在 no_grad 下收集整个 loader 的预测。
 - 数据集：MNIST 在 `./data/MNIST/`；California Housing 缓存在 `./data/california_housing/cal_housing_py3.pkz`，训练时以 `--data-dir` 下的 `california_housing/` 子目录作为 sklearn 的 data_home 加载（数据来自 OpenML 44977，与 sklearn 官方数据一致）。figshare 源在本机被墙，`~/scikit_learn_data/cal_housing_py3.pkz` 留有原始备份，项目内副本丢失时可从备份恢复。IMDb 下载解压缓存在 `./data/imdb/`（下载源 ai.stanford.edu 本机可达；数据管道与词表构建见 `datasets/imdb.py`）。

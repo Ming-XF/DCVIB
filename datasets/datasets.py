@@ -20,10 +20,14 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 from torchvision import datasets, transforms
 
 
-def get_mnist_dataloaders(batch_size: int, data_dir: str = "./data"):
+def get_mnist_dataloaders(
+    batch_size: int, data_dir: str = "./data", random_labels: bool = False
+):
     """加载 MNIST 数据集并返回训练/验证/测试 DataLoader。
 
     MNIST 官方只有训练集（60k）和测试集（10k），验证集从训练集中切出 10k。
+    random_labels=True 时把训练集标签按固定 seed 随机化（信息自由数据集
+    I(X;Y)=0 的记忆实验），验证/测试集保持真实标签。
     """
     transform = transforms.Compose(
         [
@@ -44,6 +48,14 @@ def get_mnist_dataloaders(batch_size: int, data_dir: str = "./data"):
         full_train_dataset, [50000, 10000], generator=generator
     )
 
+    if random_labels:
+        # 只随机化训练切分的标签（固定 seed 42，各模型/各 run 看到同一组随机标签）
+        rng = torch.Generator().manual_seed(42)
+        train_dataset.dataset.targets[train_dataset.indices] = torch.randint(
+            0, 10, (len(train_dataset),), generator=rng
+        )
+        logging.info("随机标签实验：训练集标签已随机化（I(X;Y)=0，固定 seed 42）")
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -57,12 +69,14 @@ def get_imagenet100_dataloaders(
     val_ratio: float = 0.2,
     test_ratio: float = 0.2,
     seed: int = 42,
+    random_labels: bool = False,
 ):
     """加载 ImageNet-100 预训练特征并返回训练/验证/测试 DataLoader。
 
     特征来自 datasets/extract_imagenet100_features.py 生成的 npz（ResNet50 layer3 输出
     全局平均池化的 1024 维特征 + 100 类标签）。60/20/20 分层划分（seed 固定），
-    特征用 StandardScaler 标准化（仅在训练集上拟合）。
+    特征用 StandardScaler 标准化（仅在训练集上拟合）。random_labels=True 时把
+    训练集标签按固定 seed 随机化（信息自由数据集 I(X;Y)=0 的记忆实验）。
     """
     data = np.load(os.path.join(data_dir, "imagenet100", "imagenet100_resnet50_layer3_features.npz"))
     X, y = data["features"], data["labels"]
@@ -78,6 +92,13 @@ def get_imagenet100_dataloaders(
         "ImageNet-100 划分（60/20/20 分层）：train %d / val %d / test %d",
         len(X_train), len(X_val), len(X_test),
     )
+
+    if random_labels:
+        rng = torch.Generator().manual_seed(42)
+        y_train = torch.randint(
+            0, 100, (len(y_train),), generator=rng
+        ).numpy()
+        logging.info("随机标签实验：训练集标签已随机化（I(X;Y)=0，固定 seed 42）")
 
     x_scaler = StandardScaler().fit(X_train)
 
