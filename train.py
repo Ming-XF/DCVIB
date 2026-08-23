@@ -1,4 +1,4 @@
-"""MNIST 分类 / ImageNet-100 特征分类 / Cora 节点分类 / IMDb 情感分析 / California Housing 回归训练脚本：MLP / CNN / GCN / RNN 基线及 VIB / CEB / DCVIB 变体。
+"""MNIST 分类 / ImageNet-100 特征分类 / Cora 节点分类 / IMDb 情感分析 / AG News BERT 特征分类 / California Housing 回归训练脚本：MLP / CNN / GCN / RNN 基线及 VIB / CEB / DCVIB 变体。
 
 用法：
     python train.py                 # 使用默认参数训练 MLP
@@ -18,6 +18,8 @@
     python train.py --task imdb --backbone rnn --model vib    # RNN 版 VIB
     python train.py --task imdb --backbone rnn --model ceb    # RNN 版 CEB
     python train.py --task imdb --backbone rnn --model dcvib  # RNN 版 DCVIB
+    python train.py --task agnews --model rnn          # AG News BERT 特征分类（RNN 基线）
+    python train.py --task agnews --backbone rnn --model vib  # RNN 版 VIB（ceb/dcvib 同理）
     python train.py --task housing --model vib     # California Housing 回归（MLP 骨干）
     python train.py --task housing --model ceb     # CEB 回归（连续 y 条件先验）
     python train.py --task housing --model dcvib   # DCVIB 回归（连续标签条件先验）
@@ -41,6 +43,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from datasets.agnews import get_agnews_dataloaders
 from datasets.cora import get_cora_data
 from datasets.datasets import (
     get_california_dataloaders,
@@ -222,12 +225,12 @@ def main():
     parser.add_argument(
         "--task",
         type=str,
-        choices=["mnist", "housing", "imagenet100", "cora", "imdb"],
+        choices=["mnist", "housing", "imagenet100", "cora", "imdb", "agnews"],
         default="mnist",
         help="mnist is the default (MNIST classification); housing is California "
         "Housing regression (MLP backbone only); imagenet100 uses pretrained "
         "ResNet50 features (MLP backbone only); cora uses GNN backbone only; "
-        "imdb uses RNN backbone only",
+        "imdb and agnews use RNN backbone only (agnews uses BERT token features)",
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -301,14 +304,17 @@ def main():
             parser.error("Cora task only supports --model gcn or --backbone gnn with vib/ceb/dcvib")
     elif args.model == "gcn" or args.backbone == "gnn":
         parser.error("GNN backbone is only supported for cora")
-    if args.task == "imdb":
+    if args.task in ("imdb", "agnews"):
         ok = args.model == "rnn" or (
             args.backbone == "rnn" and args.model in ("vib", "ceb", "dcvib")
         )
         if not ok:
-            parser.error("IMDb task only supports --model rnn or --backbone rnn with vib/ceb/dcvib")
+            parser.error(
+                f"{args.task} task only supports --model rnn or "
+                "--backbone rnn with vib/ceb/dcvib"
+            )
     elif args.model == "rnn" or args.backbone == "rnn":
-        parser.error("RNN backbone is only supported for imdb")
+        parser.error("RNN backbone is only supported for imdb/agnews")
 
     # mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干
     if args.model in ("mlp", "cnn", "rnn"):
@@ -325,6 +331,7 @@ def main():
         else "imagenet100" if args.task == "imagenet100"
         else "cora" if args.task == "cora"
         else "imdb" if args.task == "imdb"
+        else "agnews" if args.task == "agnews"
         else "mnist"
     )
     if args.model in ("mlp", "cnn", "gcn", "rnn"):
@@ -373,6 +380,11 @@ def main():
             random_labels=args.random_labels,
         )
         target_scaler = None
+    elif args.task == "agnews":
+        train_loader, val_loader, test_loader = get_agnews_dataloaders(
+            args.batch_size, args.data_dir, random_labels=args.random_labels
+        )
+        target_scaler = None
     else:
         if args.task == "imagenet100":
             train_loader, val_loader, test_loader = get_imagenet100_dataloaders(
@@ -404,6 +416,9 @@ def main():
     elif args.task == "imdb":
         model_kwargs["vocab_size"] = vocab_size
         model_kwargs["num_classes"] = 2
+    elif args.task == "agnews":
+        model_kwargs["input_dim"] = 768
+        model_kwargs["num_classes"] = 4
 
     criterion = nn.MSELoss() if args.task == "housing" else nn.CrossEntropyLoss()
     test_results = []

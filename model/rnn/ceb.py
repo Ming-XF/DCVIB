@@ -23,19 +23,22 @@ class CEB(nn.Module):
 
     def __init__(
         self,
-        vocab_size: int,
+        vocab_size: int | None = None,
         num_classes: int = 2,
         hidden_dims: tuple[int, ...] = (512, 256),
         z_dim: int = 256,
         dropout: float = 0.2,
         pad_idx: int = 0,
         continuous_y: bool = False,
+        input_dim: int | None = None,
     ):
         super().__init__()
         self.num_classes = num_classes
         self.continuous_y = continuous_y
 
-        self.encoder = build_rnn_encoder(vocab_size, hidden_dims, dropout, pad_idx)
+        self.encoder = build_rnn_encoder(
+            vocab_size, hidden_dims, dropout, pad_idx, input_dim
+        )
         self.mu_head = nn.Linear(hidden_dims[-1], z_dim)
         self.logvar_head = nn.Linear(hidden_dims[-1], z_dim)
         # 标签先验线性层：无激活，one-hot 标签（或连续 y）-> (mu_prior, logvar_prior)
