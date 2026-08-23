@@ -1,4 +1,4 @@
-"""MNIST 分类 / ImageNet-100 特征分类 / Cora 节点分类 / California Housing 回归训练脚本：MLP / CNN / GCN 基线及 VIB / SCVIB / DCVIB 变体。
+"""MNIST 分类 / ImageNet-100 特征分类 / Cora 节点分类 / IMDb 情感分析 / California Housing 回归训练脚本：MLP / CNN / GCN / RNN 基线及 VIB / SCVIB / DCVIB 变体。
 
 用法：
     python train.py                 # 使用默认参数训练 MLP
@@ -14,6 +14,10 @@
     python train.py --task cora --backbone gnn --model vib    # GNN 版 VIB
     python train.py --task cora --backbone gnn --model scvib  # GNN 版 SCVIB
     python train.py --task cora --backbone gnn --model dcvib  # GNN 版 DCVIB
+    python train.py --task imdb --model rnn            # IMDb 情感分析（RNN 基线）
+    python train.py --task imdb --backbone rnn --model vib    # RNN 版 VIB
+    python train.py --task imdb --backbone rnn --model scvib  # RNN 版 SCVIB
+    python train.py --task imdb --backbone rnn --model dcvib  # RNN 版 DCVIB
     python train.py --task regression --model vib     # California Housing 回归（MLP 骨干）
     python train.py --task regression --model scvib   # SCVIB 回归（连续标签条件先验）
     python train.py --task regression --model dcvib   # DCVIB 回归（连续标签条件先验）
@@ -35,24 +39,26 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from data.cora import get_cora_data
-from data.datasets import (
+from datasets.cora import get_cora_data
+from datasets.datasets import (
     get_california_dataloaders,
     get_imagenet100_dataloaders,
     get_mnist_dataloaders,
 )
+from datasets.imdb import get_imdb_dataloaders
 from model import CNN, DCVIB, GCN, MLP, SCVIB, VIB
 from model.cnn import DCVIB as CNDCVIB, SCVIB as CNNSCVIB, VIB as CNNVIB
 from model.gnn import DCVIB as GNNDCVIB, SCVIB as GNNSCVIB, VIB as GNNVIB
+from model.rnn import DCVIB as RNNDCVIB, RNN, SCVIB as RNNSCVIB, VIB as RNNVIB
 
 
 def run_model(model, images, labels, stochastic, adj=None, mask=None):
-    """统一 MLP / CNN / GNN 骨干下各模型的前向接口，返回 (logits, kl)。"""
-    if isinstance(model, (VIB, SCVIB, CNNVIB, CNNSCVIB)):
+    """统一 MLP / CNN / GNN / RNN 骨干下各模型的前向接口，返回 (logits, kl)。"""
+    if isinstance(model, (VIB, SCVIB, CNNVIB, CNNSCVIB, RNNVIB, RNNSCVIB)):
         return model(images, labels, stochastic=stochastic)
     if isinstance(model, (GNNVIB, GNNSCVIB)):
         return model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask)
-    if isinstance(model, (DCVIB, CNDCVIB)):
+    if isinstance(model, (DCVIB, CNDCVIB, RNNDCVIB)):
         return model(images, labels)
     if isinstance(model, GNNDCVIB):
         return model(images, labels, adj_norm=adj, mask=mask)
@@ -126,6 +132,8 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
         return total_loss / total, mae, r2
 
     probs = torch.cat(all_probs).cpu().numpy()
+    if probs.shape[1] == 2:
+        probs = probs[:, 1]  # 二分类时 sklearn 要求 (n,) 的阳性类概率
     auc = roc_auc_score(labels, probs, multi_class="ovr", average="macro")
     precision = precision_score(labels, preds, average="macro", zero_division=0)
     recall = recall_score(labels, preds, average="macro", zero_division=0)
@@ -170,35 +178,45 @@ MODEL_CLASSES = {
     ("mlp", "mlp"): MLP,
     ("cnn", "cnn"): CNN,
     ("gcn", "gnn"): GCN,
+    ("rnn", "rnn"): RNN,
     ("vib", "mlp"): VIB,
     ("vib", "cnn"): CNNVIB,
     ("vib", "gnn"): GNNVIB,
+    ("vib", "rnn"): RNNVIB,
     ("scvib", "mlp"): SCVIB,
     ("scvib", "cnn"): CNNSCVIB,
     ("scvib", "gnn"): GNNSCVIB,
+    ("scvib", "rnn"): RNNSCVIB,
     ("dcvib", "mlp"): DCVIB,
     ("dcvib", "cnn"): CNDCVIB,
     ("dcvib", "gnn"): GNNDCVIB,
+    ("dcvib", "rnn"): RNNDCVIB,
 }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / SCVIB / DCVIB variants")
-    parser.add_argument("--model", type=str, choices=["mlp", "cnn", "gcn", "vib", "scvib", "dcvib"], default="mlp")
+    parser.add_argument(
+        "--model",
+        type=str,
+        choices=["mlp", "cnn", "gcn", "rnn", "vib", "scvib", "dcvib"],
+        default="mlp",
+    )
     parser.add_argument(
         "--backbone",
         type=str,
-        choices=["mlp", "cnn", "gnn"],
+        choices=["mlp", "cnn", "gnn", "rnn"],
         default="mlp",
-        help="backbone of VIB variants; ignored when --model is mlp, cnn or gcn",
+        help="backbone of VIB variants; ignored when --model is mlp, cnn, gcn or rnn",
     )
     parser.add_argument(
         "--task",
         type=str,
-        choices=["classification", "regression", "imagenet100", "cora"],
+        choices=["classification", "regression", "imagenet100", "cora", "imdb"],
         default="classification",
         help="regression uses California Housing; imagenet100 uses pretrained "
-        "ResNet50 features (both MLP backbone only); cora uses GNN backbone only",
+        "ResNet50 features (both MLP backbone only); cora uses GNN backbone only; "
+        "imdb uses RNN backbone only",
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -208,10 +226,18 @@ def main():
         type=int,
         nargs="+",
         default=[512, 256],
-        help="hidden layer dims of the MLP / GNN backbone",
+        help="hidden layer dims of the MLP / GNN backbone; "
+        "RNN backbone uses the first element as word embedding dim and the list "
+        "as per-layer LSTM hidden dims (layer count = list length)",
     )
     parser.add_argument("--dropout", type=float, default=0.2)
     parser.add_argument("--z-dim", type=int, default=256, help="dimension of z in VIB/SCVIB/DCVIB")
+    parser.add_argument(
+        "--max-len",
+        type=int,
+        default=250,
+        help="max sequence length of IMDb reviews (imdb only)",
+    )
     parser.add_argument("--beta", type=float, default=1e-3, help="weight of the KL term in VIB/SCVIB/DCVIB")
     parser.add_argument(
         "--patience",
@@ -258,9 +284,17 @@ def main():
             parser.error("Cora task only supports --model gcn or --backbone gnn with vib/scvib/dcvib")
     elif args.model == "gcn" or args.backbone == "gnn":
         parser.error("GNN backbone is only supported for cora")
+    if args.task == "imdb":
+        ok = args.model == "rnn" or (
+            args.backbone == "rnn" and args.model in ("vib", "scvib", "dcvib")
+        )
+        if not ok:
+            parser.error("IMDb task only supports --model rnn or --backbone rnn with vib/scvib/dcvib")
+    elif args.model == "rnn" or args.backbone == "rnn":
+        parser.error("RNN backbone is only supported for imdb")
 
-    # mlp/cnn/gcn 为自带骨干的基线；变体由 --backbone 指定骨干
-    if args.model in ("mlp", "cnn"):
+    # mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干
+    if args.model in ("mlp", "cnn", "rnn"):
         backbone = args.model
     elif args.model == "gcn":
         backbone = "gnn"
@@ -268,14 +302,15 @@ def main():
         backbone = args.backbone
 
     # 输出目录按 {dataset}_{backbone}_{model} 命名（基线为 {dataset}_{model}），
-    # 如 mnist_mlp_vib、mnist_cnn_vib、california_mlp_scvib、cora_gnn_vib
+    # 如 mnist_mlp_vib、mnist_cnn_vib、california_mlp_scvib、cora_gnn_vib、imdb_rnn_vib
     dataset_name = (
         "california" if args.task == "regression"
         else "imagenet100" if args.task == "imagenet100"
         else "cora" if args.task == "cora"
+        else "imdb" if args.task == "imdb"
         else "mnist"
     )
-    if args.model in ("mlp", "cnn", "gcn"):
+    if args.model in ("mlp", "cnn", "gcn", "rnn"):
         output_name = f"{dataset_name}_{args.model}"
     else:
         output_name = f"{dataset_name}_{backbone}_{args.model}"
@@ -313,6 +348,11 @@ def main():
         train_loader, val_loader, test_loader, target_scaler = (
             get_california_dataloaders(args.batch_size, args.data_dir)
         )
+    elif args.task == "imdb":
+        train_loader, val_loader, test_loader, vocab_size = get_imdb_dataloaders(
+            args.batch_size, args.data_dir, max_len=args.max_len
+        )
+        target_scaler = None
     else:
         if args.task == "imagenet100":
             train_loader, val_loader, test_loader = get_imagenet100_dataloaders(
@@ -326,9 +366,9 @@ def main():
 
     model_cls = MODEL_CLASSES[(args.model, backbone)]
     model_kwargs = dict(dropout=args.dropout)
-    if backbone in ("mlp", "gnn"):
+    if backbone in ("mlp", "gnn", "rnn"):
         model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
-    if args.model not in ("mlp", "cnn", "gcn"):
+    if args.model not in ("mlp", "cnn", "gcn", "rnn"):
         model_kwargs["z_dim"] = args.z_dim
     if args.task == "regression":
         model_kwargs["input_dim"] = 8
@@ -341,6 +381,9 @@ def main():
     elif args.task == "cora":
         model_kwargs["input_dim"] = 1433
         model_kwargs["num_classes"] = 7
+    elif args.task == "imdb":
+        model_kwargs["vocab_size"] = vocab_size
+        model_kwargs["num_classes"] = 2
 
     criterion = nn.MSELoss() if args.task == "regression" else nn.CrossEntropyLoss()
     test_results = []
