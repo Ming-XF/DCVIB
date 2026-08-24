@@ -2,5 +2,6 @@
 
 from .ceb import CEB
 from .dcvib import DCVIB
+from .fgib import FGIB
 from .mlp import MLP
 from .vib import VIB

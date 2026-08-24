@@ -1,5 +1,7 @@
 """公共工具函数。"""
 
+import math
+
 import torch
 import torch.nn as nn
 
@@ -44,3 +46,20 @@ def kl_divergence(mu, logvar, mu_p, logvar_p):
     var, var_p = logvar.exp(), logvar_p.exp()
     kl = 0.5 * (logvar_p - logvar + (var + (mu - mu_p).pow(2)) / var_p - 1.0)
     return kl.sum(dim=1).mean()
+
+
+def build_anchor_prior(
+    z_dim: int, num_classes: int, anchor_scale: float = 4.0, anchor_var: float = 1.0
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """构造 FGIB 固定类条件锚点先验表，返回 (prior_mu, prior_logvar)。
+
+    对随机矩阵做 QR 分解得到 K 个正交方向，缩放 anchor_scale 作为各类先验
+    均值（(num_classes, z_dim)），方差固定为 anchor_var。要求类别数不超过
+    z 维度。返回的均值/对数方差表以 register_buffer 挂到模型上、不参与梯度。
+    """
+    assert num_classes <= z_dim, "固定锚点先验要求类别数不超过 z 维度"
+    g = torch.randn(z_dim, num_classes)
+    q, _ = torch.linalg.qr(g)  # q 为 (z_dim, num_classes) 正交列
+    prior_mu = (q * anchor_scale).t().contiguous()  # (num_classes, z_dim)
+    prior_logvar = torch.full((num_classes, z_dim), math.log(anchor_var))
+    return prior_mu, prior_logvar

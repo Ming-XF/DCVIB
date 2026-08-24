@@ -23,6 +23,14 @@
     python train.py --task housing --model vib     # California Housing 回归（MLP 骨干）
     python train.py --task housing --model ceb     # CEB 回归（连续 y 条件先验）
     python train.py --task housing --model dcvib   # DCVIB 回归（连续标签条件先验）
+    python train.py --model dcvib       # DCVIB（确定性主路 + 旁路瓶颈）
+    python train.py --model fgib    # FGIB（固定几何信息瓶颈：DCVIB + 固定正交锚点先验，MLP 骨干）
+    python train.py --model fgib --anchor-scale 8   # 自定义锚点尺度（0 为各类相同锚点）
+    python train.py --backbone cnn --model fgib     # CNN 版 FGIB
+    python train.py --task imagenet100 --model fgib # ImageNet-100 特征分类（MLP 骨干）
+    python train.py --task cora --backbone gnn --model fgib    # GNN 版 FGIB
+    python train.py --task imdb --backbone rnn --model fgib    # RNN 版 FGIB
+    python train.py --task agnews --backbone rnn --model fgib  # AG News 版 FGIB
     python train.py --model ceb     # CEB（标签条件先验 r(z|y)，对角高斯实现）
     python train.py --random-labels --patience 1000   # 随机标签记忆实验（信息自由数据集）
     python train.py --epochs 20 --batch-size 128 --lr 1e-3
@@ -51,10 +59,10 @@ from datasets.datasets import (
     get_mnist_dataloaders,
 )
 from datasets.imdb import get_imdb_dataloaders
-from model import CEB, CNN, DCVIB, GCN, MLP, VIB
-from model.cnn import CEB as CNNCEB, DCVIB as CNDCVIB, VIB as CNNVIB
-from model.gnn import CEB as GNNCEB, DCVIB as GNNDCVIB, VIB as GNNVIB
-from model.rnn import CEB as RNNCEB, DCVIB as RNNDCVIB, RNN, VIB as RNNVIB
+from model import CEB, CNN, DCVIB, FGIB, GCN, MLP, VIB
+from model.cnn import CEB as CNNCEB, DCVIB as CNDCVIB, FGIB as CNNFGIB, VIB as CNNVIB
+from model.gnn import CEB as GNNCEB, DCVIB as GNNDCVIB, FGIB as GNNFGIB, VIB as GNNVIB
+from model.rnn import CEB as RNNCEB, DCVIB as RNNDCVIB, FGIB as RNNFGIB, RNN, VIB as RNNVIB
 
 
 def run_model(model, images, labels, stochastic, adj=None, mask=None):
@@ -63,9 +71,9 @@ def run_model(model, images, labels, stochastic, adj=None, mask=None):
         return model(images, labels, stochastic=stochastic)
     if isinstance(model, (GNNVIB, GNNCEB)):
         return model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask)
-    if isinstance(model, (DCVIB, CNDCVIB, RNNDCVIB)):
+    if isinstance(model, (DCVIB, FGIB, CNDCVIB, CNNFGIB, RNNDCVIB, RNNFGIB)):
         return model(images, labels)
-    if isinstance(model, GNNDCVIB):
+    if isinstance(model, (GNNDCVIB, GNNFGIB)):
         return model(images, labels, adj_norm=adj, mask=mask)
     if isinstance(model, GCN):
         return model(images, adj_norm=adj), None
@@ -204,15 +212,19 @@ MODEL_CLASSES = {
     ("dcvib", "cnn"): CNDCVIB,
     ("dcvib", "gnn"): GNNDCVIB,
     ("dcvib", "rnn"): RNNDCVIB,
+    ("fgib", "mlp"): FGIB,
+    ("fgib", "cnn"): CNNFGIB,
+    ("fgib", "gnn"): GNNFGIB,
+    ("fgib", "rnn"): RNNFGIB,
 }
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / CEB / DCVIB variants")
+    parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / CEB / DCVIB / FGIB variants")
     parser.add_argument(
         "--model",
         type=str,
-        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "dcvib"],
+        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "dcvib", "fgib"],
         default="mlp",
     )
     parser.add_argument(
@@ -233,7 +245,7 @@ def main():
         "imdb and agnews use RNN backbone only (agnews uses BERT token features)",
     )
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--batch-size", type=int, default=128)
+    parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument(
         "--hidden-dims",
@@ -246,6 +258,13 @@ def main():
     )
     parser.add_argument("--dropout", type=float, default=0.2)
     parser.add_argument("--z-dim", type=int, default=256, help="dimension of z in VIB/CEB/DCVIB")
+    parser.add_argument(
+        "--anchor-scale",
+        type=float,
+        default=4.0,
+        help="scale of the fixed per-class anchor prior means in fgib "
+        "(orthogonal directions scaled by this value; 0 means identical N(0,I) anchors for all classes)",
+    )
     parser.add_argument(
         "--max-len",
         type=int,
@@ -298,23 +317,25 @@ def main():
         parser.error("CNN backbone is not supported for imagenet100")
     if args.task == "cora":
         ok = args.model == "gcn" or (
-            args.backbone == "gnn" and args.model in ("vib", "ceb", "dcvib")
+            args.backbone == "gnn" and args.model in ("vib", "ceb", "dcvib", "fgib")
         )
         if not ok:
-            parser.error("Cora task only supports --model gcn or --backbone gnn with vib/ceb/dcvib")
+            parser.error("Cora task only supports --model gcn or --backbone gnn with vib/ceb/dcvib/fgib")
     elif args.model == "gcn" or args.backbone == "gnn":
         parser.error("GNN backbone is only supported for cora")
     if args.task in ("imdb", "agnews"):
         ok = args.model == "rnn" or (
-            args.backbone == "rnn" and args.model in ("vib", "ceb", "dcvib")
+            args.backbone == "rnn" and args.model in ("vib", "ceb", "dcvib", "fgib")
         )
         if not ok:
             parser.error(
                 f"{args.task} task only supports --model rnn or "
-                "--backbone rnn with vib/ceb/dcvib"
+                "--backbone rnn with vib/ceb/dcvib/fgib"
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews")
+    if args.model == "fgib" and args.task == "housing":
+        parser.error("fgib (fixed class-conditional prior) supports classification tasks only")
 
     # mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干
     if args.model in ("mlp", "cnn", "rnn"):
@@ -402,6 +423,8 @@ def main():
         model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
     if args.model not in ("mlp", "cnn", "gcn", "rnn"):
         model_kwargs["z_dim"] = args.z_dim
+    if args.model == "fgib":
+        model_kwargs["anchor_scale"] = args.anchor_scale
     if args.task == "housing":
         model_kwargs["input_dim"] = 8
         model_kwargs["num_classes"] = 1
