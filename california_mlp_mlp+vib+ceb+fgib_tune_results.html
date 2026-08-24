@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=housing backbone=mlp model=mlp+vib+ceb+fgib runs=5 epochs=100 | 31 组组合（绿色高亮 = 各模型默认指标 R2 的最佳行）</div>
+
+<h2>mlp</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-mlp">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-mlp">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0133" data-mae="0.3848" data-r2="0.7618"><td>-</td><td>-</td><td>0.0133±0.0013</td><td>0.3848±0.0224</td><td>0.7618±0.0238</td></tr>
+</tbody>
+</table>
+
+<h2>vib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-vib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-vib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0141" data-mae="0.3574" data-r2="0.7901"><td>0.001</td><td>-</td><td>0.0141±0.0003</td><td>0.3574±0.0058</td><td>0.7901±0.0049</td></tr><tr data-loss="0.0312" data-mae="0.4605" data-r2="0.6754"><td>0.01</td><td>-</td><td>0.0312±0.0051</td><td>0.4605±0.0378</td><td>0.6754±0.0537</td></tr><tr data-loss="0.0834" data-mae="0.7478" data-r2="0.1409"><td>0.1</td><td>-</td><td>0.0834±0.0087</td><td>0.7478±0.0606</td><td>0.1409±0.0977</td></tr>
+</tbody>
+</table>
+
+<h2>ceb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-ceb">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-ceb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0139" data-mae="0.3667" data-r2="0.7857"><td>0.001</td><td>-</td><td>0.0139±0.0002</td><td>0.3667±0.0046</td><td>0.7857±0.0040</td></tr><tr data-loss="0.0198" data-mae="0.4215" data-r2="0.7495"><td>0.01</td><td>-</td><td>0.0198±0.0012</td><td>0.4215±0.0136</td><td>0.7495±0.0142</td></tr><tr data-loss="0.0374" data-mae="0.6135" data-r2="0.4914"><td>0.1</td><td>-</td><td>0.0374±0.0023</td><td>0.6135±0.0234</td><td>0.4914±0.0540</td></tr>
+</tbody>
+</table>
+
+<h2>fgib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-fgib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-fgib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0843" data-mae="0.3435" data-r2="0.7985"><td>0.01</td><td>6</td><td>0.0843±0.0026</td><td>0.3435±0.0018</td><td>0.7985±0.0019</td></tr><tr data-loss="0.3017" data-mae="0.3463" data-r2="0.7965"><td>0.01</td><td>12</td><td>0.3017±0.0098</td><td>0.3463±0.0035</td><td>0.7965±0.0016</td></tr><tr data-loss="0.7331" data-mae="0.3482" data-r2="0.7957"><td>0.1</td><td>6</td><td>0.7331±0.0294</td><td>0.3482±0.0027</td><td>0.7957±0.0009</td></tr><tr data-loss="0.0932" data-mae="0.3468" data-r2="0.7955"><td>0.1</td><td>2</td><td>0.0932±0.0030</td><td>0.3468±0.0023</td><td>0.7955±0.0015</td></tr><tr data-loss="1.293" data-mae="0.3471" data-r2="0.7954"><td>0.1</td><td>8</td><td>1.2930±0.0485</td><td>0.3471±0.0021</td><td>0.7954±0.0016</td></tr><tr data-loss="0.2145" data-mae="0.3481" data-r2="0.7939"><td>0.01</td><td>10</td><td>0.2145±0.0085</td><td>0.3481±0.0029</td><td>0.7939±0.0062</td></tr><tr data-loss="2.907" data-mae="0.3483" data-r2="0.7937"><td>0.1</td><td>12</td><td>2.9070±0.1057</td><td>0.3483±0.0034</td><td>0.7937±0.0025</td></tr><tr data-loss="0.0419" data-mae="0.3505" data-r2="0.7935"><td>0.001</td><td>12</td><td>0.0419±0.0009</td><td>0.3505±0.0122</td><td>0.7935±0.0095</td></tr><tr data-loss="0.033" data-mae="0.3519" data-r2="0.7933"><td>0.1</td><td>1</td><td>0.0330±0.0007</td><td>0.3519±0.0030</td><td>0.7933±0.0010</td></tr><tr data-loss="0.3366" data-mae="0.3499" data-r2="0.7928"><td>0.1</td><td>4</td><td>0.3366±0.0142</td><td>0.3499±0.0051</td><td>0.7928±0.0055</td></tr><tr data-loss="2.0323" data-mae="0.3509" data-r2="0.7927"><td>0.1</td><td>10</td><td>2.0323±0.0641</td><td>0.3509±0.0026</td><td>0.7927±0.0017</td></tr><tr data-loss="0.41" data-mae="0.348" data-r2="0.7926"><td>0.01</td><td>14</td><td>0.4100±0.0155</td><td>0.3480±0.0044</td><td>0.7926±0.0057</td></tr><tr data-loss="3.9618" data-mae="0.3517" data-r2="0.7925"><td>0.1</td><td>14</td><td>3.9618±0.1440</td><td>0.3517±0.0019</td><td>0.7925±0.0014</td></tr><tr data-loss="0.1429" data-mae="0.3506" data-r2="0.7925"><td>0.01</td><td>8</td><td>0.1429±0.0071</td><td>0.3506±0.0068</td><td>0.7925±0.0066</td></tr><tr data-loss="0.0253" data-mae="0.3502" data-r2="0.7924"><td>0.001</td><td>8</td><td>0.0253±0.0004</td><td>0.3502±0.0056</td><td>0.7924±0.0075</td></tr><tr data-loss="0.0454" data-mae="0.3512" data-r2="0.7923"><td>0.01</td><td>4</td><td>0.0454±0.0020</td><td>0.3512±0.0085</td><td>0.7923±0.0058</td></tr><tr data-loss="0.0334" data-mae="0.3546" data-r2="0.789"><td>0.001</td><td>10</td><td>0.0334±0.0009</td><td>0.3546±0.0098</td><td>0.7890±0.0105</td></tr><tr data-loss="0.0541" data-mae="0.3553" data-r2="0.7867"><td>0.001</td><td>14</td><td>0.0541±0.0040</td><td>0.3553±0.0236</td><td>0.7867±0.0250</td></tr><tr data-loss="0.0156" data-mae="0.359" data-r2="0.786"><td>0.001</td><td>4</td><td>0.0156±0.0009</td><td>0.3590±0.0145</td><td>0.7860±0.0137</td></tr><tr data-loss="0.02" data-mae="0.3598" data-r2="0.7856"><td>0.001</td><td>6</td><td>0.0200±0.0007</td><td>0.3598±0.0052</td><td>0.7856±0.0056</td></tr><tr data-loss="0.0129" data-mae="0.3583" data-r2="0.7851"><td>0.001</td><td>2</td><td>0.0129±0.0006</td><td>0.3583±0.0099</td><td>0.7851±0.0102</td></tr><tr data-loss="0.0143" data-mae="0.3599" data-r2="0.7848"><td>0.01</td><td>1</td><td>0.0143±0.0005</td><td>0.3599±0.0073</td><td>0.7848±0.0093</td></tr><tr data-loss="0.0122" data-mae="0.3601" data-r2="0.7847"><td>0.001</td><td>1</td><td>0.0122±0.0004</td><td>0.3601±0.0056</td><td>0.7847±0.0074</td></tr><tr data-loss="0.0213" data-mae="0.3626" data-r2="0.7791"><td>0.01</td><td>2</td><td>0.0213±0.0014</td><td>0.3626±0.0170</td><td>0.7791±0.0179</td></tr>
+</tbody>
+</table>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

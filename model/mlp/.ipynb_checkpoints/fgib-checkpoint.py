@@ -2,13 +2,7 @@
 
 import torch.nn as nn
 
-from .utils import (
-    ContinuousAnchorPrior,
-    build_anchor_prior,
-    build_hidden_layers,
-    flatten,
-    kl_divergence,
-)
+from .utils import build_anchor_prior, build_hidden_layers, flatten, kl_divergence
 
 
 class FGIB(nn.Module):
@@ -16,15 +10,11 @@ class FGIB(nn.Module):
 
     主路与 DCVIB 相同：编码器输出 h 后直接由分类器得到 logits（确定性），
     z 不参与前向。旁路从 h 引出 mu/logvar 头得到后验 q(z|x)；先验不再是
-    可学习的标签编码器，而是固定的高斯分布（register_buffer、不参与梯度），
-    训练损失中加入 KL(q(z|x) || r(z|y))，梯度只通过共享编码器 h 回传作为
-    正则。KL 无法靠移动先验来减小，只要 z 未对齐锚点，正则力就持续存在。
-
-    分类（continuous_y=False）：按类别索引的固定高斯分布表——K 个正交方向
-    缩放 anchor_scale 作为各类均值，方差固定为 anchor_var。
-    回归（continuous_y=True）：固定随机傅里叶特征锚点——mu_p(y) =
-    anchor_scale·sqrt(2/z_dim)·cos(2π·ω·y+b)，ω/b 固定 buffer，锚点近似
-    落在半径 anchor_scale 的球面上（见 ContinuousAnchorPrior）。
+    可学习的标签编码器，而是按类别索引的固定高斯分布表——K 个正交方向
+    缩放 anchor_scale 作为各类均值，方差固定为 anchor_var——训练损失中
+    加入 KL(q(z|x) || r(z|y))，梯度只通过共享编码器 h 回传作为正则。
+    先验为 register_buffer、不参与梯度，因此 KL 无法靠移动先验来减小，
+    只要 z 未对齐锚点，正则力就持续存在。
     """
 
     def __init__(
@@ -34,13 +24,11 @@ class FGIB(nn.Module):
         z_dim: int = 256,
         num_classes: int = 10,
         dropout: float = 0.2,
-        continuous_y: bool = False,
         anchor_scale: float = 4.0,
         anchor_var: float = 1.0,
     ):
         super().__init__()
         self.num_classes = num_classes
-        self.continuous_y = continuous_y
 
         self.encoder = nn.Sequential(
             *build_hidden_layers(input_dim, hidden_dims, dropout)
@@ -54,17 +42,12 @@ class FGIB(nn.Module):
         self.mu_head = nn.Linear(hidden_dim, z_dim)
         self.logvar_head = nn.Linear(hidden_dim, z_dim)
 
-        # 固定类条件先验：分类为每类一个高斯分布表；回归为连续锚点映射
-        if continuous_y:
-            self.anchor_prior = ContinuousAnchorPrior(
-                z_dim, anchor_scale, anchor_var
-            )
-        else:
-            prior_mu, prior_logvar = build_anchor_prior(
-                z_dim, num_classes, anchor_scale, anchor_var
-            )
-            self.register_buffer("prior_mu", prior_mu)
-            self.register_buffer("prior_logvar", prior_logvar)
+        # 固定类条件先验表：每类一个高斯分布，不参与梯度
+        prior_mu, prior_logvar = build_anchor_prior(
+            z_dim, num_classes, anchor_scale, anchor_var
+        )
+        self.register_buffer("prior_mu", prior_mu)
+        self.register_buffer("prior_logvar", prior_logvar)
 
         # 置零初始化：训练起点 sigma = 1，初始 KL ≈ 0.5 * anchor_scale^2
         nn.init.zeros_(self.logvar_head.weight)
@@ -84,11 +67,8 @@ class FGIB(nn.Module):
 
         mu = self.mu_head(h)
         logvar = self.logvar_head(h)
-        if self.continuous_y:
-            mu_p, logvar_p = self.anchor_prior(labels.float().unsqueeze(-1))
-        else:
-            mu_p = self.prior_mu[labels]
-            logvar_p = self.prior_logvar[labels]
+        mu_p = self.prior_mu[labels]
+        logvar_p = self.prior_logvar[labels]
 
         kl = kl_divergence(mu, logvar, mu_p, logvar_p)
         return logits, kl

@@ -23,6 +23,7 @@
     python train.py --task housing --model vib     # California Housing 回归（MLP 骨干）
     python train.py --task housing --model ceb     # CEB 回归（连续 y 条件先验）
     python train.py --task housing --model dcvib   # DCVIB 回归（连续标签条件先验）
+    python train.py --task housing --model fgib    # FGIB 回归（固定 RFF 连续锚点先验）
     python train.py --model dcvib       # DCVIB（确定性主路 + 旁路瓶颈）
     python train.py --model fgib    # FGIB（固定几何信息瓶颈：DCVIB + 固定正交锚点先验，MLP 骨干）
     python train.py --model fgib --anchor-scale 8   # 自定义锚点尺度（0 为各类相同锚点）
@@ -275,8 +276,10 @@ def build_parser():
         "--anchor-scale",
         type=float,
         default=4.0,
-        help="scale of the fixed per-class anchor prior means in fgib "
-        "(orthogonal directions scaled by this value; 0 means identical N(0,I) anchors for all classes)",
+        help="scale of the fixed anchor prior means in fgib (classification: "
+        "orthogonal per-class directions scaled by this value, 0 = identical N(0,I) "
+        "anchors; regression: anchors lie on a sphere of this radius via fixed "
+        "random Fourier features, 0 = N(0,I) prior)",
     )
     parser.add_argument(
         "--max-len",
@@ -352,8 +355,6 @@ def main():
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews")
-    if args.model == "fgib" and args.task == "housing":
-        parser.error("fgib (fixed class-conditional prior) supports classification tasks only")
 
     # mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干
     if args.model in ("mlp", "cnn", "rnn"):
@@ -439,7 +440,7 @@ def main():
     if args.task == "housing":
         model_kwargs["input_dim"] = 8
         model_kwargs["num_classes"] = 1
-        if args.model in ("ceb", "dcvib"):
+        if args.model in ("ceb", "dcvib", "fgib"):
             model_kwargs["continuous_y"] = True
     elif args.task == "imagenet100":
         model_kwargs["input_dim"] = 1024

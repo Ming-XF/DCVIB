@@ -63,3 +63,38 @@ def build_anchor_prior(
     prior_mu = (q * anchor_scale).t().contiguous()  # (num_classes, z_dim)
     prior_logvar = torch.full((num_classes, z_dim), math.log(anchor_var))
     return prior_mu, prior_logvar
+
+
+class ContinuousAnchorPrior(nn.Module):
+    """FGIB 回归用的固定连续锚点先验（随机傅里叶特征，零参数）。
+
+    mu_p(y) = anchor_scale · sqrt(2/z_dim) · cos(2π·ω·y + b)，ω ~ N(0, bandwidth²)、
+    b ~ U[0, 2π)，初始化时随机生成一次并固定为 buffer（受 run seed 控制，与
+    分类版 QR 锚点一致）。||φ(y)|| ≈ 1，锚点近似落在半径 anchor_scale 的球面上，
+    训练起点 KL ≈ 0.5·anchor_scale²，anchor_scale 语义与分类版一致；
+    anchor_scale=0 时退化为各类相同的 N(0, I) 先验。
+    """
+
+    def __init__(
+        self,
+        z_dim: int,
+        anchor_scale: float = 4.0,
+        anchor_var: float = 1.0,
+        bandwidth: float = 2.0,
+    ):
+        super().__init__()
+        self.z_dim = z_dim
+        self.anchor_scale = anchor_scale
+        omega = torch.randn(z_dim) * bandwidth
+        bias = torch.rand(z_dim) * (2.0 * math.pi)
+        self.register_buffer("omega", omega)
+        self.register_buffer("bias", bias)
+        self.register_buffer("anchor_logvar", torch.full((1, z_dim), math.log(anchor_var)))
+
+    def forward(self, y):
+        """y: (B, 1) 归一化连续标签 → ((B, z_dim) mu_p, (B, z_dim) logvar_p)。"""
+        feat = math.sqrt(2.0 / self.z_dim) * torch.cos(
+            2.0 * math.pi * self.omega * y + self.bias
+        )
+        mu_p = self.anchor_scale * feat
+        return mu_p, self.anchor_logvar.expand_as(mu_p)
