@@ -219,7 +219,20 @@ MODEL_CLASSES = {
 }
 
 
-def main():
+def get_dataset_name(task: str) -> str:
+    """任务名 → 数据集命名（输出目录 / 调参结果命名前缀用）。"""
+    return (
+        "california" if task == "housing"
+        else "imagenet100" if task == "imagenet100"
+        else "cora" if task == "cora"
+        else "imdb" if task == "imdb"
+        else "agnews" if task == "agnews"
+        else "mnist"
+    )
+
+
+def build_parser():
+    """构建 argparse 解析器（train.py 与 tune.py 共享，tune.py 会覆盖部分参数）。"""
     parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / CEB / DCVIB / FGIB variants")
     parser.add_argument(
         "--model",
@@ -309,6 +322,11 @@ def main():
         default=None,
         help="training log file path (default output/{model}/train_{model}.log)",
     )
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
 
     if args.task == "housing" and (args.model == "cnn" or args.backbone == "cnn"):
@@ -347,14 +365,7 @@ def main():
 
     # 输出目录按 {dataset}_{backbone}_{model} 命名（基线为 {dataset}_{model}），
     # 如 mnist_mlp_vib、mnist_cnn_vib、california_mlp_ceb、cora_gnn_vib、imdb_rnn_vib
-    dataset_name = (
-        "california" if args.task == "housing"
-        else "imagenet100" if args.task == "imagenet100"
-        else "cora" if args.task == "cora"
-        else "imdb" if args.task == "imdb"
-        else "agnews" if args.task == "agnews"
-        else "mnist"
-    )
+    dataset_name = get_dataset_name(args.task)
     if args.model in ("mlp", "cnn", "gcn", "rnn"):
         output_name = f"{dataset_name}_{args.model}"
     else:
