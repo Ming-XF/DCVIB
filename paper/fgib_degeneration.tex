@@ -1,0 +1,233 @@
+% fgib_theory.tex —— FGIB 对 SIB（Kolchinsky et al., ICLR 2019 "Caveats"）确定性退化问题的规避性推导
+% 记号沿用 Kolchinsky et al. (2019) 与 Fischer (2020)；用法同 dcvib_theory.tex
+% 核心结论：IB/dIB Lagrangian 在其自然解族上关于压缩标量是线性（单调）的，最优解被钉在端点；
+% 而 FGIB 的压缩项是固定锚点 KL = (s-a)^2/2，关于对齐标量 s 严格凸，
+% 使 FGIB Lagrangian 对每个 β 有唯一内部最优解，β 可一对一地扫出整条压缩-精度曲线。
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\textbf{Notation.}
+$X$ input, $Y$ label with $K$ classes, deterministic scenario $Y = f(X)$ ($H(Y|X) = 0$),
+uniform class prior $p(y) = 1/K$.
+FGIB: the deterministic main path computes $h = f_{\mathrm{enc}}(X)$ and the classifier
+consumes $h$ directly; the side path parameterizes $q(z|x) = \mathcal{N}(\mu(x), \Sigma(x))$
+with linear mean head $\mu(x) = A\,h(x)$, and the label-conditional prior is a \emph{fixed}
+anchor $r(z|y) = \mathcal{N}(a\,v_y, I)$, where the $v_y$ are orthonormal directions (QR
+construction of \texttt{build\_anchor\_prior}) and $a$ is the anchor scale ($\sigma_p^2 = 1$).
+The objective is $L_{\mathrm{FGIB}} = \mathbb{E}[\mathrm{CE}(c(h), y)]
++ \beta\,\mathbb{E}[\operatorname{KL}(q(z|x)\,\|\,r(z|y))]$, with gradients reaching the main
+path only through the shared encoder.
+Following Kolchinsky et al.\ (2019), we write the IB curve $F(r)$ (their Eq.~1), the IB
+Lagrangian $L^{\mathrm{IB}}_\beta = I(Y;T) - \beta I(X;T)$ (Eq.~2), the manifold
+$T_\alpha = B_\alpha \cdot Y$ (Eq.~6), the bound $L^{\mathrm{IB}}_\beta \le (1-\beta)H(Y)$
+(Eq.~7), the squared-IB functional $L^{\mathrm{sq\text{-}IB}}_\beta = I(Y;T) - \beta I(X;T)^2$
+(Eq.~8), and from their Appendix~B the dIB Lagrangian $L^{\mathrm{dIB}}_\beta = I(Y;T) - \beta H(T)$
+(Eq.~A13) and the squared-dIB functional (Eq.~A18).
+Following Fischer (2020), we write the residual information $I(X;Z|Y)$ and its variational
+bound (CEB Eqs.~9--11, 20).
+
+\textbf{The degeneracy to be addressed (restated in our terms).}
+When $Y = f(X)$, the IB curve saturates the data-processing bound and is piecewise linear,
+$F(r) = \min\{r, H(Y)\}$ (Caveats paper, Section~3). Two consequences (their Caveat~1):
+(i)~by the DPI, $L^{\mathrm{IB}}_\beta(T) = I(Y;T) - \beta I(X;T) \le (1-\beta)I(Y;T)
+\le (1-\beta)H(Y)$, and $T_{\mathrm{copy}} := f(X) = Y$ attains the bound for
+\emph{every} $\beta \in [0,1]$: all $\beta \in (0,1)$ are pinned at the single corner point
+$\langle H(Y), H(Y)\rangle$ of the curve; (ii)~conversely, at $\beta = 1$ every point of the
+increasing part simultaneously maximizes $L^{\mathrm{IB}}_1$. The mechanism is exposed by
+writing $\max_T L^{\mathrm{IB}}_\beta = \max_r [F(r) - \beta r]$ (the Legendre transform of
+$-F$): on the linear increasing part every point has the \emph{same} derivative
+$F'(r) = 1$, hence the same supporting slope --- a Lagrangian of the form
+``prediction $-\beta\cdot{}$compression'' sweeps a Pareto curve only if each point of the
+curve has a \emph{unique} supporting slope, i.e.\ the curve is strictly concave.
+The dIB variant fails identically: on the hard-clustering family $T = g(Y)$ one has
+$H(T|Y) = 0$, hence $I(Y;T) = H(T)$, so $L^{\mathrm{dIB}}_\beta = (1-\beta)H(T)$ --- a
+\emph{monotone} function of the single compression scalar $H(T)$, maximized by the finest
+partition for every $\beta < 1$. The squared fixes repair this by making the objective
+strictly concave in the compression scalar: $F'(r)/(2r) = \beta$ is strictly decreasing, so
+each $\beta$ selects a unique $r$ (Eq.~8 argument), and squared-dIB has the unique maximizer
+$H(T) = 1/(2\beta)$ (their Eq.~A20).
+
+\textbf{Reduced model of FGIB.}
+By the linear-invariance lemma for Gaussian KL (dcvib\_theory.tex, Lemma~1), the invertible
+map $\tilde{z} = A^{-1}z$ reparameterizes the side path to $\mu_{\tilde q}(x) = h(x)$ with
+unchanged KL, so we take $\mu(x) = h(x)$ without loss of generality.
+Consider the \emph{class-symmetric aligned family}: the encoder maps every input of class $y$
+to $h_y = s\,v_y$ ($s \ge 0$), the classifier is held at the symmetric configuration
+$w_j = c\,v_j$, $b_j = 0$ with fixed scale $c > 0$, and the posterior is
+$q_y = \mathcal{N}(s v_y, \sigma^2 I)$. The family is the natural equilibrium manifold of
+the two forces: the KL gradient $\nabla_h \operatorname{KL} = (\mu - a v_y)$ acts exactly
+along $v_y$, and the classification force on the class center acts along $v_y$ at the
+symmetric configuration; the ansatz is exact in the $\beta$-dominant regime and idealizes
+the cross terms $O(c/\beta)$ otherwise (see Remark~\ref{rem:caveats}).
+
+\begin{lemma}[FGIB Lagrangian on the aligned family]\label{lem:lagrangian}
+On the aligned family,
+\begin{equation}
+\operatorname{KL}(s, \sigma^2)
+= \tfrac{z}{2}\big(\sigma^2 - 1 - \ln\sigma^2\big) + \tfrac{1}{2}(s-a)^2,
+\qquad
+\mathrm{CE}(s) = \ln\!\big(1 + (K-1)e^{-cs}\big),
+\label{eq:kl-ce}
+\end{equation}
+and the optimizer over $\sigma^2$ is $\sigma^2 = 1$ for \emph{every} $\beta$, since the CE
+term does not depend on $\sigma^2$ (the classifier consumes the deterministic $h$, not $z$).
+\end{lemma}
+
+\begin{proof}
+With $h_y = s v_y$ and $w_j = c v_j$, the logits are $c\,\langle v_j, s v_y\rangle
+= cs\,\delta_{jy}$, so $p_y = e^{cs}/(e^{cs} + K - 1)$ and
+$\mathrm{CE} = -\ln p_y = \ln(1 + (K-1)e^{-cs})$.
+For the KL, the diagonal closed form with $\Sigma_q = \sigma^2 I$, $\Sigma_p = I$ reads
+$\tfrac{1}{2}\sum_d\big[\sigma^2 + (\mu_d - a v_{yd})^2 - 1 - \ln\sigma^2\big]$, giving
+Eq.~\eqref{eq:kl-ce} since $\|v_y\| = 1$. The variance term is non-negative with a unique
+minimum at $\sigma^2 = 1$, and $\mathrm{CE}$ is independent of $\sigma^2$. \hfill\qed
+\end{proof}
+
+\begin{proposition}[Unique interior optimum per $\beta$ --- the sweep]\label{prop:sweep}
+For every $\beta > 0$, the FGIB Lagrangian on the aligned family,
+\begin{equation}
+L_\beta(s) := \ln\!\big(1 + (K-1)e^{-cs}\big) + \tfrac{\beta}{2}(s-a)^2,
+\label{eq:fgib-lag}
+\end{equation}
+is strictly convex in $s$ and has a unique minimizer $s^*(\beta) > a$, given implicitly by
+\begin{equation}
+\beta\,(s-a) = c\,\varphi(cs),
+\qquad
+\varphi(u) := \frac{(K-1)e^{-u}}{1 + (K-1)e^{-u}} \in (0,1) .
+\label{eq:stationarity}
+\end{equation}
+The map $\beta \mapsto s^*(\beta)$ is continuous and strictly decreasing, with
+$s^*(\beta) \to a$ as $\beta \to \infty$ and $s^*(\beta) \to \infty$ as $\beta \to 0$.
+Consequently the map $\beta \mapsto \big(\operatorname{KL}(s^*), \mathrm{CE}(s^*)\big)$ is
+one-to-one onto the entire curve $\{\big(\tfrac{1}{2}(s-a)^2,\;
+\ln(1+(K-1)e^{-cs})\big) : s \in (a, \infty)\}$: no two $\beta$ share the same optimum, and
+every interior point of the trade-off curve is attained --- the exact failure mode of
+$L^{\mathrm{IB}}_\beta$ (all $\beta$ pinned at $T_{\mathrm{copy}}$) is absent.
+\end{proposition}
+
+\begin{proof}
+Compute $\mathrm{CE}'(s) = -c\varphi(cs)$ and
+$\mathrm{CE}''(s) = c^2 (K-1) e^{-cs}/(1 + (K-1)e^{-cs})^2 > 0$, so CE is strictly convex
+and strictly decreasing in $s$; the compression term $\tfrac{1}{2}(s-a)^2$ is strictly
+convex. Hence $L_\beta''(s) = \mathrm{CE}''(s) + \beta > 0$: $L_\beta$ is strictly convex
+with at most one minimizer, characterized by
+$0 = L_\beta'(s) = -c\varphi(cs) + \beta(s-a)$, i.e.\ Eq.~\eqref{eq:stationarity}.
+The left side $\beta(s-a)$ is strictly increasing from $-\beta a$ (at $s=0$) through $0$
+(at $s=a$) to $+\infty$; the right side $c\varphi(cs)$ is strictly decreasing in $s$ with
+$c\varphi(cs) \in (0, c)$. The unique crossing therefore satisfies $s^* > a$.
+Differentiating Eq.~\eqref{eq:stationarity} with respect to $\beta$ gives
+$(s-a) + \beta s' = c^2\varphi'(cs)\,s'$ with $\varphi' < 0$, so
+$s' = -(s-a)/(\beta - c^2\varphi'(cs)) < 0$: $s^*$ is strictly decreasing.
+The limits follow by monotonicity: as $\beta \to \infty$ the left side can only match the
+bounded right side when $s \to a$; as $\beta \to 0$ the crossing requires $\varphi(cs)\to 0$,
+i.e.\ $s \to \infty$. \hfill\qed
+\end{proof}
+
+\begin{proposition}[The trade-off curve is strictly concave in the compression--prediction plane]\label{prop:curve}
+On the curve of Proposition~\ref{prop:sweep},
+\begin{equation}
+\frac{d\,\mathrm{CE}}{d\,\operatorname{KL}}
+= \frac{\mathrm{CE}'(s)}{(s-a)}
+= -\frac{c\varphi(cs)}{s-a},
+\label{eq:slope}
+\end{equation}
+which is strictly increasing from $-\infty$ (as $s \to a^+$) to $0^-$ (as $s \to \infty$).
+Thus the curve $\operatorname{KL} \mapsto -\mathrm{CE}$ (compression versus achievable
+prediction) is strictly concave, and each of its points has a \emph{unique} supporting slope
+$-\beta$. By the criterion of the Caveats paper (their Fig.~2 right panel and the
+$F'(r)/(2r)$ argument of Eq.~8), this is precisely the property that makes the Lagrangian
+$-\mathrm{CE} - \beta\,\operatorname{KL}$ sweep the full curve: FGIB satisfies the
+sweep condition \emph{without squaring the compression term}.
+\end{proposition}
+
+\begin{proof}
+$\varphi$ is positive and strictly decreasing and $s-a$ is positive and strictly increasing,
+so $c\varphi(cs)/(s-a)$ is strictly decreasing in $s$; the signs give the stated limits.
+The stationarity condition Eq.~\eqref{eq:stationarity} is exactly
+$-d\mathrm{CE}/d\operatorname{KL} = \beta$, i.e.\ $\beta$ is the supporting slope at the
+optimum. \hfill\qed
+\end{proof}
+
+\textbf{Where the convexity comes from (mechanism).}
+Compare the three objectives on their natural solution families, as functions of the single
+compression scalar:
+\begin{itemize}
+\item \emph{dIB on hard clusterings} (Caveats Appendix~B): $L^{\mathrm{dIB}}_\beta
+= (1-\beta)H(T)$ --- compression $H(T)$ and prediction $I(Y;T) = H(T)$ are the \emph{same}
+scalar, so the objective is monotone in it and the optimum sits at the endpoint for every
+$\beta < 1$. Squared-dIB restores interior optima by hand, $H(T) - \beta H(T)^2$ with
+unique maximizer $H(T) = 1/(2\beta)$.
+\item \emph{Standard IB} (deterministic): the curve is linear ($F'(r) \equiv 1$), every
+point shares one supporting slope, and the corner $\langle H(Y), H(Y)\rangle$ is selected
+for all $\beta \in (0,1)$. Squared-IB convexifies via $F'(r)/(2r)$ strictly decreasing.
+\item \emph{FGIB}: the compression term is $\operatorname{KL}(q_y \| r_y) \supseteq
+\tfrac{1}{2}\|\mu_y - a v_y\|^2 = \tfrac{1}{2}(s-a)^2$ --- \emph{quadratic} in the
+alignment scalar $s$, hence strictly convex, because the KL is measured against a
+\emph{fixed} reference $a v_y$: $\operatorname{KL}(\mathcal{N}(\mu,\cdot)\|\mathcal{N}(\mu_p,\cdot))
+= \tfrac{1}{2}\|\mu - \mu_p\|^2 + {}$(variance terms) is quadratic in the displacement
+$\mu - \mu_p$ whenever $\mu_p$ does not move. Entropy-based compression ($H(T)$, $I(X;T)$)
+is self-referential --- it depends only on the representation's own distribution and enters
+linearly in the clustering probabilities; the fixed anchor supplies an absolute reference
+frame and turns compression into a squared distance. The convexification that squared-IB
+installs by squaring the compression term is thus built into FGIB's fixed-anchor KL.
+Together with the strictly convex prediction term (Lemma~\ref{lem:lagrangian}), the
+Lagrangian is strictly convex with a unique interior minimizer per $\beta$
+(Proposition~\ref{prop:sweep}), and the resulting curve is strictly concave
+(Proposition~\ref{prop:curve}).
+\end{itemize}
+
+\begin{remark}[Non-triviality of the compressed endpoint --- the paper's Caveat 2]\label{rem:endpoint}
+VIB's fixed marginal $m(z) = \mathcal{N}(0, I)$ places the $\operatorname{KL}=0$ point at
+$\mu = 0$ for \emph{all} classes: the fully compressed solution is the trivial collapse with
+$\mathrm{CE} = \ln K$ (chance level), and squaring (SVIB) leaves this corner in place since
+$\operatorname{KL}^2$ is stationary at $\operatorname{KL}=0$. FGIB's per-class orthonormal
+anchors make the $\operatorname{KL}=0$ point a \emph{class-separated} configuration:
+$\mu_y = a v_y$ with $\langle v_y, v_{y'}\rangle = \delta_{yy'}$, so at the corner
+$\mathrm{CE}(a) = \ln(1 + (K-1)e^{-ca})$, which is bounded and tends to $0$ as the anchor
+scale $a$ grows. The anchor geometry thus removes not only the sweep degeneracy (Caveat~1)
+but also the triviality of the compressed solutions (Caveat~2); $a = 0$ collapses the
+anchors to the origin and recovers the VIB corner.
+\end{remark}
+
+\begin{remark}[Residual-information interpretation (CEB)]\label{rem:residual}
+For any backward encoder, $\mathbb{E}[\operatorname{KL}(q(z|x)\|r(z|y))]
+= I(X;Z|Y) + \mathbb{E}_y[\operatorname{KL}(q(z|y)\|r(z|y))]
+\ge I(X;Z|Y)$ (Fischer 2020, Eqs.~9--11, 20). FGIB is therefore a CEB bottleneck with a
+\emph{fixed} backward encoder: the regularizer upper-bounds the residual information, and on
+the aligned family the residual vanishes identically ($q(z|x)$ depends on $y$ alone), so the
+regularizer equals the anchor-matching gap $\tfrac{1}{2}(s-a)^2$. The quadratic mechanism of
+Proposition~\ref{prop:sweep} is inherited from this gap term, which exists only because the
+anchor is not allowed to follow the encoder.
+\end{remark}
+
+\begin{remark}[Variance decoupling and training--evaluation consistency]
+Since the classifier consumes the deterministic $h$ (and the KL does not see the classifier),
+the posterior variance decouples: $\sigma^{2*} = 1$ for all $\beta$, and the trade-off is
+purely geometric (mean alignment). This contrasts with VIB, where the classifier consumes
+the sampled $z$: the noise couples into the prediction term (by Jensen,
+$\mathbb{E}_z[\mathrm{CE}(c(z),y)] \ge \mathrm{CE}(c(\mu),y)$), the rate $R \ge I(X;Z)$
+over-counts compression, and training-time sampling versus evaluation-time mean creates a
+distribution mismatch (Fischer 2020, Appendix~A.1).
+\end{remark}
+
+\begin{remark}[Idealizations and the finite-scale caveat]\label{rem:caveats}
+(i)~The classifier scale $c$ is held fixed in the reduced model. In the actual model the
+linear classifier is trained jointly, and its row norm grows (logistically, since the CE
+gradient on $W$ vanishes as $p_y \to 1$) rather than diverging in finite time; at any fixed
+training time $c$ is bounded and the equilibrium $s^*(\beta; c)$ follows the curve of
+Proposition~\ref{prop:sweep}, so the $\beta$-sweep is realized. In the limit $c \to \infty$
+the infimum for \emph{every} $\beta$ is the aligned corner ($\operatorname{KL} = 0$,
+$\mathrm{CE} \to 0$) --- the maximal-compression-at-zero-loss corner itself --- and no
+minimizer is attained ($\mathrm{CE} = 0$ requires infinite margin); the degeneracy question
+is therefore properly posed about the finite-scale equilibrium, where the curve is strictly
+concave (Proposition~\ref{prop:curve}). (ii)~The class-symmetric ansatz idealizes the
+equilibrium geometry; it is exact in the $\beta$-dominant regime and captures the direction
+of the KL force in general. (iii)~For regression, the continuous RFF anchors satisfy
+$\|\mu_p(y)\| \approx a$, so $\operatorname{KL} \supseteq \tfrac{1}{2}\|\mu - \mu_p(y)\|^2$
+is again quadratic in $\mu$ for the fixed anchor --- the same convexity mechanism carries
+over. (iv)~Training starts at $\operatorname{KL} \approx a^2/2$ (zero-initialized logvar
+head, $\sigma = 1$, $\mu \approx 0$), so the anchor scale sets the initial regularization
+pressure; larger $a$ delays the approach to $s^*$.
+\end{remark}

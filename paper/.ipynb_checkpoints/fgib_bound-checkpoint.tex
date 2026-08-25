@@ -1,0 +1,221 @@
+% fgib_bound.tex —— FGIB 逆正交变换界与 CEB 界的紧致性比较推导
+% 记号沿用 Fischer (2020)、Kolchinsky et al. (2017/2019) 与 fgib_theory.tex；用法同 dcvib_theory.tex
+% 核心结论（两个方向，各带条件）：
+% (1) 变分值意义：同一编码器 q 下，CEB 可学习反向编码器把 gap 消到矩匹配最小，CEB 的界 ≤ FGIB 的界，
+%     差额恰为锚点 gap —— 对齐族上即 ½(s-a)² + (z/2)(σ²-1-ln σ²)，与 fgib_theory.tex 的扫参项同一表达式；
+% (2) 作用对象意义：经逆正交变换 A⁻¹（mu_head 约束正交），FGIB 的界作用在"推理表示 h + 已知旁路噪声"上；
+%     CEB 的界作用在训练期噪声码 Z 上，由 DPI 严格低于推理表示 μ(X) 的残差信息——作为推理表示残差的上界，
+%     FGIB 的界更紧（CEB 的界根本不是该对象的有效上界），且 FGIB 的缺口可由仅旁路参数 anchor_var→0 消去。
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\textbf{Notation.}
+$X$ input, $Y$ label, $K$ classes.
+Both models share the encoder posterior $q(z|x)$; write
+$q(z|y) := \mathbb{E}_{p(x|y)}[q(z|x)]$ for the class-conditional marginal.
+CEB's backward encoder is a learnable per-class (diagonal) Gaussian
+$b_\theta(z|y) = \mathcal{N}(m_\theta(y), S_\theta(y))$ (linear \texttt{prior\_net} on
+one-hot $y$); FGIB's prior is the fixed anchor $r(z|y) = \mathcal{N}(a\,v_y, I)$ with
+orthonormal $v_y$ and anchor variance $1$.
+The variational objects (Fischer 2020, Eqs.~18--20; Alemi et al.\ 2017, Eq.~14;
+Kolchinsky et al.\ 2017, Eq.~10):
+\begin{align*}
+R &= \mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,m(z))\big] \ge I(X;Z)
+&&\text{(VIB rate, marginal prior $m$)} \\
+\mathrm{ReX} &= \mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,b_\theta(z|y))\big]
+\ge I(X;Z|Y)
+&&\text{(CEB residual)} \\
+\widehat I &= -\frac{1}{N}\sum_i \ln\Big[\frac{1}{N}\sum_j
+e^{-\|f_i-f_j\|^2/(2\sigma^2)}\Big] \ge I(X;M)
+&&\text{(NIB, non-parametric)} \\
+\mathrm{ReX}_F &= \mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,r(z|y))\big]
+\ge I(X;Z|Y)
+&&\text{(FGIB, fixed anchor)}
+\end{align*}
+Fischer's comparison of the first two: at the respective prior optima
+($m = q(z)$, $b = q(z|y)$), $\mathrm{ReX} = R - I(Y;Z)$ --- the conditional prior removes
+exactly the retained label information, so CEB's bound is tighter than VIB's by
+$I(Y;Z)$. We ask the same question one level down: where does FGIB's fixed-anchor bound
+sit relative to CEB's learnable-backward bound?
+
+\begin{lemma}[Gap identity]\label{lem:gap}
+For any conditional $r(z|y)$,
+\begin{equation}
+\mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,r(z|y))\big]
+= I(X;Z|Y) + \mathbb{E}_y\big[\operatorname{KL}(q(z|y)\,\|\,r(z|y))\big] .
+\label{eq:gap}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+$\mathbb{E}[\operatorname{KL}(q(z|x)\|r(z|y))] = \mathbb{E}[\ln q(z|x) - \ln r(z|y)]$
+and $I(X;Z|Y) = \mathbb{E}[\ln q(z|x) - \ln q(z|y)]$ (Fischer 2020, Eqs.~9--10), where
+both expectations are over $p(x,y)q(z|x)$; subtracting,
+$\mathbb{E}[\ln q(z|y) - \ln r(z|y)] = \mathbb{E}_y[\operatorname{KL}(q(z|y)\|r(z|y))]$
+since the argument depends on $z, y$ only. \hfill\qed
+\end{proof}
+
+\begin{lemma}[Moment matching]\label{lem:mm}
+Within the per-class Gaussian (diagonal) family, the gap of Lemma~\ref{lem:gap} is
+minimized by the moment-matched Gaussian $b^*_y = \mathcal{N}(m_y, S_y)$ with
+$m_y = \mathbb{E}\,q(z|y)$, $S_y = \operatorname{diag}\operatorname{Var} q(z|y)$.
+\end{lemma}
+
+\begin{proof}
+$\operatorname{KL}(p\|q)$ as a function of $q$ is minimized by matching the first two
+moments of $p$ (standard; for Gaussians the minimizer is unique). \hfill\qed
+\end{proof}
+
+\begin{proposition}[Variational ordering: CEB's bound is tighter in value]\label{prop:ordering}
+For every fixed encoder $q(z|x)$,
+$\mathrm{ReX}(\theta^*) \le \mathrm{ReX}_F$ where $\theta^*$ is CEB's optimal backward
+encoder, and the excess is the \emph{anchor gap}
+\begin{equation}
+\Delta := \mathrm{ReX}_F - \mathrm{ReX}(\theta^*)
+= \mathbb{E}_y\big[\operatorname{KL}(q(z|y)\,\|\,N(a v_y, I))\big]
+- \mathbb{E}_y\big[\operatorname{KL}(q(z|y)\,\|\,N(m_y, S_y))\big] \ge 0 ,
+\label{eq:anchor-gap}
+\end{equation}
+with equality iff the anchors equal the moment-matched marginals.
+On the aligned family of fgib\_theory.tex ($q(z|y) = \mathcal{N}(s v_y, \sigma^2 I)$, so
+$I(X;Z|Y) = 0$ and $b^* = q(z|y)$ exactly),
+\begin{equation}
+\Delta = \tfrac{1}{2}(s-a)^2 + \tfrac{z}{2}\big(\sigma^2 - 1 - \ln\sigma^2\big) ,
+\label{eq:aligned-gap}
+\end{equation}
+i.e.\ $\mathrm{ReX}_F = \Delta$ and $\mathrm{ReX}(\theta^*) = 0$: FGIB's bound value
+\emph{equals} the sweep-driving compression term of fgib\_theory.tex
+(Proposition~1 there), while CEB's bound collapses to the (zero) residual.
+\end{proposition}
+
+\begin{proof}
+The anchor $N(a v_y, I)$ is a member of CEB's per-class Gaussian family, so the minimum
+over the family is no larger than the value at the anchor: the ordering and
+Eq.~\eqref{eq:anchor-gap} follow from Lemmas~\ref{lem:gap} and~\ref{lem:mm}.
+On the aligned family the marginal is itself Gaussian, so $b^* = q(z|y)$ gives gap $0$,
+$I(X;Z|Y) = 0$ (the posterior is class-constant), and
+$\operatorname{KL}(\mathcal{N}(s v_y, \sigma^2 I)\|\mathcal{N}(a v_y, I))
+= \tfrac{1}{2}(s-a)^2 + \tfrac{z}{2}(\sigma^2-1-\ln\sigma^2)$. \hfill\qed
+\end{proof}
+
+\begin{remark}[Tightness--force trade-off]\label{rem:force}
+Proposition~\ref{prop:ordering} is the price of the fixed anchor, and it is paid for a
+reason: the gap is the only quantity the encoder can reduce. CEB's gap is a function of
+the \emph{backward encoder alone} --- $b_\theta \to q(z|y)$ eliminates it with the encoder
+held fixed, so CEB's bound can become tight while the representation stays uncompressed:
+its tightness certifies nothing about compression, and the gap is an unobservable
+optimization residual that tracks the forward encoder. FGIB's gap can shrink only if the
+\emph{encoder} moves toward the anchors (the anchor is fixed), and on the aligned family
+the bound value \emph{is} the compression certificate (Eq.~\eqref{eq:aligned-gap}): bound
+tightness is monotonically equivalent to compression. This is the same fixed-anchor
+mechanism that keeps the sweep force persistent (fgib\_theory.tex, Proposition~1).
+\end{remark}
+
+\begin{proposition}[The inverse orthogonal transform: the object of the bound]\label{prop:inverse}
+Let the side head $A$ (FGIB's introduced linear layer) be \emph{orthogonal}, and let the
+trained posterior be isotropic, $\Sigma(x) = \sigma_p^2 I$ (the KL variance term is
+minimized at $\sigma^2 = \sigma_p^2$, the anchor variance, so this holds at the variance
+optimum). Then $\tilde z := A^{-1} z = A^{\top} z$ gives
+$q'(\tilde z|x) = \mathcal{N}(h(x), \sigma_p^2 I)$ --- the posterior is centered at the
+\emph{inference representation} $h$ with isotropic side noise --- and the transformed
+anchors $r'(\tilde z|y) = \mathcal{N}(a\, A^{\top} v_y, I)$ are again an orthonormal frame
+at scale $a$ ($A^{\top}$ preserves the frame; the isotropic family is closed under
+orthogonal maps). By KL invariance under invertible linear maps (dcvib\_theory.tex,
+Lemma~1),
+\begin{equation}
+\mathrm{ReX}_F
+= I(X;\, h + \sigma_p\,\varepsilon\,|Y)
++ \mathbb{E}_y\big[\operatorname{KL}\big(q'(\tilde z|y)\,\|\,r'(\tilde z|y)\big)\big],
+\qquad \varepsilon \sim \mathcal{N}(0, I) .
+\label{eq:object}
+\end{equation}
+The bound's object is the inference representation perturbed by \emph{known, isotropic,
+side-path-only} noise, and the anchor geometry is preserved exactly under the transform.
+\end{proposition}
+
+\begin{proof}
+$A^{-1} = A^{\top}$ since $A$ is orthogonal; $A^{\top}\Sigma A = \sigma_p^2 I$ for
+$\Sigma = \sigma_p^2 I$; $A^{\top}A = I$ for the prior covariance; orthonormality of
+$\{A^{\top}v_y\}$ is preserved by orthogonality of $A^{\top}$. Equation~\eqref{eq:object}
+is Lemma~\ref{lem:gap} applied to the transformed pair. \hfill\qed
+\end{proof}
+
+\begin{proposition}[Tightness on the inference object: the sense in which FGIB's bound is tighter]\label{prop:object}
+(a)~\emph{CEB}. The classifier consumes the sampled code $Z$ at training and the mean
+$\mu(X)$ at evaluation (Fischer 2020, Appendix~A.1). At the variance-optimal posterior,
+$\sigma(x) \equiv \sigma_p(y)$ is class-constant, so $Z = \mu(X) + \sigma_p(Y)\varepsilon$
+is a noisy function of $\mu(X)$ given $Y$; by the DPI,
+\begin{equation}
+I(X; Z | Y) \;\le\; I(X;\, \mu(X) | Y) ,
+\label{eq:dpi}
+\end{equation}
+strictly so whenever the noise destroys within-class detail. Hence CEB's bound
+$\mathrm{ReX} \ge I(X;Z|Y)$ is \emph{not} an upper bound on the residual information of
+the representation actually used at inference: its object sits strictly below the
+inference residual, and the deficit $I(X;\mu(X)|Y) - I(X;Z|Y)$ is the within-class
+information destroyed by the training noise --- a model output ($\sigma(x)$ is trained),
+which the CE term itself pressures toward $0$ (by Jensen,
+$\mathbb{E}_z[\mathrm{CE}(c(z),y)] \ge \mathrm{CE}(c(\mu),y)$), driving the deficit up.
+The deficit is unobservable during training.
+(b)~\emph{FGIB}. The inference path is $h$ at both training and evaluation; the side
+noise of Proposition~\ref{prop:inverse} is not part of any inference path. The bound's
+deficit $I(X;H|Y) - I(X;\,h+\sigma_p\varepsilon\,|Y)$ is the information destroyed by a
+known isotropic perturbation, and it is removable by \emph{side-path-only} parameters:
+as the anchor variance $\sigma_p^2 \to 0$ (point anchors), the variance-optimal posterior
+collapses ($\sigma^2 = \sigma_p^2 \to 0$) and the bound's object converges to
+$I(X;H|Y)$ itself, without changing the classifier or the inference behavior.
+CEB cannot take this limit: its noise is in the training path, and removing it changes
+the model (the classifier is trained on the noisy codes).
+(c)~\emph{Conclusion}. In the pure variational sense (same encoder, same Gaussian
+family), CEB's bound is tighter (Proposition~\ref{prop:ordering}). As an upper bound on
+the residual of the representation used at inference --- the object the regularizer is
+meant to control --- FGIB's bound, taken through the inverse orthogonal transform, is the
+tighter (in the point-anchor limit, the only valid) one: its object is the inference
+representation up to a known, removable perturbation, while CEB's object is the training
+code, which lies strictly below the inference residual by an unobservable, model-driven
+deficit (Eq.~\eqref{eq:dpi}).
+\end{proposition}
+
+\begin{remark}[Non-orthogonal side head (current implementation)]\label{rem:orth}
+Proposition~\ref{prop:inverse} is exact because the isotropic Gaussian family is closed
+under orthogonal maps; the general diagonal family is not closed under arbitrary linear
+maps (dcvib\_theory.tex, Remark on family closure). With an unconstrained \texttt{mu\_head}
+the transformed noise $A^{-1}\Sigma A^{-\top}$ is anisotropic and the equivalence is
+approximate. Constraining the side head to be orthogonal (e.g.\ Cayley or QR
+parameterization) makes the inverse transform exact and preserves both the anchor frame
+and the noise isotropy --- a cheap modification that certifies the bound of
+Proposition~\ref{prop:object}.
+\end{remark}
+
+\begin{remark}[Anchor-frame reading]\label{rem:frame}
+With the orthonormal anchor matrix $V$ (columns $v_y$), the transform $V^{\top}$ expresses
+$z$ in class coordinates: the anchors become $a\,e_y$, and the gap of
+Lemma~\ref{lem:gap} decomposes into $K$ independent per-class terms. The orthogonal frame
+is the geometric content of the prior; both inverse transforms ($A^{\top}$ and $V^{\top}$)
+preserve it.
+\end{remark}
+
+\begin{remark}[Positioning against VIB and NIB]\label{rem:position}
+VIB's rate bounds the \emph{full} mutual information $I(X;Z)$ with a marginal prior;
+CEB removes the retained label information ($\mathrm{ReX} = R - I(Y;Z)$ at the optima),
+and FGIB inherits the residual-level object while replacing the learnable backward
+encoder with a fixed geometric prior (Proposition~\ref{prop:ordering}).
+NIB's non-parametric bound $\widehat I \ge I(X;M)$ is $y$-unconditioned and tight only
+when the components share a covariance and form well-separated clusters (Kolchinsky et
+al.\ 2017, Eq.~10 and the discussion following Eq.~11); when the noise is small relative
+to the cluster spread it saturates at $\ln N$ and its gradient vanishes (their
+Section~IVA) --- loose exactly in the regime where the parametric FGIB bound is
+well-behaved. The two bounds are complementary: NIB certifies the full compression
+non-parametrically when the geometry is favorable; FGIB certifies the residual
+parametrically with a geometry of its own choosing.
+\end{remark}
+
+\begin{remark}[Degenerate anchors]\label{rem:a0}
+At $a = 0$ the anchors collapse to $N(0, I)$ for all classes and the gap loses its class
+structure: $\Delta = \mathbb{E}_y[\operatorname{KL}(q(z|y)\|N(0,I))]$ --- a VIB-style
+marginal gap, and the object-tightness argument of
+Proposition~\ref{prop:object}(b) still holds, but the compressed endpoint becomes the
+trivial collapse (fgib\_theory.tex, Remark on the endpoint).
+\end{remark}
