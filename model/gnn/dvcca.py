@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..mlp.utils import kl_divergence, reparameterize
-from .utils import build_gcn_encoder, kl_divergence_masked
+from ..mlp.utils import reparameterize
+from .utils import build_gcn_encoder, graph_readout, kl_divergence_masked
 
 
 class DVCCA(nn.Module):
@@ -14,7 +14,10 @@ class DVCCA(nn.Module):
     VIB 结构 + 节点特征重建解码器（类似 GAE 的重建项）；KL 按 mask 限制在
     训练节点上（与 VIB 系 masked KL 约定一致），重建项在全部节点上计算
     （转导设置下节点特征不含标签、无泄漏）。forward 返回
-    (logits, kl, recon_loss)。
+    (logits, kl, recon_loss)。batch 非 None 时（图级任务）编码器后先做
+    mean 图读出，z 为图级表示；重建项把图级 z 广播回各节点后解码
+    （重建 MSE 按节点加权，小分子贡献节点少，与 cora 的逐节点重建语义
+    一致）。
     """
 
     def __init__(
@@ -24,8 +27,10 @@ class DVCCA(nn.Module):
         hidden_dims: tuple[int, ...] = (512, 256),
         z_dim: int = 256,
         dropout: float = 0.2,
+        pooling: str = "mean",
     ):
         super().__init__()
+        self.pooling = pooling
         self.encoder = build_gcn_encoder(input_dim, hidden_dims, dropout)
         self.mu_head = nn.Linear(hidden_dims[-1], z_dim)
         self.logvar_head = nn.Linear(hidden_dims[-1], z_dim)
@@ -41,14 +46,17 @@ class DVCCA(nn.Module):
         nn.init.zeros_(self.logvar_head.weight)
         nn.init.zeros_(self.logvar_head.bias)
 
-    def forward(self, x, labels=None, stochastic=True, adj_norm=None, mask=None):
+    def forward(self, x, labels=None, stochastic=True, adj_norm=None, mask=None, batch=None):
         """返回 (logits, kl, recon_loss)；先验为 N(0, I)。labels 参数仅为统一接口。"""
         h = self.encoder(x, adj_norm)
+        if batch is not None:
+            h = graph_readout(h, batch, self.pooling)
         mu = self.mu_head(h)
         logvar = self.logvar_head(h)
         z = reparameterize(mu, logvar, stochastic)
         logits = self.classifier(z)
-        recon = F.mse_loss(self.decoder(z), x)
+        z_recon = z if batch is None else z[batch]  # 图级 z 广播回各节点
+        recon = F.mse_loss(self.decoder(z_recon), x)
 
         mu_p = torch.zeros_like(mu)
         logvar_p = torch.zeros_like(logvar)

@@ -11,9 +11,9 @@ class SVIB(VIB):
     故 forward 返回平方后的（mask 内）KL。详见 model/mlp/svib.py。
     """
 
-    def forward(self, x, labels=None, stochastic=True, adj_norm=None, mask=None):
+    def forward(self, x, labels=None, stochastic=True, adj_norm=None, mask=None, batch=None):
         """返回 (logits, kl²)，先验为 N(0, I)。labels 参数仅为统一接口。"""
         logits, kl = super().forward(
-            x, labels, stochastic=stochastic, adj_norm=adj_norm, mask=mask
+            x, labels, stochastic=stochastic, adj_norm=adj_norm, mask=mask, batch=batch
         )
         return logits, kl ** 2

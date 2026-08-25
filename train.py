@@ -11,6 +11,10 @@
     python train.py --task cora --model gcn            # Cora 节点分类（GCN 基线）
     python train.py --task cora --backbone gnn --model vib    # GNN 版 VIB
     python train.py --task cora --backbone gnn --model ceb    # GNN 版 CEB
+    python train.py --task zinc --model gcn            # ZINC-12k 分子图回归（GCN 基线）
+    python train.py --task zinc --backbone gnn --model vib    # GNN 版 VIB 图级回归（ceb/fgib/svib/nib/dvcca 同理）
+    python train.py --task zinc --backbone gnn --model ceb    # GNN 版 CEB 回归（连续 y 条件先验）
+    python train.py --task zinc --backbone gnn --model fgib   # GNN 版 FGIB 回归（固定 RFF 连续锚点先验）
     python train.py --task imdb --model rnn            # IMDb 情感分析（RNN 基线）
     python train.py --task imdb --backbone rnn --model vib    # RNN 版 VIB
     python train.py --task imdb --backbone rnn --model ceb    # RNN 版 CEB
@@ -61,35 +65,37 @@ from datasets.datasets import (
 )
 from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
+from datasets.zinc import get_zinc_dataloaders
 from model import CEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, VIB
 from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import CEB as RNNCEB, FGIB as RNNFGIB, NIB as RNNNIB, RNN, SVIB as RNNSVIB, VIB as RNNVIB
 
 
-def run_model(model, images, labels, stochastic, adj=None, mask=None):
+def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None):
     """统一 MLP / CNN / GNN / RNN 骨干下各模型的前向接口，返回 (logits, kl, recon)。
 
     recon 为 DVCCA 的输入重建损失（损失中同样乘以 beta），其余模型为 None。
+    batch 为图批的节点→图索引（仅 ZINC 图级任务传入，GNN 分支按图读出）。
     """
     if isinstance(model, (VIB, CEB, NIB, CNNVIB, CNNCEB, CNNNIB, RNNVIB, RNNCEB, RNNNIB)):
         logits, kl = model(images, labels, stochastic=stochastic)
         return logits, kl, None
     if isinstance(model, (GNNVIB, GNNCEB, GNNNIB)):
-        logits, kl = model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask)
+        logits, kl = model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask, batch=batch)
         return logits, kl, None
     if isinstance(model, (DVCCA, CNNDVCCA)):
         return model(images, labels, stochastic=stochastic)
     if isinstance(model, GNNDVCCA):
-        return model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask)
+        return model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask, batch=batch)
     if isinstance(model, (FGIB, CNNFGIB, RNNFGIB)):
         logits, kl = model(images, labels)
         return logits, kl, None
     if isinstance(model, GNNFGIB):
-        logits, kl = model(images, labels, adj_norm=adj, mask=mask)
+        logits, kl = model(images, labels, adj_norm=adj, mask=mask, batch=batch)
         return logits, kl, None
     if isinstance(model, GCN):
-        return model(images, adj_norm=adj), None, None
+        return model(images, adj_norm=adj, batch=batch), None, None
     return model(images), None, None
 
 
@@ -216,6 +222,70 @@ def evaluate_cora(model, x, adj, y, mask, criterion, beta, device):
     return loss.item(), correct / len(labels), auc, precision, recall
 
 
+def train_one_epoch_zinc(model, loader, optimizer, criterion, beta, device):
+    """ZINC 图回归训练一个 epoch（图批四元组：x / 块对角 adj / batch_idx / y）。
+
+    返回 (平均损失, None)，损失按图数加权（MSE 与 KL 均为批内平均）。
+    """
+    model.train()
+    total_loss, total = 0.0, 0
+
+    for x, adj_block, batch_idx, y in loader:
+        x, adj_block, batch_idx, y = (
+            x.to(device), adj_block.to(device), batch_idx.to(device), y.to(device)
+        )
+        optimizer.zero_grad()
+        logits, kl, recon = run_model(
+            model, x, y, stochastic=True, adj=adj_block, batch=batch_idx
+        )
+        logits = logits.squeeze(-1)
+        loss = criterion(logits, y)
+        if kl is not None:
+            loss = loss + beta * kl
+        if recon is not None:
+            loss = loss + beta * recon
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * y.size(0)
+        total += y.size(0)
+
+    return total_loss / total, None
+
+
+@torch.no_grad()
+def evaluate_zinc(model, loader, criterion, beta, device, target_scaler):
+    """ZINC 图回归评估，返回 (loss, MAE, R2)；MAE 经 y_scaler 逆归一化回原始单位。"""
+    model.eval()
+    total_loss, total = 0.0, 0
+    all_preds, all_labels = [], []
+
+    for x, adj_block, batch_idx, y in loader:
+        x, adj_block, batch_idx, y = (
+            x.to(device), adj_block.to(device), batch_idx.to(device), y.to(device)
+        )
+        logits, kl, recon = run_model(
+            model, x, y, stochastic=False, adj=adj_block, batch=batch_idx
+        )
+        logits = logits.squeeze(-1)
+        loss = criterion(logits, y)
+        if kl is not None:
+            loss = loss + beta * kl
+        if recon is not None:
+            loss = loss + beta * recon
+
+        total_loss += loss.item() * y.size(0)
+        total += y.size(0)
+        all_preds.append(logits)
+        all_labels.append(y)
+
+    preds = torch.cat(all_preds).cpu().numpy()
+    labels = torch.cat(all_labels).cpu().numpy()
+    preds = target_scaler.inverse_transform(preds.reshape(-1, 1)).ravel()
+    labels = target_scaler.inverse_transform(labels.reshape(-1, 1)).ravel()
+    return total_loss / total, mean_absolute_error(labels, preds), r2_score(labels, preds)
+
+
 MODEL_CLASSES = {
     ("mlp", "mlp"): MLP,
     ("cnn", "cnn"): CNN,
@@ -256,6 +326,7 @@ def get_dataset_name(task: str) -> str:
         else "imdb" if task == "imdb"
         else "agnews" if task == "agnews"
         else "stsb" if task == "stsb"
+        else "zinc" if task == "zinc"
         else "mnist"
     )
 
@@ -287,17 +358,23 @@ def build_parser():
     parser.add_argument(
         "--task",
         type=str,
-        choices=["mnist", "housing", "imagenet100", "cora", "imdb", "agnews", "stsb"],
+        choices=["mnist", "housing", "imagenet100", "cora", "imdb", "agnews", "stsb", "zinc"],
         default="mnist",
         help="mnist is the default (MNIST classification); housing is California "
         "Housing regression (MLP backbone only); imagenet100 uses pretrained "
         "ResNet50 features (MLP backbone only); cora uses GNN backbone only; "
         "imdb, agnews and stsb use RNN backbone only (agnews uses BERT token "
-        "features; stsb is STS-B text similarity regression, RNN backbone only)",
+        "features; stsb is STS-B text similarity regression, RNN backbone only); "
+        "zinc is ZINC-12k molecular graph regression (GNN backbone only)",
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=512)
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=None,
+        help="learning rate（未指定时默认 1e-3；cora 任务默认 0.01）",
+    )
     parser.add_argument(
         "--hidden-dims",
         type=int,
@@ -380,14 +457,14 @@ def main():
         parser.error("CNN backbone is not supported for housing")
     if args.task == "imagenet100" and (args.model == "cnn" or args.backbone == "cnn"):
         parser.error("CNN backbone is not supported for imagenet100")
-    if args.task == "cora":
+    if args.task in ("cora", "zinc"):
         ok = args.model == "gcn" or (
             args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca")
         )
         if not ok:
-            parser.error("Cora task only supports --model gcn or --backbone gnn with vib/ceb/fgib/svib/nib/dvcca")
+            parser.error("Cora/ZINC 任务仅支持 --model gcn 或 --backbone gnn 加 vib/ceb/fgib/svib/nib/dvcca")
     elif args.model == "gcn" or args.backbone == "gnn":
-        parser.error("GNN backbone is only supported for cora")
+        parser.error("GNN backbone is only supported for cora/zinc")
     if args.task in ("imdb", "agnews", "stsb"):
         ok = args.model == "rnn" or (
             args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib")
@@ -400,6 +477,15 @@ def main():
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews/stsb")
+
+    # 图批拼块对角后 512 批约 1.2 万节点、稠密邻接约 566MB；128 批约 3 千
+    # 节点 / 36MB（benchmarking-gnns 的 ZINC 约定批大小），未显式设置时覆写
+    if args.task == "zinc" and args.batch_size == parser.get_default("batch_size"):
+        args.batch_size = 128
+    # 学习率任务级默认值：cora 全图批训练在 1e-3 下收敛过慢，用 0.01；
+    # 显式指定 --lr 时始终尊重用户值
+    if args.lr is None:
+        args.lr = 0.01 if args.task == "cora" else 1e-3
 
     # mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干
     if args.model in ("mlp", "cnn", "rnn"):
@@ -448,6 +534,10 @@ def main():
         val_mask = val_mask.to(device)
         test_mask = test_mask.to(device)
         target_scaler = None
+    elif args.task == "zinc":
+        train_loader, val_loader, test_loader, target_scaler, zinc_input_dim = (
+            get_zinc_dataloaders(args.batch_size, args.data_dir)
+        )
     elif args.task == "housing":
         train_loader, val_loader, test_loader, target_scaler = (
             get_california_dataloaders(args.batch_size, args.data_dir)
@@ -512,6 +602,12 @@ def main():
     elif args.task == "cora":
         model_kwargs["input_dim"] = 1433
         model_kwargs["num_classes"] = 7
+    elif args.task == "zinc":
+        model_kwargs["input_dim"] = zinc_input_dim
+        model_kwargs["num_classes"] = 1
+        model_kwargs["pooling"] = "mean"  # 图级读出（编码器后 mean 池化）
+        if args.model in ("ceb", "fgib"):
+            model_kwargs["continuous_y"] = True
     elif args.task == "imdb":
         model_kwargs["vocab_size"] = vocab_size
         model_kwargs["num_classes"] = 2
@@ -519,7 +615,7 @@ def main():
         model_kwargs["input_dim"] = agnews_input_dim
         model_kwargs["num_classes"] = 4
 
-    criterion = nn.MSELoss() if args.task in ("housing", "stsb") else nn.CrossEntropyLoss()
+    criterion = nn.MSELoss() if args.task in ("housing", "stsb", "zinc") else nn.CrossEntropyLoss()
     test_results = []
     run_train_accs = []
 
@@ -538,7 +634,7 @@ def main():
         run_save_path = f"{stem}_run{run}{ext}"
 
         best_score, best_epoch, patience_counter = -1.0, 0, 0
-        metric_name = "R2" if args.task in ("housing", "stsb") else "AUC"
+        metric_name = "R2" if args.task in ("housing", "stsb", "zinc") else "AUC"
         train_acc = None
 
         for epoch in range(1, args.epochs + 1):
@@ -555,6 +651,19 @@ def main():
                     f"Train Loss {train_loss:.4f} Acc {train_acc:.4f} | "
                     f"Val Loss {val_loss:.4f} Acc {val_acc:.4f} AUC {val_auc:.4f} "
                     f"Pre {val_pre:.4f} Rec {val_rec:.4f}"
+                )
+            elif args.task == "zinc":
+                train_loss, _ = train_one_epoch_zinc(
+                    model, train_loader, optimizer, criterion, args.beta, device
+                )
+                val_loss, val_mae, val_r2 = evaluate_zinc(
+                    model, val_loader, criterion, args.beta, device, target_scaler
+                )
+                val_score = val_r2
+                logging.info(
+                    f"Epoch {epoch:>3}/{args.epochs} | "
+                    f"Train Loss {train_loss:.4f} | "
+                    f"Val Loss {val_loss:.4f} MAE {val_mae:.4f} R2 {val_r2:.4f}"
                 )
             elif args.task in ("housing", "stsb"):
                 train_loss, _ = train_one_epoch(
@@ -613,11 +722,16 @@ def main():
                 f"Pre {test_pre:.4f} Rec {test_rec:.4f}"
             )
             test_results.append((test_loss, test_acc, test_auc, test_pre, test_rec))
-        elif args.task in ("housing", "stsb"):
-            test_loss, test_mae, test_r2 = evaluate(
-                model, test_loader, criterion, args.beta, device, args.task,
-                target_scaler,
-            )
+        elif args.task in ("housing", "stsb", "zinc"):
+            if args.task == "zinc":
+                test_loss, test_mae, test_r2 = evaluate_zinc(
+                    model, test_loader, criterion, args.beta, device, target_scaler
+                )
+            else:
+                test_loss, test_mae, test_r2 = evaluate(
+                    model, test_loader, criterion, args.beta, device, args.task,
+                    target_scaler,
+                )
             logging.info(
                 f"Run {run}/{args.runs} | Test (best model @ Epoch {best_epoch}) | "
                 f"Loss {test_loss:.4f} MAE {test_mae:.4f} R2 {test_r2:.4f}"
@@ -636,7 +750,7 @@ def main():
 
     means = torch.tensor(test_results).mean(dim=0)
     stds = torch.tensor(test_results).std(dim=0)
-    if args.task in ("housing", "stsb"):
+    if args.task in ("housing", "stsb", "zinc"):
         logging.info(
             f"Average over {args.runs} runs | Test "
             f"Loss {means[0]:.4f}±{stds[0]:.4f} MAE {means[1]:.4f}±{stds[1]:.4f} "

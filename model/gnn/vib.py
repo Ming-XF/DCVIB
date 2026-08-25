@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from ..mlp.utils import reparameterize
-from .utils import build_gcn_encoder, kl_divergence_masked
+from .utils import build_gcn_encoder, graph_readout, kl_divergence_masked
 
 
 class VIB(nn.Module):
@@ -15,6 +15,8 @@ class VIB(nn.Module):
     N(0, I)，训练损失中加入 KL(q(z|x) || N(0, I))。
 
     图转导设置：KL 按 mask（训练时为 train_mask）只在训练节点上计算。
+    batch 非 None 时（图级任务）编码器后先做 mean 图读出，z 与 logits
+    均按图输出，KL 按图平均（mask=None）。
     """
 
     def __init__(
@@ -24,8 +26,10 @@ class VIB(nn.Module):
         hidden_dims: tuple[int, ...] = (512, 256),
         z_dim: int = 256,
         dropout: float = 0.2,
+        pooling: str = "mean",
     ):
         super().__init__()
+        self.pooling = pooling
 
         self.encoder = build_gcn_encoder(input_dim, hidden_dims, dropout)
         self.mu_head = nn.Linear(hidden_dims[-1], z_dim)
@@ -36,9 +40,11 @@ class VIB(nn.Module):
         nn.init.zeros_(self.logvar_head.weight)
         nn.init.zeros_(self.logvar_head.bias)
 
-    def forward(self, x, labels=None, stochastic=True, adj_norm=None, mask=None):
+    def forward(self, x, labels=None, stochastic=True, adj_norm=None, mask=None, batch=None):
         """返回 (logits, kl)，先验为 N(0, I)。labels 参数仅为统一接口。"""
         h = self.encoder(x, adj_norm)
+        if batch is not None:
+            h = graph_readout(h, batch, self.pooling)
         mu = self.mu_head(h)
         logvar = self.logvar_head(h)
         z = reparameterize(mu, logvar, stochastic)

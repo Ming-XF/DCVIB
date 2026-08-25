@@ -52,6 +52,21 @@ def build_gcn_encoder(
     return GCNEncoder(input_dim, hidden_dims, dropout)
 
 
+def graph_readout(h: torch.Tensor, batch: torch.Tensor, pool: str = "mean"):
+    """图级读出：把节点表示按所属图聚合为 (B, d) 的图表示。
+
+    batch 为 (N,) 长整型节点→图索引（由 collate_zinc 的 repeat_interleave
+    生成，必然覆盖 0..B-1）。mean 池化用 index_add_ 求和后除以各图节点数
+    （torch.bincount 统计），全程 GPU 原地完成、不触发与 CPU 的同步。
+    """
+    if pool != "mean":
+        raise ValueError(f"不支持的图读出方式：{pool}")
+    counts = torch.bincount(batch).float()
+    sums = torch.zeros(counts.size(0), h.size(1), device=h.device, dtype=h.dtype)
+    sums.index_add_(0, batch, h)
+    return sums / counts.unsqueeze(1)
+
+
 def kl_divergence_masked(mu, logvar, mu_p, logvar_p, mask=None):
     """逐节点对角高斯 KL(q||p)，按 mask 平均（mask 为 None 时全批平均）。
 
