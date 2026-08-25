@@ -3,7 +3,7 @@
 用法与 train.py 相同（复用其 build_parser），区别如下：
 - --model / --beta / --anchor-scale 接受多个值（空格分隔）：
   - 基础模型（mlp/cnn/gcn/rnn）没有 beta 与 anchor-scale 维度，每个模型只训练一次；
-  - vib/ceb/dcvib 只有 beta 维度；
+  - vib/ceb/svib/nib/dvcca 只有 beta 维度；
   - fgib 有 beta × anchor-scale 两个维度；
   总试验数 = 各模型组合数之和；
 - --parallel 指定并行训练进程数；
@@ -48,10 +48,10 @@ def build_tune_parser():
     parser = build_parser()
     replace_arg(
         parser, "model", ["--model"],
-        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "dcvib", "fgib"],
+        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca"],
         default=["mlp"],
         help="模型列表，调参网格的一维；基础模型无 beta/anchor 维度，"
-        "vib/ceb/dcvib 仅 beta 维度，fgib 为 beta × anchor-scale 两维（默认 [mlp]）",
+        "vib/ceb/svib/nib/dvcca 仅 beta 维度，fgib 为 beta × anchor-scale 两维（默认 [mlp]）",
     )
     replace_arg(
         parser, "beta", ["--beta"],

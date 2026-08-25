@@ -1,7 +1,9 @@
-"""GNN 模型包：GCN / VIB / CEB / DCVIB / FGIB 及 GCN 编码器工具。"""
+"""GNN 模型包：GCN / VIB / SVIB / CEB / FGIB / NIB / DVCCA 及 GCN 编码器工具。"""
 
 from .ceb import CEB
-from .dcvib import DCVIB
+from .dvcca import DVCCA
 from .fgib import FGIB
 from .gcn import GCN
+from .nib import NIB
+from .svib import SVIB
 from .vib import VIB

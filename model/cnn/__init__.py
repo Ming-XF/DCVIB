@@ -1,7 +1,9 @@
-"""CNN 模型包：CNN / VIB / CEB / DCVIB / FGIB 及 CNN 编码器工具。"""
+"""CNN 模型包：CNN / VIB / SVIB / CEB / FGIB / NIB / DVCCA 及 CNN 编码器工具。"""
 
 from .ceb import CEB
 from .cnn import CNN
-from .dcvib import DCVIB
+from .dvcca import DVCCA
 from .fgib import FGIB
+from .nib import NIB
+from .svib import SVIB
 from .vib import VIB

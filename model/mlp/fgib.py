@@ -12,13 +12,13 @@ from .utils import (
 
 
 class FGIB(nn.Module):
-    """带固定类条件先验（anchor prior）的 DCVIB 变体。
+    """带固定类条件先验（anchor prior）的确定性旁路瓶颈模型。
 
-    主路与 DCVIB 相同：编码器输出 h 后直接由分类器得到 logits（确定性），
-    z 不参与前向。旁路从 h 引出 mu/logvar 头得到后验 q(z|x)；先验不再是
-    可学习的标签编码器，而是固定的高斯分布（register_buffer、不参与梯度），
-    训练损失中加入 KL(q(z|x) || r(z|y))，梯度只通过共享编码器 h 回传作为
-    正则。KL 无法靠移动先验来减小，只要 z 未对齐锚点，正则力就持续存在。
+    主路为确定性：编码器输出 h 后直接由分类器得到 logits，z 不参与前向。
+    旁路从 h 引出 mu/logvar 头得到后验 q(z|x)；先验不是可学习的标签编码器，
+    而是固定的高斯分布（register_buffer、不参与梯度），训练损失中加入
+    KL(q(z|x) || r(z|y))，梯度只通过共享编码器 h 回传作为正则。
+    KL 无法靠移动先验来减小，只要 z 未对齐锚点，正则力就持续存在。
 
     分类（continuous_y=False）：按类别索引的固定高斯分布表——K 个正交方向
     缩放 anchor_scale 作为各类均值，方差固定为 anchor_var。

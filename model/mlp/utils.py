@@ -48,6 +48,22 @@ def kl_divergence(mu, logvar, mu_p, logvar_p):
     return kl.sum(dim=1).mean()
 
 
+def nib_mi_upper_bound(m: torch.Tensor, noise_var) -> torch.Tensor:
+    """NIB 压缩项的非参数上界（NIB 论文 Eq. 16，同方差噪声 Σ=σ²I）。
+
+    M = f(X) + ε（ε~N(0, noise_var·I)）时，混合分布各高斯分量之间的成对 KL
+    化简为 ‖fᵢ−fⱼ‖²/(2·noise_var)，I(X;M) ≤ Î = −(1/N)Σᵢ ln[(1/N)Σⱼ
+    exp(−‖fᵢ−fⱼ‖²/(2·noise_var))]（本实现用自然对数，单位为 nat；论文用
+    log2/bit，扫参时注意 β 量纲差 ln2 倍）。noise_var 为模型的可学习参数
+    （log 空间，初始 σ²=1 = 论文初始值）；初始 σ² 过小时 exp 项趋 0、
+    Î→ln N 且梯度指数级消失（论文 Section IVA 的讨论）。
+    """
+    n = m.size(0)
+    dists2 = torch.cdist(m, m).pow(2) / (2.0 * noise_var)
+    logsum = torch.logsumexp(-dists2, dim=1)
+    return -(logsum - math.log(n)).mean()
+
+
 def build_anchor_prior(
     z_dim: int, num_classes: int, anchor_scale: float = 4.0, anchor_var: float = 1.0
 ) -> tuple[torch.Tensor, torch.Tensor]:
