@@ -11,8 +11,9 @@ from .utils import build_cnn_encoder
 class DVCCA(nn.Module):
     """监督 β-DVCCA 的 CNN 版（见 model/mlp/dvcca.py 的推导说明）。
 
-    VIB 结构 + 重建解码器；解码器把 z 映射回 784 维后 reshape 成原图形状
-    计算 MSE。forward 返回 (logits, kl, recon_loss)。
+    VIB 结构 + 重建解码器；解码器把 z 映射回 input_channels×input_size×
+    input_size 维（默认 1×28×28），与展平的输入比较 MSE。forward 返回
+    (logits, kl, recon_loss)。
     """
 
     def __init__(
@@ -27,7 +28,7 @@ class DVCCA(nn.Module):
     ):
         super().__init__()
         self.encoder = build_cnn_encoder(
-            input_channels, conv_channels, hidden_dim, dropout
+            input_channels, conv_channels, hidden_dim, dropout, input_size=input_size
         )
         self.mu_head = nn.Linear(hidden_dim, z_dim)
         self.logvar_head = nn.Linear(hidden_dim, z_dim)

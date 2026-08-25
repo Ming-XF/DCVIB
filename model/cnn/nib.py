@@ -26,10 +26,11 @@ class NIB(nn.Module):
         num_classes: int = 10,
         dropout: float = 0.2,
         noise_var_init: float = 1.0,
+        input_size: int = 28,
     ):
         super().__init__()
         self.encoder = build_cnn_encoder(
-            input_channels, conv_channels, hidden_dim, dropout
+            input_channels, conv_channels, hidden_dim, dropout, input_size=input_size
         )
         self.bottleneck_head = nn.Linear(hidden_dim, z_dim)
         self.classifier = nn.Linear(z_dim, num_classes)

@@ -31,13 +31,14 @@ class CEB(nn.Module):
         num_classes: int = 10,
         dropout: float = 0.2,
         continuous_y: bool = False,
+        input_size: int = 28,
     ):
         super().__init__()
         self.num_classes = num_classes
         self.continuous_y = continuous_y
 
         self.encoder = build_cnn_encoder(
-            input_channels, conv_channels, hidden_dim, dropout
+            input_channels, conv_channels, hidden_dim, dropout, input_size=input_size
         )
         self.mu_head = nn.Linear(hidden_dim, z_dim)
         self.logvar_head = nn.Linear(hidden_dim, z_dim)

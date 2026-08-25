@@ -25,6 +25,10 @@
     python train.py --task housing --model vib     # California Housing 回归（MLP 骨干）
     python train.py --task housing --model ceb     # CEB 回归（连续 y 条件先验）
     python train.py --task housing --model fgib    # FGIB 回归（固定 RFF 连续锚点先验）
+    python train.py --task agedb --model cnn                 # AgeDB 年龄回归（CNN 基线，RGB 64×64）
+    python train.py --task agedb --model mlp                 # AgeDB 年龄回归（MLP 基线）
+    python train.py --task agedb --backbone cnn --model vib  # CNN 版 VIB 回归（ceb/fgib/svib/nib/dvcca 同理）
+    python train.py --task agedb --backbone cnn --model fgib # CNN 版 FGIB 回归（固定 RFF 连续锚点先验）
     python train.py --model fgib    # FGIB（固定几何信息瓶颈：确定性主路 + 固定正交锚点先验，MLP 骨干）
     python train.py --model fgib --anchor-scale 8   # 自定义锚点尺度（0 为各类相同锚点）
     python train.py --backbone cnn --model fgib     # CNN 版 FGIB
@@ -56,6 +60,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from datasets.agedb import get_agedb_dataloaders
 from datasets.agnews import get_agnews_dataloaders
 from datasets.cora import get_cora_data
 from datasets.datasets import (
@@ -109,7 +114,7 @@ def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="cla
 
         optimizer.zero_grad()
         logits, kl, recon = run_model(model, images, labels, stochastic=True)
-        if task in ("housing", "stsb"):
+        if task in ("housing", "stsb", "agedb"):
             logits = logits.squeeze(-1)
         loss = criterion(logits, labels)
         if kl is not None:
@@ -121,10 +126,10 @@ def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="cla
 
         total_loss += loss.item() * images.size(0)
         total += labels.size(0)
-        if task not in ("housing", "stsb"):
+        if task not in ("housing", "stsb", "agedb"):
             correct += (logits.argmax(dim=1) == labels).sum().item()
 
-    acc = None if task in ("housing", "stsb") else correct / total
+    acc = None if task in ("housing", "stsb", "agedb") else correct / total
     return total_loss / total, acc
 
 
@@ -141,7 +146,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
     for images, labels in loader:
         images, labels = images.to(device), labels.to(device)
         logits, kl, recon = run_model(model, images, labels, stochastic=False)
-        if task in ("housing", "stsb"):
+        if task in ("housing", "stsb", "agedb"):
             logits = logits.squeeze(-1)
         loss = criterion(logits, labels)
         if kl is not None:
@@ -151,7 +156,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
 
         total_loss += loss.item() * images.size(0)
         total += labels.size(0)
-        if task in ("housing", "stsb"):
+        if task in ("housing", "stsb", "agedb"):
             preds = logits
         else:
             probs = logits.softmax(dim=1)
@@ -164,7 +169,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
     preds = torch.cat(all_preds).cpu().numpy()
     labels = torch.cat(all_labels).cpu().numpy()
 
-    if task in ("housing", "stsb"):
+    if task in ("housing", "stsb", "agedb"):
         preds = target_scaler.inverse_transform(preds.reshape(-1, 1)).ravel()
         labels = target_scaler.inverse_transform(labels.reshape(-1, 1)).ravel()
         mae = mean_absolute_error(labels, preds)
@@ -327,6 +332,7 @@ def get_dataset_name(task: str) -> str:
         else "agnews" if task == "agnews"
         else "stsb" if task == "stsb"
         else "zinc" if task == "zinc"
+        else "agedb" if task == "agedb"
         else "mnist"
     )
 
@@ -358,14 +364,16 @@ def build_parser():
     parser.add_argument(
         "--task",
         type=str,
-        choices=["mnist", "housing", "imagenet100", "cora", "imdb", "agnews", "stsb", "zinc"],
+        choices=["mnist", "housing", "imagenet100", "cora", "imdb", "agnews", "stsb", "zinc", "agedb"],
         default="mnist",
         help="mnist is the default (MNIST classification); housing is California "
         "Housing regression (MLP backbone only); imagenet100 uses pretrained "
         "ResNet50 features (MLP backbone only); cora uses GNN backbone only; "
         "imdb, agnews and stsb use RNN backbone only (agnews uses BERT token "
         "features; stsb is STS-B text similarity regression, RNN backbone only); "
-        "zinc is ZINC-12k molecular graph regression (GNN backbone only)",
+        "zinc is ZINC-12k molecular graph regression (GNN backbone only); "
+        "agedb is AgeDB face-image age regression (RGB 64×64, MLP/CNN backbones; "
+        "ceb/fgib condition the prior on the continuous scaled y)",
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=512)
@@ -538,6 +546,10 @@ def main():
         train_loader, val_loader, test_loader, target_scaler, zinc_input_dim = (
             get_zinc_dataloaders(args.batch_size, args.data_dir)
         )
+    elif args.task == "agedb":
+        train_loader, val_loader, test_loader, target_scaler = (
+            get_agedb_dataloaders(args.batch_size, args.data_dir)
+        )
     elif args.task == "housing":
         train_loader, val_loader, test_loader, target_scaler = (
             get_california_dataloaders(args.batch_size, args.data_dir)
@@ -608,6 +620,15 @@ def main():
         model_kwargs["pooling"] = "mean"  # 图级读出（编码器后 mean 池化）
         if args.model in ("ceb", "fgib"):
             model_kwargs["continuous_y"] = True
+    elif args.task == "agedb":
+        model_kwargs["num_classes"] = 1
+        if backbone == "mlp":
+            model_kwargs["input_dim"] = 3 * 64 * 64  # RGB 64×64 展平
+        else:  # backbone == "cnn"（gnn/rnn 已被约束块拒绝）
+            model_kwargs["input_channels"] = 3
+            model_kwargs["input_size"] = 64
+        if args.model in ("ceb", "fgib"):
+            model_kwargs["continuous_y"] = True
     elif args.task == "imdb":
         model_kwargs["vocab_size"] = vocab_size
         model_kwargs["num_classes"] = 2
@@ -615,7 +636,7 @@ def main():
         model_kwargs["input_dim"] = agnews_input_dim
         model_kwargs["num_classes"] = 4
 
-    criterion = nn.MSELoss() if args.task in ("housing", "stsb", "zinc") else nn.CrossEntropyLoss()
+    criterion = nn.MSELoss() if args.task in ("housing", "stsb", "zinc", "agedb") else nn.CrossEntropyLoss()
     test_results = []
     run_train_accs = []
 
@@ -633,8 +654,10 @@ def main():
         stem, ext = os.path.splitext(args.save_path)
         run_save_path = f"{stem}_run{run}{ext}"
 
-        best_score, best_epoch, patience_counter = -1.0, 0, 0
-        metric_name = "R2" if args.task in ("housing", "stsb", "zinc") else "AUC"
+        # 初始 -inf：回归任务 val R² 可任意负（如 MLP 前几轮远低于 -1），
+        # 首个 epoch 必定保存，避免全部 epoch 无改善时无 checkpoint 可加载
+        best_score, best_epoch, patience_counter = -float("inf"), 0, 0
+        metric_name = "R2" if args.task in ("housing", "stsb", "zinc", "agedb") else "AUC"
         train_acc = None
 
         for epoch in range(1, args.epochs + 1):
@@ -665,7 +688,7 @@ def main():
                     f"Train Loss {train_loss:.4f} | "
                     f"Val Loss {val_loss:.4f} MAE {val_mae:.4f} R2 {val_r2:.4f}"
                 )
-            elif args.task in ("housing", "stsb"):
+            elif args.task in ("housing", "stsb", "agedb"):
                 train_loss, _ = train_one_epoch(
                     model, train_loader, optimizer, criterion, args.beta, device, args.task
                 )
@@ -722,7 +745,7 @@ def main():
                 f"Pre {test_pre:.4f} Rec {test_rec:.4f}"
             )
             test_results.append((test_loss, test_acc, test_auc, test_pre, test_rec))
-        elif args.task in ("housing", "stsb", "zinc"):
+        elif args.task in ("housing", "stsb", "zinc", "agedb"):
             if args.task == "zinc":
                 test_loss, test_mae, test_r2 = evaluate_zinc(
                     model, test_loader, criterion, args.beta, device, target_scaler
@@ -750,7 +773,7 @@ def main():
 
     means = torch.tensor(test_results).mean(dim=0)
     stds = torch.tensor(test_results).std(dim=0)
-    if args.task in ("housing", "stsb", "zinc"):
+    if args.task in ("housing", "stsb", "zinc", "agedb"):
         logging.info(
             f"Average over {args.runs} runs | Test "
             f"Loss {means[0]:.4f}±{stds[0]:.4f} MAE {means[1]:.4f}±{stds[1]:.4f} "
