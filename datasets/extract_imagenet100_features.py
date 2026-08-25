@@ -8,9 +8,13 @@
 
 --layer 可选 penultimate（avgpool 输出 2048 维，即倒数第二层）或
 layer1/layer2/layer3/layer4（对应残差块输出，池化后 256/512/1024/2048 维），默认 layer3。
+--pool 指定空间池化尺寸：1 为全局平均池化（默认，特征维度 = 通道数），
+>1 时用 AdaptiveAvgPool2d(pool) 保留空间结构（特征维度 = 通道数 × pool²，
+如 layer3 + pool4 = 1024×4×4 = 16384 维）；penultimate 时 pool>1 等价于 layer4。
 
 用法：
-    python datasets/extract_imagenet100_features.py                 # 全量提取（默认 layer3）
+    python datasets/extract_imagenet100_features.py                 # 全量提取（默认 layer3，全局池化）
+    python datasets/extract_imagenet100_features.py --pool 4        # layer3 池化到 4×4（16384 维）
     python datasets/extract_imagenet100_features.py --layer penultimate   # 提取倒数第二层
     python datasets/extract_imagenet100_features.py --smoke-classes 4   # 冒烟测试：仅前 4 个类
 """
@@ -62,6 +66,8 @@ def parse_args():
     parser.add_argument("--layer", type=str, default="layer3",
                         choices=["penultimate", "layer1", "layer2", "layer3", "layer4"],
                         help="截断到 ResNet50 的哪一层（默认 layer3，全局平均池化后展平）")
+    parser.add_argument("--pool", type=int, default=1, choices=[1, 2, 3, 4],
+                        help="空间池化尺寸：1 为全局平均池化（默认）；>1 时保留 pool×pool 空间结构")
     parser.add_argument("--log-path", type=Path, default="data/imagenet100/extract_features.log")
     return parser.parse_args()
 
@@ -126,18 +132,21 @@ class SafeImageFolder(ImageFolder):
         return sample, target
 
 
-def load_backbone(device, layer="layer3"):
-    """加载官方 V2 权重，截断到指定层并接全局平均池化，输出展平特征 (B, dim)。
+def load_backbone(device, layer="layer3", pool=1):
+    """加载官方 V2 权重，截断到指定层并接空间平均池化，输出展平特征 (B, dim)。
 
-    penultimate 截断到 avgpool（含）；layer1~4 截断到对应残差块输出，
-    再接 AdaptiveAvgPool2d(1) 池化。
+    penultimate 截断到官方 avgpool（含，仅 pool=1 时，输出 1×1）；layer1~4 截断到
+    对应残差块输出，再接 AdaptiveAvgPool2d(pool)；penultimate 且 pool>1 时等价于
+    layer4 + 自定义池化（官方 avgpool 输出 1×1，无法再池化为 pool×pool）。
     """
     model = torchvision.models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
     model = model.to(device).eval()
     cut = {"layer1": 5, "layer2": 6, "layer3": 7, "layer4": 8, "penultimate": 9}[layer]
+    if layer == "penultimate" and pool > 1:
+        cut = 8
     children = list(model.children())[:cut]
-    if layer != "penultimate":
-        children.append(nn.AdaptiveAvgPool2d(1))
+    if layer != "penultimate" or pool > 1:
+        children.append(nn.AdaptiveAvgPool2d(pool))
     children.append(nn.Flatten())
     return nn.Sequential(*children)
 
@@ -198,8 +207,9 @@ def main():
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     if device.type == "cpu":
         logger.warning("CUDA 不可用，回退到 CPU")
-    backbone = load_backbone(device, args.layer)
-    feature_dim = LAYER_DIMS[args.layer]
+    backbone = load_backbone(device, args.layer, args.pool)
+    feature_dim = LAYER_DIMS[args.layer] * args.pool * args.pool
+    logger.info("特征维度：%d（%s + %d×%d 空间池化）", feature_dim, args.layer, args.pool, args.pool)
 
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
                         num_workers=args.num_workers, pin_memory=device.type == "cuda")
@@ -211,7 +221,10 @@ def main():
 
     out = args.out
     if out is None:
-        name = f"imagenet100_resnet50_{args.layer}_features"
+        name = f"imagenet100_resnet50_{args.layer}"
+        if args.pool > 1:
+            name += f"_pool{args.pool}"
+        name += "_features"
         if args.smoke_classes > 0:
             name += f"_smoke{args.smoke_classes}"
         out = Path("data/imagenet100") / f"{name}.npz"

@@ -468,8 +468,6 @@ def main():
 
     if args.task == "housing" and (args.model == "cnn" or args.backbone == "cnn"):
         parser.error("CNN backbone is not supported for housing")
-    if args.task == "imagenet100" and (args.model == "cnn" or args.backbone == "cnn"):
-        parser.error("CNN backbone is not supported for imagenet100")
     if args.task in ("cora", "zinc"):
         ok = args.model == "gcn" or (
             args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca")
@@ -578,8 +576,11 @@ def main():
         )
     else:
         if args.task == "imagenet100":
-            train_loader, val_loader, test_loader = get_imagenet100_dataloaders(
-                args.batch_size, args.data_dir, random_labels=args.random_labels
+            train_loader, val_loader, test_loader, imagenet100_input_dim, imagenet100_feature_pool = (
+                get_imagenet100_dataloaders(
+                    args.batch_size, args.data_dir,
+                    random_labels=args.random_labels, spatial=(backbone == "cnn"),
+                )
             )
         else:
             train_loader, val_loader, test_loader = get_mnist_dataloaders(
@@ -614,8 +615,20 @@ def main():
         if args.model in ("ceb", "fgib"):
             model_kwargs["continuous_y"] = True
     elif args.task == "imagenet100":
-        model_kwargs["input_dim"] = 1024
         model_kwargs["num_classes"] = 100
+        if backbone == "cnn":
+            # CNN 需要保留空间结构的池化特征；回退到全局池化（1×1）文件时无法卷积
+            if imagenet100_feature_pool == 1:
+                parser.error(
+                    "imagenet100 CNN 骨干需要空间池化特征文件（缺失 "
+                    "imagenet100_resnet50_layer3_pool4_features.npz，"
+                    "当前回退为全局池化特征），请先运行 "
+                    "datasets/extract_imagenet100_features.py --pool 4"
+                )
+            model_kwargs["input_channels"] = imagenet100_input_dim // (imagenet100_feature_pool ** 2)
+            model_kwargs["input_size"] = imagenet100_feature_pool
+        else:
+            model_kwargs["input_dim"] = imagenet100_input_dim
     elif args.task == "cora":
         model_kwargs["input_dim"] = 1433
         model_kwargs["num_classes"] = 7
