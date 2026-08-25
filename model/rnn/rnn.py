@@ -1,5 +1,6 @@
 """RNN（LSTM 文本分类）基线模型定义。"""
 
+import torch
 import torch.nn as nn
 
 from .utils import build_rnn_encoder
@@ -21,11 +22,13 @@ class RNN(nn.Module):
         dropout: float = 0.2,
         pad_idx: int = 0,
         input_dim: int | None = None,
+        pretrained_emb: torch.Tensor | None = None,
+        pooling: str = "last",
     ):
         super().__init__()
 
         self.encoder = build_rnn_encoder(
-            vocab_size, hidden_dims, dropout, pad_idx, input_dim
+            vocab_size, hidden_dims, dropout, pad_idx, input_dim, pretrained_emb, pooling
         )
         self.classifier = nn.Linear(hidden_dims[-1], num_classes)
 

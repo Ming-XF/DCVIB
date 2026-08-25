@@ -16,6 +16,8 @@
     python train.py --task imdb --backbone rnn --model ceb    # RNN 版 CEB
     python train.py --task agnews --model rnn          # AG News BERT 特征分类（RNN 基线）
     python train.py --task agnews --backbone rnn --model vib  # RNN 版 VIB（ceb/fgib 同理）
+    python train.py --task stsb --model rnn             # STS-B 文本相似度回归（RNN 基线）
+    python train.py --task stsb --backbone rnn --model fgib   # RNN 版 FGIB 回归（固定 RFF 连续锚点先验）
     python train.py --task housing --model vib     # California Housing 回归（MLP 骨干）
     python train.py --task housing --model ceb     # CEB 回归（连续 y 条件先验）
     python train.py --task housing --model fgib    # FGIB 回归（固定 RFF 连续锚点先验）
@@ -58,6 +60,7 @@ from datasets.datasets import (
     get_mnist_dataloaders,
 )
 from datasets.imdb import get_imdb_dataloaders
+from datasets.stsb import get_stsb_dataloaders
 from model import CEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, VIB
 from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
@@ -100,7 +103,7 @@ def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="cla
 
         optimizer.zero_grad()
         logits, kl, recon = run_model(model, images, labels, stochastic=True)
-        if task == "housing":
+        if task in ("housing", "stsb"):
             logits = logits.squeeze(-1)
         loss = criterion(logits, labels)
         if kl is not None:
@@ -112,10 +115,10 @@ def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="cla
 
         total_loss += loss.item() * images.size(0)
         total += labels.size(0)
-        if task != "housing":
+        if task not in ("housing", "stsb"):
             correct += (logits.argmax(dim=1) == labels).sum().item()
 
-    acc = None if task == "housing" else correct / total
+    acc = None if task in ("housing", "stsb") else correct / total
     return total_loss / total, acc
 
 
@@ -132,7 +135,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
     for images, labels in loader:
         images, labels = images.to(device), labels.to(device)
         logits, kl, recon = run_model(model, images, labels, stochastic=False)
-        if task == "housing":
+        if task in ("housing", "stsb"):
             logits = logits.squeeze(-1)
         loss = criterion(logits, labels)
         if kl is not None:
@@ -142,7 +145,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
 
         total_loss += loss.item() * images.size(0)
         total += labels.size(0)
-        if task == "housing":
+        if task in ("housing", "stsb"):
             preds = logits
         else:
             probs = logits.softmax(dim=1)
@@ -155,7 +158,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
     preds = torch.cat(all_preds).cpu().numpy()
     labels = torch.cat(all_labels).cpu().numpy()
 
-    if task == "housing":
+    if task in ("housing", "stsb"):
         preds = target_scaler.inverse_transform(preds.reshape(-1, 1)).ravel()
         labels = target_scaler.inverse_transform(labels.reshape(-1, 1)).ravel()
         mae = mean_absolute_error(labels, preds)
@@ -252,6 +255,7 @@ def get_dataset_name(task: str) -> str:
         else "cora" if task == "cora"
         else "imdb" if task == "imdb"
         else "agnews" if task == "agnews"
+        else "stsb" if task == "stsb"
         else "mnist"
     )
 
@@ -283,12 +287,13 @@ def build_parser():
     parser.add_argument(
         "--task",
         type=str,
-        choices=["mnist", "housing", "imagenet100", "cora", "imdb", "agnews"],
+        choices=["mnist", "housing", "imagenet100", "cora", "imdb", "agnews", "stsb"],
         default="mnist",
         help="mnist is the default (MNIST classification); housing is California "
         "Housing regression (MLP backbone only); imagenet100 uses pretrained "
         "ResNet50 features (MLP backbone only); cora uses GNN backbone only; "
-        "imdb and agnews use RNN backbone only (agnews uses BERT token features)",
+        "imdb, agnews and stsb use RNN backbone only (agnews uses BERT token "
+        "features; stsb is STS-B text similarity regression, RNN backbone only)",
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=512)
@@ -317,7 +322,8 @@ def build_parser():
         "--max-len",
         type=int,
         default=250,
-        help="max sequence length of IMDb reviews (imdb only)",
+        help="max sequence length of IMDb reviews / STS-B sentence pairs "
+        "(imdb/stsb only; stsb 中两个句子各自截断到 (max_len-1)//2 后以 [SEP] 拼接)",
     )
     parser.add_argument(
         "--random-labels",
@@ -382,7 +388,7 @@ def main():
             parser.error("Cora task only supports --model gcn or --backbone gnn with vib/ceb/fgib/svib/nib/dvcca")
     elif args.model == "gcn" or args.backbone == "gnn":
         parser.error("GNN backbone is only supported for cora")
-    if args.task in ("imdb", "agnews"):
+    if args.task in ("imdb", "agnews", "stsb"):
         ok = args.model == "rnn" or (
             args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib")
         )
@@ -393,7 +399,7 @@ def main():
                 "（dvcca 不支持 RNN 骨干：文本重建无意义）"
             )
     elif args.model == "rnn" or args.backbone == "rnn":
-        parser.error("RNN backbone is only supported for imdb/agnews")
+        parser.error("RNN backbone is only supported for imdb/agnews/stsb")
 
     # mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干
     if args.model in ("mlp", "cnn", "rnn"):
@@ -453,10 +459,16 @@ def main():
         )
         target_scaler = None
     elif args.task == "agnews":
-        train_loader, val_loader, test_loader = get_agnews_dataloaders(
+        train_loader, val_loader, test_loader, agnews_input_dim = get_agnews_dataloaders(
             args.batch_size, args.data_dir, random_labels=args.random_labels
         )
         target_scaler = None
+    elif args.task == "stsb":
+        train_loader, val_loader, test_loader, vocab_size, target_scaler, glove_matrix = (
+            get_stsb_dataloaders(
+                args.batch_size, args.data_dir, max_len=args.max_len
+            )
+        )
     else:
         if args.task == "imagenet100":
             train_loader, val_loader, test_loader = get_imagenet100_dataloaders(
@@ -481,6 +493,19 @@ def main():
         model_kwargs["num_classes"] = 1
         if args.model in ("ceb", "fgib"):
             model_kwargs["continuous_y"] = True
+    elif args.task == "stsb":
+        model_kwargs["vocab_size"] = vocab_size
+        model_kwargs["num_classes"] = 1
+        model_kwargs["pretrained_emb"] = glove_matrix
+        model_kwargs["pooling"] = "max"
+        # 词嵌入维度取自 GloVe 矩阵（100），--hidden-dims 仅作逐层 LSTM 隐层
+        # 维度（模型内对 pretrained_emb 自动解耦嵌入维度与层维度）；
+        # 未显式指定时 stsb 默认单层 LSTM 256（多层在小数据集上过拟合，
+        # 实验验证：单层 val R²≈0.27 vs 两层 0.07）
+        if tuple(args.hidden_dims) == tuple(parser.get_default("hidden_dims")):
+            model_kwargs["hidden_dims"] = (256,)
+        if args.model in ("ceb", "fgib"):
+            model_kwargs["continuous_y"] = True
     elif args.task == "imagenet100":
         model_kwargs["input_dim"] = 1024
         model_kwargs["num_classes"] = 100
@@ -491,10 +516,10 @@ def main():
         model_kwargs["vocab_size"] = vocab_size
         model_kwargs["num_classes"] = 2
     elif args.task == "agnews":
-        model_kwargs["input_dim"] = 768
+        model_kwargs["input_dim"] = agnews_input_dim
         model_kwargs["num_classes"] = 4
 
-    criterion = nn.MSELoss() if args.task == "housing" else nn.CrossEntropyLoss()
+    criterion = nn.MSELoss() if args.task in ("housing", "stsb") else nn.CrossEntropyLoss()
     test_results = []
     run_train_accs = []
 
@@ -513,7 +538,7 @@ def main():
         run_save_path = f"{stem}_run{run}{ext}"
 
         best_score, best_epoch, patience_counter = -1.0, 0, 0
-        metric_name = "R2" if args.task == "housing" else "AUC"
+        metric_name = "R2" if args.task in ("housing", "stsb") else "AUC"
         train_acc = None
 
         for epoch in range(1, args.epochs + 1):
@@ -531,7 +556,7 @@ def main():
                     f"Val Loss {val_loss:.4f} Acc {val_acc:.4f} AUC {val_auc:.4f} "
                     f"Pre {val_pre:.4f} Rec {val_rec:.4f}"
                 )
-            elif args.task == "housing":
+            elif args.task in ("housing", "stsb"):
                 train_loss, _ = train_one_epoch(
                     model, train_loader, optimizer, criterion, args.beta, device, args.task
                 )
@@ -588,7 +613,7 @@ def main():
                 f"Pre {test_pre:.4f} Rec {test_rec:.4f}"
             )
             test_results.append((test_loss, test_acc, test_auc, test_pre, test_rec))
-        elif args.task == "housing":
+        elif args.task in ("housing", "stsb"):
             test_loss, test_mae, test_r2 = evaluate(
                 model, test_loader, criterion, args.beta, device, args.task,
                 target_scaler,
@@ -611,7 +636,7 @@ def main():
 
     means = torch.tensor(test_results).mean(dim=0)
     stds = torch.tensor(test_results).std(dim=0)
-    if args.task == "housing":
+    if args.task in ("housing", "stsb"):
         logging.info(
             f"Average over {args.runs} runs | Test "
             f"Loss {means[0]:.4f}±{stds[0]:.4f} MAE {means[1]:.4f}±{stds[1]:.4f} "

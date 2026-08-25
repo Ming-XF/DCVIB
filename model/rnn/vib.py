@@ -24,11 +24,13 @@ class VIB(nn.Module):
         dropout: float = 0.2,
         pad_idx: int = 0,
         input_dim: int | None = None,
+        pretrained_emb: torch.Tensor | None = None,
+        pooling: str = "last",
     ):
         super().__init__()
 
         self.encoder = build_rnn_encoder(
-            vocab_size, hidden_dims, dropout, pad_idx, input_dim
+            vocab_size, hidden_dims, dropout, pad_idx, input_dim, pretrained_emb, pooling
         )
         self.mu_head = nn.Linear(hidden_dims[-1], z_dim)
         self.logvar_head = nn.Linear(hidden_dims[-1], z_dim)

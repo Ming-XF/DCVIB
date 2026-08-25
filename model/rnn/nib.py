@@ -27,10 +27,12 @@ class NIB(nn.Module):
         pad_idx: int = 0,
         input_dim: int | None = None,
         noise_var_init: float = 1.0,
+        pretrained_emb: torch.Tensor | None = None,
+        pooling: str = "last",
     ):
         super().__init__()
         self.encoder = build_rnn_encoder(
-            vocab_size, hidden_dims, dropout, pad_idx, input_dim
+            vocab_size, hidden_dims, dropout, pad_idx, input_dim, pretrained_emb, pooling
         )
         self.bottleneck_head = nn.Linear(hidden_dims[-1], z_dim)
         self.classifier = nn.Linear(z_dim, num_classes)

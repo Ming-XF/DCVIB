@@ -1,15 +1,15 @@
-"""CEB（条件熵瓶颈，Fischer 2020）RNN 模型定义。"""
+"""CEB（条件熵瓶颈，Fischer 2020）CNN 模型定义。"""
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from ..mlp.utils import kl_divergence, reparameterize
-from .utils import build_rnn_encoder
+from .utils import build_cnn_encoder
 
 
 class CEB(nn.Module):
-    """在 RNN 文本表示上引入条件熵瓶颈（CEB）机制。
+    """在 CNN 特征上引入条件熵瓶颈（CEB）机制。
 
     目标为 VCEB = KL(e(z|x) || b(z|y)) + γ·交叉熵（项目损失约定下等价于
     CE + β·KL，β = 1/γ）。编码器输出 h 后，由两个线性头得到后验 q(z|x)
@@ -24,26 +24,23 @@ class CEB(nn.Module):
 
     def __init__(
         self,
-        vocab_size: int | None = None,
-        num_classes: int = 2,
-        hidden_dims: tuple[int, ...] = (512, 256),
+        input_channels: int = 1,
+        conv_channels: tuple[int, ...] = (32, 64),
+        hidden_dim: int = 256,
         z_dim: int = 256,
+        num_classes: int = 10,
         dropout: float = 0.2,
-        pad_idx: int = 0,
         continuous_y: bool = False,
-        input_dim: int | None = None,
-        pretrained_emb: torch.Tensor | None = None,
-        pooling: str = "last",
     ):
         super().__init__()
         self.num_classes = num_classes
         self.continuous_y = continuous_y
 
-        self.encoder = build_rnn_encoder(
-            vocab_size, hidden_dims, dropout, pad_idx, input_dim, pretrained_emb, pooling
+        self.encoder = build_cnn_encoder(
+            input_channels, conv_channels, hidden_dim, dropout
         )
-        self.mu_head = nn.Linear(hidden_dims[-1], z_dim)
-        self.logvar_head = nn.Linear(hidden_dims[-1], z_dim)
+        self.mu_head = nn.Linear(hidden_dim, z_dim)
+        self.logvar_head = nn.Linear(hidden_dim, z_dim)
         # 标签先验线性层：无激活，one-hot 标签（或连续 y）-> (mu_prior, logvar_prior)
         prior_in = 1 if continuous_y else num_classes
         self.prior_net = nn.Linear(prior_in, 2 * z_dim)
