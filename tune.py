@@ -6,9 +6,11 @@
   - vib/ceb/svib/nib/dvcca 只有 beta 维度；
   - fgib 有 beta × anchor-scale 两个维度；
   总试验数 = 各模型组合数之和；
-- --parallel 指定并行训练进程数；
+- --parallel 指定**每张 GPU** 上的并行训练进程数；脚本自动检测可用 GPU
+  （可用 `CUDA_VISIBLE_DEVICES` 环境变量限制），组合按轮转进入各 GPU 的独立队列
+  （每卡并发严格 ≤ --parallel，互不影响），总并行 = GPU 数 × --parallel；
 - --results-dir 指定结果根目录，每个参数组合一个子文件夹
-  `{dataset}_{backbone}_{model}_beta_{b}_anchor_{a}/`（模型与日志存于其中，按模型类型省略无维度后缀）；
+  `{dataset}_{backbone}_{model}_beta_{b}_anchor_{a}/`（仅训练日志存于其中，**不保存模型参数**，按模型类型省略无维度后缀）；
 - 全部训练完成后在结果根目录生成 HTML 调参结果表（每个模型一张表格，各表带排序下拉框，可自由选择排序指标）。
 
 示例：
@@ -17,10 +19,14 @@
 """
 
 import argparse
+import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import ExitStack
 from pathlib import Path
+
+import torch
 
 from train import build_parser, get_dataset_name
 
@@ -28,7 +34,7 @@ ROOT = Path(__file__).resolve().parent
 TRAIN_PY = ROOT / "train.py"
 
 # 调参专属或由脚本接管路径的参数，重建 train.py 命令行时跳过
-SKIP_DESTS = {"model", "beta", "anchor_scale", "parallel", "results_dir", "save_path", "log_path"}
+SKIP_DESTS = {"model", "beta", "anchor_scale", "parallel", "results_dir", "save_path", "log_path", "no_save"}
 
 BASELINES = ("mlp", "cnn", "gcn", "rnn")
 
@@ -65,13 +71,20 @@ def build_tune_parser():
     )
     parser.add_argument(
         "--parallel", type=int, default=2,
-        help="并行训练进程数（默认 2）",
+        help="每张 GPU 上的并行训练进程数，总并行 = GPU 数 × 此值（默认 2）",
     )
     parser.add_argument(
         "--results-dir", type=str, default="tune_results",
         help="调参结果根目录，每个参数组合一个子文件夹（默认 tune_results）",
     )
     return parser
+
+
+def detect_gpus():
+    """检测可用 GPU 数量（受环境变量 CUDA_VISIBLE_DEVICES 限制）；无 GPU 返回 0。"""
+    if torch.cuda.is_available():
+        return torch.cuda.device_count()
+    return 0
 
 
 def model_prefix(args, model: str) -> str:
@@ -119,16 +132,22 @@ def build_train_cmd(parser, args, model, beta, anchor_scale, out_dir):
         cmd.extend(["--beta", str(beta)])
     if anchor_scale is not None:
         cmd.extend(["--anchor-scale", str(anchor_scale)])
-    cmd.extend(["--save-path", str(out_dir / "model.pt")])
+    cmd.append("--no-save")
     cmd.extend(["--log-path", str(out_dir / "train.log")])
     return cmd
 
 
-def run_combo(cmd, out_dir):
-    """运行一次 train.py 训练，返回 (out_dir, 是否成功)。"""
+def run_combo(cmd, out_dir, gpu=None):
+    """运行一次 train.py 训练，返回 (out_dir, 是否成功)。
+
+    gpu 为分配给该进程的 GPU 序号（通过 CUDA_VISIBLE_DEVICES 指定）；None 表示 CPU 运行。
+    """
     name = out_dir.name
-    print(f"[启动] {name}", flush=True)
-    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    env = os.environ.copy()
+    if gpu is not None:
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu)
+    print(f"[启动] {name} (GPU {gpu})", flush=True)
+    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=env)
     ok = proc.returncode == 0
     if not ok:
         (out_dir / "error.log").write_text(
@@ -284,18 +303,29 @@ def main():
             combos.extend((model, b, None) for b in betas)
 
     per_model = {m: sum(1 for c in combos if c[0] == m) for m in models}
+    n_gpus = detect_gpus()
+    n_slots = n_gpus if n_gpus > 0 else 1
+    total_parallel = args.parallel * n_slots
+    gpu_desc = f"{n_gpus} 张 GPU" if n_gpus > 0 else "无 GPU（CPU）"
     print(
-        f"参数网格：共 {len(combos)} 组训练，并行度 {args.parallel}；"
+        f"参数网格：共 {len(combos)} 组训练，{gpu_desc}，每卡独立队列 × 单卡并行 {args.parallel} = 总并行 {total_parallel}；"
         f"各组数 " + " ".join(f"{m}×{n}" for m, n in per_model.items())
     )
 
-    with ThreadPoolExecutor(max_workers=args.parallel) as pool:
+    # 每 GPU 一个独立队列（各一个线程池，并发 ≤ --parallel），组合按轮转进入各卡队列
+    slots = list(range(n_gpus)) if n_gpus > 0 else [None]
+    with ExitStack() as stack:
+        pools = [
+            stack.enter_context(ThreadPoolExecutor(max_workers=args.parallel))
+            for _ in slots
+        ]
         futures = {}
-        for model, b, a in combos:
+        for i, (model, b, a) in enumerate(combos):
             d = results_root / combo_name(model_prefix(args, model), b, a)
             d.mkdir(parents=True, exist_ok=True)
             cmd = build_train_cmd(parser, args, model, b, a, d)
-            futures[pool.submit(run_combo, cmd, d)] = (model, b, a)
+            slot = i % len(slots)
+            futures[pools[slot].submit(run_combo, cmd, d, slots[slot])] = (model, b, a)
         status = {}
         for fut in as_completed(futures):
             key = futures[fut]

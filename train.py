@@ -454,6 +454,11 @@ def build_parser():
         default=None,
         help="training log file path (default output/{model}/train_{model}.log)",
     )
+    parser.add_argument(
+        "--no-save",
+        action="store_true",
+        help="不保存模型 checkpoint，最优模型仅保留在内存中用于测试评估（默认保存）",
+    )
     return parser
 
 
@@ -657,6 +662,7 @@ def main():
         # 初始 -inf：回归任务 val R² 可任意负（如 MLP 前几轮远低于 -1），
         # 首个 epoch 必定保存，避免全部 epoch 无改善时无 checkpoint 可加载
         best_score, best_epoch, patience_counter = -float("inf"), 0, 0
+        best_state = None
         metric_name = "R2" if args.task in ("housing", "stsb", "zinc", "agedb") else "AUC"
         train_acc = None
 
@@ -720,7 +726,11 @@ def main():
             if val_score > best_score:
                 best_score, best_epoch = val_score, epoch
                 patience_counter = 0
-                torch.save(model.state_dict(), run_save_path)
+                if args.no_save:
+                    # 保留在内存（拷贝到 CPU 省显存），测试评估时直接加载
+                    best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+                else:
+                    torch.save(model.state_dict(), run_save_path)
                 logging.info(f"  Val {metric_name} improved to {best_score:.4f}, model saved")
             else:
                 patience_counter += 1
@@ -734,7 +744,10 @@ def main():
 
         if args.random_labels and train_acc is not None:
             run_train_accs.append(train_acc)
-        model.load_state_dict(torch.load(run_save_path, weights_only=True))
+        if args.no_save:
+            model.load_state_dict(best_state)
+        else:
+            model.load_state_dict(torch.load(run_save_path, weights_only=True))
         if args.task == "cora":
             test_loss, test_acc, test_auc, test_pre, test_rec = evaluate_cora(
                 model, x, adj, y, test_mask, criterion, args.beta, device
