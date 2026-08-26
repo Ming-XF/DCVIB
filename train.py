@@ -74,7 +74,15 @@ from datasets.zinc import get_zinc_dataloaders
 from model import CEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, VIB
 from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
-from model.rnn import CEB as RNNCEB, FGIB as RNNFGIB, NIB as RNNNIB, RNN, SVIB as RNNSVIB, VIB as RNNVIB
+from model.rnn import (
+    CEB as RNNCEB,
+    DVCCA as RNNDVCCA,
+    FGIB as RNNFGIB,
+    NIB as RNNNIB,
+    RNN,
+    SVIB as RNNSVIB,
+    VIB as RNNVIB,
+)
 
 
 def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None):
@@ -89,7 +97,7 @@ def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None
     if isinstance(model, (GNNVIB, GNNCEB, GNNNIB)):
         logits, kl = model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask, batch=batch)
         return logits, kl, None
-    if isinstance(model, (DVCCA, CNNDVCCA)):
+    if isinstance(model, (DVCCA, CNNDVCCA, RNNDVCCA)):
         return model(images, labels, stochastic=stochastic)
     if isinstance(model, GNNDVCCA):
         return model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask, batch=batch)
@@ -311,6 +319,7 @@ MODEL_CLASSES = {
     ("dvcca", "mlp"): DVCCA,
     ("dvcca", "cnn"): CNNDVCCA,
     ("dvcca", "gnn"): GNNDVCCA,
+    ("dvcca", "rnn"): RNNDVCCA,
     ("ceb", "mlp"): CEB,
     ("ceb", "cnn"): CNNCEB,
     ("ceb", "gnn"): GNNCEB,
@@ -478,13 +487,12 @@ def main():
         parser.error("GNN backbone is only supported for cora/zinc")
     if args.task in ("imdb", "agnews", "stsb"):
         ok = args.model == "rnn" or (
-            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib")
+            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca")
         )
         if not ok:
             parser.error(
                 f"{args.task} task only supports --model rnn or "
-                "--backbone rnn with vib/ceb/fgib/svib/nib "
-                "（dvcca 不支持 RNN 骨干：文本重建无意义）"
+                "--backbone rnn with vib/ceb/fgib/svib/nib/dvcca"
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews/stsb")

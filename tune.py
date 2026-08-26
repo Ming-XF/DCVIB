@@ -11,6 +11,8 @@
   （每卡并发严格 ≤ --parallel，互不影响），总并行 = GPU 数 × --parallel；
 - --results-dir 指定结果根目录，每个参数组合一个子文件夹
   `{dataset}_{backbone}_{model}_beta_{b}_anchor_{a}/`（仅训练日志存于其中，**不保存模型参数**，按模型类型省略无维度后缀）；
+- 每个组合完成时实时打印总体进度（已完成/成功/失败、进行中、排队与预计剩余时间），
+  全部完成后打印成功/失败汇总与总用时；
 - 全部训练完成后在结果根目录生成 HTML 调参结果表（每个模型一张表格，各表带排序下拉框，可自由选择排序指标）。
 
 示例：
@@ -22,6 +24,8 @@ import argparse
 import os
 import subprocess
 import sys
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack
 from pathlib import Path
@@ -87,6 +91,83 @@ def detect_gpus():
     return 0
 
 
+def cpu_count():
+    """容器感知的 CPU 核数：宿主核数与 cgroup 配额取小，回退 os.cpu_count()。
+
+    os.cpu_count() 基于 sched_getaffinity 返回宿主机核数（AutoDL 容器宿主
+    128 核、配额 48 核），不感知 cgroup 配额，直接按宿主核数均分线程会
+    低估每进程可用核数、反而造成超订。cgroup v2 读 /sys/fs/cgroup/cpu.max，
+    v1 读 cpu.cfs_quota_us/cpu.cfs_period_us，均不可用时回退 os.cpu_count()。
+    """
+    quota = None
+    try:
+        with open("/sys/fs/cgroup/cpu.max") as f:
+            q, period = f.read().split()
+            if q != "max":
+                quota = max(1, int(q) // int(period))
+    except (OSError, ValueError):
+        pass
+    if quota is None:
+        try:
+            with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us") as f:
+                q = int(f.read().strip())
+            if q > 0:
+                with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us") as f:
+                    period = int(f.read().strip())
+                quota = max(1, q // period)
+        except (OSError, ValueError):
+            quota = None
+    n = os.cpu_count() or 1
+    return min(n, quota) if quota is not None else n
+
+
+def fmt_duration(seconds: float) -> str:
+    """秒数格式化为可读时长（<60s 显示秒，否则显示分钟）。"""
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    return f"{seconds / 60:.1f}min"
+
+
+class ProgressTracker:
+    """线程安全的调参进度统计：启动/完成计数与总用时，供每个组合完成时打印进度行与 ETA。"""
+
+    def __init__(self, total: int):
+        self.total = total
+        self.started = 0
+        self.done = 0
+        self.failed = 0
+        self._lock = threading.Lock()
+        self._t0 = time.monotonic()
+
+    def mark_started(self):
+        with self._lock:
+            self.started += 1
+
+    def mark_done(self, ok: bool):
+        with self._lock:
+            self.done += 1
+            if not ok:
+                self.failed += 1
+
+    def line(self) -> str:
+        """当前进度行：完成计数 + 进行中/排队 + 用时（+ 预计剩余）。"""
+        with self._lock:
+            done, started, failed = self.done, self.started, self.failed
+        elapsed = time.monotonic() - self._t0
+        parts = [
+            f"{done}/{self.total} 完成（成功 {done - failed}，失败 {failed}）",
+            f"进行中 {started - done}，排队 {self.total - started}",
+            f"用时 {fmt_duration(elapsed)}",
+        ]
+        if 0 < done < self.total:
+            eta = elapsed * (self.total - done) / done
+            parts.append(f"预计剩余 {fmt_duration(eta)}")
+        return "，".join(parts)
+
+    def elapsed(self) -> float:
+        return time.monotonic() - self._t0
+
+
 def model_prefix(args, model: str) -> str:
     """按 train.py 输出目录约定生成 {dataset}_{backbone}_{model} 前缀（基线为 {dataset}_{model}）。"""
     dataset_name = get_dataset_name(args.task)
@@ -137,15 +218,23 @@ def build_train_cmd(parser, args, model, beta, anchor_scale, out_dir):
     return cmd
 
 
-def run_combo(cmd, out_dir, gpu=None):
+def run_combo(cmd, out_dir, tracker, gpu=None, omp_threads=None):
     """运行一次 train.py 训练，返回 (out_dir, 是否成功)。
 
+    tracker 为共享进度统计（启动/完成计数），完成后打印总体进度行。
     gpu 为分配给该进程的 GPU 序号（通过 CUDA_VISIBLE_DEVICES 指定）；None 表示 CPU 运行。
+    omp_threads 为每进程 OpenMP 线程数（按总并行数均分 CPU 核，避免多进程
+    线程超订——zinc 等轻任务 30 并行时 epoch 从 <1s 退化到 ~2min 即此原因）；
+    None 或用户已显式设置 OMP_NUM_THREADS 时不覆盖。
     """
     name = out_dir.name
     env = os.environ.copy()
+    tracker.mark_started()
     if gpu is not None:
         env["CUDA_VISIBLE_DEVICES"] = str(gpu)
+    if omp_threads is not None and "OMP_NUM_THREADS" not in env:
+        env["OMP_NUM_THREADS"] = str(omp_threads)
+        env["MKL_NUM_THREADS"] = str(omp_threads)
     print(f"[启动] {name} (GPU {gpu})", flush=True)
     proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=env)
     ok = proc.returncode == 0
@@ -157,6 +246,8 @@ def run_combo(cmd, out_dir, gpu=None):
         print(f"[失败] {name} (exit {proc.returncode})，详见 {out_dir / 'error.log'}", flush=True)
     else:
         print(f"[完成] {name}", flush=True)
+    tracker.mark_done(ok)
+    print(f"[进度] {tracker.line()}", flush=True)
     return out_dir, ok
 
 
@@ -306,10 +397,18 @@ def main():
     n_gpus = detect_gpus()
     n_slots = n_gpus if n_gpus > 0 else 1
     total_parallel = args.parallel * n_slots
+    # 按总并行数均分 CPU 核给每个子进程（下限 1），避免 30 进程 × 全核线程的
+    # 超订导致轻任务（如 zinc）百倍变慢；用户已显式设置 OMP_NUM_THREADS 时不覆盖
+    n_cpus = cpu_count()
+    omp_threads = max(1, n_cpus // total_parallel)
     gpu_desc = f"{n_gpus} 张 GPU" if n_gpus > 0 else "无 GPU（CPU）"
     print(
         f"参数网格：共 {len(combos)} 组训练，{gpu_desc}，每卡独立队列 × 单卡并行 {args.parallel} = 总并行 {total_parallel}；"
         f"各组数 " + " ".join(f"{m}×{n}" for m, n in per_model.items())
+    )
+    print(
+        f"每进程 OpenMP 线程数：{omp_threads}（容器 {n_cpus} 核 / 总并行 {total_parallel}，"
+        f"已设置 OMP_NUM_THREADS 时尊重用户值）"
     )
 
     # 每 GPU 一个独立队列（各一个线程池，并发 ≤ --parallel），组合按轮转进入各卡队列
@@ -320,17 +419,23 @@ def main():
             for _ in slots
         ]
         futures = {}
+        tracker = ProgressTracker(len(combos))
         for i, (model, b, a) in enumerate(combos):
             d = results_root / combo_name(model_prefix(args, model), b, a)
             d.mkdir(parents=True, exist_ok=True)
             cmd = build_train_cmd(parser, args, model, b, a, d)
             slot = i % len(slots)
-            futures[pools[slot].submit(run_combo, cmd, d, slots[slot])] = (model, b, a)
+            futures[pools[slot].submit(run_combo, cmd, d, tracker, slots[slot], omp_threads)] = (model, b, a)
         status = {}
         for fut in as_completed(futures):
             key = futures[fut]
             _, ok = fut.result()
             status[key] = ok
+        n_ok = sum(status.values())
+        print(
+            f"全部完成：{len(combos)} 组训练（成功 {n_ok}，失败 {len(combos) - n_ok}），"
+            f"总用时 {fmt_duration(tracker.elapsed())}"
+        )
 
     results = []
     for model, b, a in combos:

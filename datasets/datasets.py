@@ -8,8 +8,11 @@
 - get_california_dataloaders：sklearn California Housing，60/20/20 划分，特征标准化、
   目标 MinMaxScaler 归一化到 [0,1]
 """
+import fcntl
+import json
 import logging
 import os
+import warnings
 
 import numpy as np
 import torch
@@ -18,6 +21,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from torch.utils.data import DataLoader, TensorDataset, random_split
 from torchvision import datasets, transforms
+
+# mmap 只读数组转 tensor 会触发"非可写"告警：DataLoader 只读使用缓存、从不回写，忽略该噪音
+warnings.filterwarnings("ignore", message="The given NumPy array is not writable.*")
 
 
 def get_mnist_dataloaders(
@@ -68,6 +74,47 @@ def get_mnist_dataloaders(
 IMAGENET100_FEATURE_POOL = 4
 
 
+def _build_imagenet100_cache(pool_file, cache_dir, seed, test_ratio, val_ratio):
+    """加载原始 npz 并一次性完成 60/20/20 划分与 StandardScaler 变换，落盘 float32 .npy。
+
+    仅在缓存缺失或 npz 更新时执行（调用方持 flock 保证多进程只有一个构建者），
+    之后各进程用 mmap 只读映射共享同一份页缓存，避免每进程重复持有约 8GB 特征副本。
+    meta.json 记录 npz 的 mtime，特征重新提取（mtime 变化）时缓存自动失效重建；
+    各 .npy 先写 .tmp 再原子改名，构建中途被杀不会留下半成品缓存。
+    """
+    logging.info("ImageNet-100 预处理缓存缺失，首次构建（npz 加载 + 划分 + 标准化，内存峰值较高）...")
+    data = np.load(pool_file)
+    X, y = data["features"], data["labels"]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_ratio, random_state=seed, stratify=y
+    )
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train, y_train, test_size=val_ratio / (1 - test_ratio),
+        random_state=seed, stratify=y_train,
+    )
+    logging.info(
+        "ImageNet-100 划分（60/20/20 分层）：train %d / val %d / test %d",
+        len(X_train), len(X_val), len(X_test),
+    )
+    x_scaler = StandardScaler().fit(X_train)
+    os.makedirs(cache_dir, exist_ok=True)
+    for name, arr in (
+        ("X_train.npy", x_scaler.transform(X_train).astype(np.float32)),
+        ("X_val.npy", x_scaler.transform(X_val).astype(np.float32)),
+        ("X_test.npy", x_scaler.transform(X_test).astype(np.float32)),
+        ("y_train.npy", y_train.astype(np.int64)),
+        ("y_val.npy", y_val.astype(np.int64)),
+        ("y_test.npy", y_test.astype(np.int64)),
+    ):
+        path = os.path.join(cache_dir, name)
+        tmp = path + ".tmp.npy"  # np.save 对不以 .npy 结尾的路径会自动补后缀
+        np.save(tmp, arr)
+        os.replace(tmp, path)
+    with open(os.path.join(cache_dir, "meta.json"), "w") as f:
+        json.dump({"npz_mtime": os.path.getmtime(pool_file)}, f)
+    logging.info("ImageNet-100 预处理缓存已写入 %s", cache_dir)
+
+
 def get_imagenet100_dataloaders(
     batch_size: int,
     data_dir: str = "./data",
@@ -82,7 +129,10 @@ def get_imagenet100_dataloaders(
     特征来自 datasets/extract_imagenet100_features.py 生成的 npz：优先使用 layer3
     池化到 pool×pool 的文件（默认 pool=4，1024×4×4=16384 维，保留空间结构），
     不存在时回退全局平均池化的旧文件（1024 维）。60/20/20 分层划分（seed 固定），
-    特征用 StandardScaler 标准化（仅在训练集上拟合）。random_labels=True 时把
+    特征用 StandardScaler 标准化（仅在训练集上拟合）。划分 + 标准化结果首次加载时
+    缓存为 float32 .npy（imagenet100/preprocessed_pool{p}/），之后各进程用
+    mmap 只读映射共享页缓存（多进程零拷贝、物理内存只占一份），npz mtime 变化时
+    自动重建。random_labels=True 时把
     训练集标签按固定 seed 随机化（信息自由数据集 I(X;Y)=0 的记忆实验）。
     spatial=True（CNN 骨干）且特征带空间结构时，样本重排为 (B, C, pool, pool)
     四维张量；否则保持展平向量。
@@ -107,40 +157,43 @@ def get_imagenet100_dataloaders(
                 "未找到 %s，回退全局池化特征 %s（特征维度减为 1024）",
                 preferred, pool_file,
             )
-    data = np.load(pool_file)
-    X, y = data["features"], data["labels"]
-    input_dim = X.shape[1]
+    # 预处理缓存（划分 + StandardScaler 后的 float32 .npy）：各进程 mmap 共享
+    # 同一份页缓存（多进程零拷贝，物理内存只占一份）；flock 保证首次构建只有一个进程执行
+    cache_dir = os.path.join(root, f"preprocessed_pool{feature_pool}")
+    lock_fd = os.open(os.path.join(root, "preprocess.lock"), os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        meta_path = os.path.join(cache_dir, "meta.json")
+        cache_ready = os.path.exists(meta_path)
+        if cache_ready:
+            with open(meta_path) as f:
+                cache_ready = json.load(f).get("npz_mtime") == os.path.getmtime(pool_file)
+        if not cache_ready:
+            _build_imagenet100_cache(pool_file, cache_dir, seed, test_ratio, val_ratio)
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_ratio, random_state=seed, stratify=y
-    )
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train, y_train, test_size=val_ratio / (1 - test_ratio),
-        random_state=seed, stratify=y_train,
-    )
-    logging.info(
-        "ImageNet-100 划分（60/20/20 分层）：train %d / val %d / test %d",
-        len(X_train), len(X_val), len(X_test),
-    )
+    logging.info("ImageNet-100 预处理缓存：mmap 共享 %s", cache_dir)
+    input_dim = np.load(os.path.join(cache_dir, "X_train.npy"), mmap_mode="r").shape[1]
 
-    if random_labels:
-        rng = torch.Generator().manual_seed(42)
-        y_train = torch.randint(
-            0, 100, (len(y_train),), generator=rng
-        ).numpy()
-        logging.info("随机标签实验：训练集标签已随机化（I(X;Y)=0，固定 seed 42）")
-
-    x_scaler = StandardScaler().fit(X_train)
-
-    def make_dataset(X, y):
-        x = torch.tensor(x_scaler.transform(X), dtype=torch.float32)
+    def make_dataset(x_name, y_name, y_override=None):
+        x = torch.from_numpy(np.load(os.path.join(cache_dir, x_name), mmap_mode="r"))
         if spatial and feature_pool > 1:
             x = x.view(-1, input_dim // (feature_pool ** 2), feature_pool, feature_pool)
-        return TensorDataset(x, torch.tensor(y, dtype=torch.long))
+        if y_override is None:
+            y_override = torch.from_numpy(np.load(os.path.join(cache_dir, y_name), mmap_mode="r"))
+        return TensorDataset(x, y_override)
 
-    train_dataset = make_dataset(X_train, y_train)
-    val_dataset = make_dataset(X_val, y_val)
-    test_dataset = make_dataset(X_test, y_test)
+    y_train = torch.from_numpy(np.load(os.path.join(cache_dir, "y_train.npy"), mmap_mode="r"))
+    if random_labels:
+        rng = torch.Generator().manual_seed(42)
+        y_train = torch.randint(0, 100, (len(y_train),), generator=rng)
+        logging.info("随机标签实验：训练集标签已随机化（I(X;Y)=0，固定 seed 42）")
+
+    train_dataset = make_dataset("X_train.npy", None, y_train)
+    val_dataset = make_dataset("X_val.npy", "y_val.npy")
+    test_dataset = make_dataset("X_test.npy", "y_test.npy")
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
