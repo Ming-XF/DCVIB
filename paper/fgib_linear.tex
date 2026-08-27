@@ -1,6 +1,6 @@
-% dcvib_theory.tex —— DCVIB 旁路瓶颈与 CEB 主路瓶颈的等价性推导
+% fgib_linear.tex —— FGIB 旁路瓶颈与 CEB 主路瓶颈的等价性推导
 % 记号沿用 Fischer (2020) "The Conditional Entropy Bottleneck"
-% 用法：导言区 \usepackage{amsmath,amssymb,amsthm}，正文处 \input{dcvib_theory.tex}
+% 用法：导言区 \usepackage{amsmath,amssymb,amsthm}，正文处 \input{fgib_linear.tex}
 % 若论文已定义 lemma/proposition/remark 环境，删除下面三行 \newtheorem
 
 \newtheorem{lemma}{Lemma}
@@ -9,11 +9,19 @@
 
 \textbf{Notation.}
 Let $X$ be the input and $Y$ the label.
-The main (deterministic) path of DCVIB computes the representation
+The main (deterministic) path of FGIB computes the representation
 $H = f_{\mathrm{enc}}(X) \in \mathbb{R}^{d}$, and the classifier consumes $H$ directly.
-The side path parameterizes $q(z|x) = \mathcal{N}(\mu_q(x), \Sigma_q(x))$ with mean head
-$\mu_q(x) = A\,h(x)$ for a linear map $A \in \mathbb{R}^{z \times d}$; $Z$ never feeds the classifier.
-The label-conditional prior (backward encoder) is $r(z|y) = \mathcal{N}(\mu_p(y), \Sigma_p(y))$.
+The side path parameterizes $q(z|x) = \mathcal{N}(\mu_q(x), \Sigma_q(x))$ with linear mean
+head $\mu_q(x) = A\,h(x)$ for $A \in \mathbb{R}^{z \times d}$, unconstrained ($z = d$, so
+$A$ is a.s.\ invertible; the bias of the implementation's Linear head is omitted by the
+same convention); $Z$ never feeds the classifier.
+The label-conditional prior (backward encoder) is $r(z|y) = \mathcal{N}(\mu_p(y), \Sigma_p(y))$;
+for FGIB it is the fixed orthonormal anchor table $\mathcal{N}(a v_y, I)$. The
+orthogonality of the method lies in this fixed frame and in the equilibrium it induces
+--- the KL drives the class-conditional means $\mu_y = A\,\mathbb{E}[h|y]$ toward the
+orthonormal anchors $a v_y$, so the transformed class representations become mutually
+orthogonal (the aligned family of fgib\_degeneration.tex) --- while $A$ itself remains
+an unconstrained linear map.
 The side-path regularizer is $\operatorname{KL}(q(z|x)\,\|\,r(z|y))$, added to the
 cross-entropy with weight $\beta$, with gradients reaching the main path only through the
 shared encoder (the classification gradient does not enter the side heads, and vice versa).
@@ -32,16 +40,16 @@ $\mathbb{E}_z[\mathrm{CE}(c(z), y)] \ge \mathrm{CE}(c(\mu_q), y)$, so loosening 
 relaxes the upper bound), while the KL term pushes the posterior back toward the prior.
 Finally, the regularizer constrains the noisy code $z$, whereas inference consumes the
 noise-free mean --- the object being regularized is not the object being used.
-DCVIB resolves all three mismatches by design: the classifier consumes the deterministic
+FGIB resolves all three mismatches by design: the classifier consumes the deterministic
 representation $h$ at both training and evaluation time, the two objectives act on disjoint
 parameter sets (the classification gradient does not enter the side heads, and the KL
 gradient reaches the main path only through the shared encoder), and, by
-Proposition~\ref{prop:dcvib} below, the side-path regularizer is exactly a CEB bottleneck
+Proposition~\ref{prop:fgib-ceb} below, the side-path regularizer is exactly a CEB bottleneck
 applied to the representation that inference actually uses. Confining the stochasticity to a
 side path also keeps the variational objective well-defined: for continuous deterministic
 representations the residual information diverges (Amjad \& Geiger; Kolchinsky et al.),
 so a purely deterministic bottleneck admits no finite variational bound, while the finite
-side-path covariance of DCVIB does (Remark~\ref{rem:limit}). Whether the robustness benefits
+side-path covariance of FGIB does (Remark~\ref{rem:limit}). Whether the robustness benefits
 of the stochastic bottleneck survive the deterministic inference path is the empirical
 question studied in the experiments.
 
@@ -87,31 +95,49 @@ Mutual information is invariant under bijective transformations of either argume
 (data processing inequality applied in both directions). \hfill\qed
 \end{proof}
 
-\begin{proposition}[The DCVIB side path is a CEB bottleneck on the main path]\label{prop:dcvib}
-Assume $z = d$ and $A$ invertible, and define $\tilde{z} = A^{-1} z$. Let
-$q'(\tilde{z}|x) = \mathcal{N}(h(x), A^{-1}\Sigma_q(x) A^{-\top})$ and
-$r'(\tilde{z}|y) = \mathcal{N}(A^{-1}\mu_p(y), A^{-1}\Sigma_p(y) A^{-\top})$.
-Then, pointwise for every $(x, y)$,
+\begin{proposition}[The FGIB side path is a CEB bottleneck on the main path]\label{prop:fgib-ceb}
+Let $z = d$ and let the learned head $A$ be invertible (unconstrained). The \emph{fixed}
+prior $r(z|y) = \mathcal{N}(\mu_p(y), \Sigma_p(y))$ --- for FGIB, the orthonormal anchor
+table $\mu_p(y) = a\,v_y$, $\Sigma_p = I$ --- is, by construction, the image under $A$
+of the canonical prior
+$r'(\tilde{z}|y) = \mathcal{N}(A^{-1}\mu_p(y), A^{-1}\Sigma_p(y) A^{-\top})$
+(since $A A^{-1} = I$), and the posterior $q(z|x) = \mathcal{N}(A\,h(x), \Sigma_q(x))$
+is the image of
+$q'(\tilde{z}|x) = \mathcal{N}(h(x), A^{-1}\Sigma_q(x) A^{-\top})$.
+The prior is never transformed by training: $A^{-1}$ only reads the fixed anchor
+geometry in the coordinates in which the posterior is centered at $h$.
+By KL invariance under the common invertible map $A^{-1}$
+(Lemma~\ref{lem:kl-invariance}), pointwise for every $(x, y)$,
 \begin{equation}
 \operatorname{KL}\big(q(z|x)\,\|\,r(z|y)\big)
 = \operatorname{KL}\big(q'(\tilde{z}|x)\,\|\,r'(\tilde{z}|y)\big),
-\label{eq:dcvib-ceb}
+\label{eq:fgib-ceb}
 \end{equation}
-where $q'(\cdot|x)$ is centered at the main-path representation $h(x)$.
-That is, the DCVIB side-path regularizer is pointwise identical to a CEB bottleneck
-applied to a noisy version of the main-path representation,
-$\tilde{z} = h + \tilde{\epsilon}$ with $\tilde{\epsilon} \sim \mathcal{N}(0, A^{-1}\Sigma_q A^{-\top})$,
-using the transformed backward encoder $r'$.
-Hence its gradient with respect to $h$ (through the shared encoder) coincides, up to the
-fixed linear map $A$, with the gradient that a CEB model applies to its representation mean.
+That is, the side-path regularizer is pointwise identical to a CEB bottleneck applied to
+a noisy version of the main-path representation,
+$\tilde{z} = h + \tilde{\epsilon}$ with
+$\tilde{\epsilon} \sim \mathcal{N}(0, A^{-1}\Sigma_q A^{-\top})$,
+using the canonical prior $r'$ as the backward encoder. For FGIB the canonical backward
+encoder is the frame $\mathcal{N}(a\,A^{-1} v_y, A^{-1}A^{-\top})$, whose anchors
+$A^{-1}v_y$ are orthonormal at scale $a$ in the induced metric $A^{\top}A$
+($\langle A^{-1}v_i, A^{-1}v_j\rangle_{A^{\top}A} = \delta_{ij}$): the orthogonality
+enters through the fixed frame $\{v_y\}$ and the equilibrium it induces, not through a
+constraint on $A$.
+Hence the regularizer's gradient with respect to $h$ (through the shared encoder)
+coincides, up to the fixed linear map $A^{\top}$, with the gradient that a CEB model
+applies to its representation mean.
 \end{proposition}
 
 \begin{proof}
 The map $z \mapsto \tilde{z} = A^{-1}z$ is a bijection, and
-$q' = (A^{-1})_\# q$, $r' = (A^{-1})_\# r$.
-Equation~\eqref{eq:dcvib-ceb} is Lemma~\ref{lem:kl-invariance} applied to $A^{-1}$.
-The mean of $q'$ is $A^{-1}\mu_q(x) = A^{-1}A\,h(x) = h(x)$, and sampling
-$\tilde{z} \sim q'$ is equivalent to $\tilde{z} = h + \tilde{\epsilon}$ with the stated noise.
+$q' = (A^{-1})_\# q$, $r' = (A^{-1})_\# r$:
+$A^{-1}A\,h = h$ and $A^{-1}\Sigma_q A^{-\top}$ give the canonical posterior, and
+$A^{-1}\mu_p$, $A^{-1}\Sigma_p A^{-\top}$ give the canonical prior, with
+$A\,(A^{-1}\mu_p) = \mu_p$ and $A\,(A^{-1}\Sigma_p A^{-\top})\,A^{\top} = \Sigma_p$, so
+$r$ is exactly the image of $r'$ under $A$.
+Equation~\eqref{eq:fgib-ceb} is Lemma~\ref{lem:kl-invariance} applied to $A^{-1}$.
+Sampling $\tilde{z} \sim q'$ is equivalent to
+$\tilde{z} = h + \tilde{\epsilon}$ with the stated noise.
 Combined with the variational bound of Fischer (2020, Eqs.~9--11), the regularizer
 upper-bounds the residual information of the noisy main-path representation:
 $I(X;\tilde{Z}|Y) \le \mathbb{E}[\operatorname{KL}(q'(\tilde{z}|x)\,\|\,r'(\tilde{z}|y))]$.
@@ -120,12 +146,14 @@ $I(X;\tilde{Z}|Y) \le \mathbb{E}[\operatorname{KL}(q'(\tilde{z}|x)\,\|\,r'(\tild
 
 \begin{remark}[Family closure]\label{rem:closure}
 Lemma~\ref{lem:kl-invariance} holds for the underlying Gaussian distributions. Within a
-restricted variational family the equality of Proposition~\ref{prop:dcvib} is exact only if
-the family is closed under linear maps. The full-covariance family is closed (and is the
-parameterization used by Fischer 2020); the diagonal family is not --- for diagonal $q, r$
-the equality is exact only for maps preserving diagonality (e.g., permutations and sign
-flips) and approximate otherwise. A full-covariance side path makes the proposition exact
-in the variational implementation.
+restricted variational family the equality of Proposition~\ref{prop:fgib-ceb} is exact
+only if the family is closed under the inverse map $A^{-1}$: the full-covariance family
+is closed (and is the parameterization used by Fischer 2020); the diagonal family is not
+--- for diagonal $q, r$ the transformed pair is diagonal only if $A^{-1}$ preserves
+diagonality (e.g., permutations and sign flips) and approximate otherwise. The diagonal
+implementation of the codebase is therefore covered at the distribution level, with the
+family approximation confined to the noise covariance $A^{-1}\Sigma_q A^{-\top}$
+(fgib\_bound.tex, Remark on the unconstrained side head).
 \end{remark}
 
 \begin{remark}[Rank deficiency]\label{rem:rank}
@@ -135,11 +163,11 @@ In the default configuration $z = d$ and a randomly initialized $A$ is almost su
 \end{remark}
 
 \begin{remark}[Noise-free limit]\label{rem:limit}
-The equivalence of Proposition~\ref{prop:dcvib} should be understood at the level of the
+The equivalence of Proposition~\ref{prop:fgib-ceb} should be understood at the level of the
 variational objective, not as a mutual-information limit: as the side-path noise vanishes,
 $I(X;Z|Y)$ diverges for continuous deterministic $H$ (the pathology of deterministic
 networks discussed by Amjad \& Geiger and Kolchinsky et al.), and the variational KL bound
 becomes loose. Keeping the side-path covariance finite --- without injecting noise into the
 inference path --- is precisely what keeps the regularizer well-defined; this is the design
-rationale of DCVIB.
+rationale of FGIB.
 \end{remark}

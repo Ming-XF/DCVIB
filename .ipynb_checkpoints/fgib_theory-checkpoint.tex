@@ -1,0 +1,901 @@
+% fgib_theory.tex —— FGIB 完整理论推导（四个问题的证明 + FGIB 机制的证明）
+% 本文件合并自 fgib_ceb_collapse.tex / fgib_degeneration.tex / fgib_bound.tex / fgib_linear.tex，
+% 原四文件可删除；全部标签名保持不变，fgib_intro.tex / fgib_method.tex 的 \ref 不受影响。
+% 用法：\usepackage{amsmath,amssymb,amsthm}，正文处 \input{fgib_theory.tex}。
+% 记号沿用 Fischer (2020)、Kolchinsky & Tracey (2019, Caveats)、Kolchinsky et al. (2017, NIB)、
+% Alemi et al. (2017, VIB)。
+%
+% 核心结论（FGIB 论文问题陈述与解法）：
+% 第一部分（四个问题，各有命题级证明）：
+%   P1 退化继承（死旋钮）：CEB ≡ IB(β=1+γ>1)，确定性场景下所有 γ>0 的唯一最优解钉在拷贝角点，
+%      γ 扫不出任何中间点（SIB Caveat 1 的退化半区，经 β'=1/(1+γ)∈(0,1) 映射）；
+%   P2 平坦性（对 y 盲视）：T_α 流形上 VCEB = γ(H(Y)−I(Y;T_α))，丢 δ nat 标签信息只损失 γδ=δ/β，
+%      重正则化下保留全部/部分/零 y 信息的解不可区分，ReX 恒为 0；
+%   P3 串谋坍缩：KL 两侧皆可训练（编码器 + 可学习标签先验），对向移动清零证书；分类项压 σ→0、
+%      KL 沿 σ²=τ² 无阻力，钳位 s=e^{-10} 处证书退化为权重 1/s=e^{10} 的均值匹配，
+%      z 钉死在标签目标上、证书报 ≈0 而真实残差无界；
+%   P4 对象错位：CEB 的界作用在训练码 Z 上，DPI 下严格低于推理表示 μ(X) 的残差（有限 β 欠报、
+%      赤字不可观测；极限限定：ReX→0 时 m 也类常数，错位不是极限失败）；界是训练期工具
+%      （正则器 + 仪表），推理期唯一用途 OOD 分数——CEB 的 ReX 需标签算不了，FGIB 免标签可用。
+% 第二部分（FGIB 机制，一一关闭四条通道）：
+%   M1 等价性：旁路 = 作用在推理表示 h+已知噪声上的 CEB 瓶颈（规范锚点在诱导度量 A^TA 下正交）；
+%   M2 扫参：对齐族上 L_β(s)=CE(s)+(β/2)(s−a)² 严格凸、每 β 唯一内点、曲线严格凹；
+%   M3 证书：gap 恒等式 + 矩匹配博弈 + 排序命题（值意义 CEB 更紧=症状）、逆线性变换界对象、
+%      正交因子条件数（参考侧构造保证、编码器侧平衡态保证）、两种"更紧"的语义。
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+% =====================================================================
+\section*{Part I. The four failure channels of the conditional bottleneck}
+% =====================================================================
+
+\textbf{Notation.}
+$X$ is the input and $Y$ the label with $K$ classes; the encoder induces the Markov chain
+$Y - X - Z$. The \emph{deterministic scenario} is $Y = f(X)$ ($H(Y|X) = 0$). Following
+Fischer (2020), we write the MNI point $I(X;Y) = I(X;Z) = I(Y;Z)$ (Eq.~1), the
+chain-rule identity $I(X;Z|Y) = I(X;Z) - I(Y;Z)$ (Eq.~4), the CEB objective
+$\mathrm{CEB} \equiv \min_Z I(X;Z|Y) - \gamma I(Y;Z)$ (Eq.~5), the IB objective
+$\mathrm{IB} \equiv \min_Z I(X;Z) - \beta_{\mathrm{IB}} I(Y;Z)$ (Eq.~16), the
+variational objective
+$\mathrm{VCEB} \equiv \min_{e,b,c} \langle \log e(z|x)\rangle - \langle \log b(z|y)\rangle
+- \gamma \langle \log c(y|z)\rangle$ (Eq.~15), and the residual certificate
+$\mathrm{ReX} \equiv \langle \log e(z|x)\rangle - \langle \log b(z|y)\rangle
+\ge I(X;Z|Y)$ (Eq.~20), where $b(z|y)$ is a \emph{trainable} backward encoder. In the
+loss convention $\mathrm{CE} + \beta\,\mathrm{KL}$ used throughout, the weights are
+$\beta = 1/\gamma$ and $\beta_{\mathrm{IB}} = 1 + \gamma = 1 + 1/\beta$. Following
+Kolchinsky \& Tracey (2019), we write the IB curve $F(r)$ (their Eq.~1), the IB
+Lagrangian $L^{\mathrm{IB}}_\beta = I(Y;T) - \beta I(X;T)$ (their Eq.~2), the
+DPI-saturating manifold $T_\alpha := B_\alpha \cdot Y$ (their Eq.~6), the bound
+$L^{\mathrm{IB}}_\beta \le (1-\beta)H(Y)$ (their Eq.~7), and their footnote~4 (the
+$\beta > 1$ regime of trivial maximizers). The variational objects are
+\begin{align*}
+R &= \mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,m(z))\big] \ge I(X;Z)
+&&\text{(VIB rate, marginal prior $m$; Fischer Eq.~19, Alemi et al.\ Eq.~14)} \\
+\mathrm{ReX} &= \mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,b_\theta(z|y))\big]
+\ge I(X;Z|Y)
+&&\text{(CEB residual; Fischer Eq.~20)} \\
+\widehat I &= -\frac{1}{N}\sum_i \ln\Big[\frac{1}{N}\sum_j
+e^{-\|f_i-f_j\|^2/(2\sigma^2)}\Big] \ge I(X;M)
+&&\text{(NIB, non-parametric; Eq.~16, the homoscedastic case of Eq.~10)} \\
+\mathrm{ReX}_F &= \mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,r(z|y))\big]
+\ge I(X;Z|Y)
+&&\text{(FGIB, fixed anchor)}
+\end{align*}
+(Fischer 2020, Eqs.~18--20; Alemi et al.\ 2017, Eq.~14; Kolchinsky et al.\ 2017,
+Eqs.~10 and 16). Fischer's comparison of the first two: at the respective prior optima
+($m = q(z)$, $b = q(z|y)$), $\mathrm{ReX} = R - I(Y;Z)$ --- the conditional prior removes
+exactly the retained label information, so CEB's bound is tighter than VIB's by
+$I(Y;Z)$. We ask the same question one level down: where does FGIB's fixed-anchor bound
+sit relative to CEB's learnable-backward bound?
+
+\begin{proposition}[Channel P1, dead knob: every $\gamma > 0$ selects the same corner]\label{prop:dead}
+Assume $Y = f(X)$. For every $\gamma > 0$,
+\begin{equation}
+\min_Z L_\gamma(Z) = -\gamma H(Y),
+\qquad
+L_\gamma(Z) := I(X;Z|Y) - \gamma I(Y;Z),
+\label{eq:min}
+\end{equation}
+attained exactly on the corner family
+$\{Z : I(Y;Z) = H(Y),\; I(X;Z|Y) = 0\}$ (e.g.\ $Z = Y$, or $Z = (Y, N)$ with
+$N \perp X \mid Y$). Consequently the map
+$\gamma \mapsto \big(I(X;Z^*|Y),\, I(Y;Z^*)\big)$ is constant: no interior point of the
+IB curve is ever a Lagrangian minimizer, and CEB inherits the deterministic degeneration
+of the Caveats paper (their Issue~1) over its \emph{entire} parameter range, since
+$\beta_{\mathrm{IB}} = 1 + \gamma > 1$ always.
+\end{proposition}
+
+\begin{proof}
+By Fischer's Eq.~4, $L_\gamma(Z) = I(X;Z) - (1+\gamma)I(Y;Z)$. The DPI
+($I(Y;Z) \le I(X;Z)$, by the Markov chain $Y - X - Z$) gives
+\begin{equation}
+L_\gamma(Z) \ge I(Y;Z) - (1+\gamma)\,I(Y;Z)
+= -\gamma\,I(Y;Z) \ge -\gamma H(Y),
+\label{eq:chain}
+\end{equation}
+with equality iff both inequalities bind: $I(X;Z) = I(Y;Z)$ and $I(Y;Z) = H(Y)$.
+$Z = Y$ attains the bound. Fischer (2020, p.~7) states the underlying equivalence
+explicitly: CEB and IB are the same objective for $\gamma = \beta_{\mathrm{IB}} - 1$.
+In the Caveats paper's maximizing convention, minimizing $L_\gamma$ is maximizing
+$L^{\mathrm{IB}}$ with $\beta' = 1/\beta_{\mathrm{IB}} = 1/(1+\gamma) \in (0,1)$ ---
+precisely the range in which their Eq.~7 pins every maximizer at the copy corner (their
+Issue~1); their footnote~4 covers the complementary regime $\beta' > 1$ (i.e.\
+$\gamma < 0$, outside CEB's range), whose maximizers are the trivial collapse. \hfill\qed
+\end{proof}
+
+\begin{proposition}[Channel P2, flatness: partial label-information loss is nearly free, and the certificate is blind]\label{prop:flat}
+On the manifold $T_\alpha = B_\alpha \cdot Y$ of the Caveats paper (their Eq.~6),
+$I(X;T_\alpha|Y) = 0$ for every $\alpha$, and with the optimal backward encoder and
+classifier the variational value is
+\begin{equation}
+\mathrm{VCEB}(T_\alpha) = \gamma\big(H(Y) - I(Y;T_\alpha)\big).
+\label{eq:vceb}
+\end{equation}
+Hence a code dropping $\delta = H(Y) - I(Y;Z)$ nats of label information costs exactly
+$\gamma\delta = \delta/\beta$ (project convention): as $\beta \to \infty$ --- the
+heavy-regularization regime in which the bottleneck is supposed to act --- the entire
+manifold, from total collapse ($\alpha = 0$, all label information lost) to the full copy
+($\alpha = 1$), lies within $\gamma H(Y) \to 0$ of optimal. Moreover
+$\mathrm{ReX}(T_\alpha) = 0$ for every $\alpha$: the certificate is \emph{blind to label
+retention} --- its tightness is compatible with retaining all, part, or none of $Y$.
+\end{proposition}
+
+\begin{proof}
+$T_\alpha$ is a function of $Y$ alone, so $T_\alpha \perp X \mid Y$ and
+$I(X;T_\alpha|Y) = 0$; the Caveats paper shows $I(Y;T_\alpha)$ sweeps $[0, H(Y)]$.
+With the true backward encoder ($b = p(z|y)$) the certificate is tight:
+$\mathrm{ReX} = I(X;T_\alpha|Y) = 0$ (Fischer Eqs.~9--11, 20). The optimal classifier
+achieves $\langle \log c(y|z)\rangle = -H(Y|T_\alpha)$ (Fischer Eq.~12), so
+Eq.~\eqref{eq:vceb} follows from the VCEB form (Eq.~15). \hfill\qed
+\end{proof}
+
+\begin{remark}[The loss convention sharpens the statement]\label{rem:convention}
+In the loss $\mathrm{CE} + \beta\,\mathrm{KL}$ the flatness band is $H(Y)/\beta$.
+Pushing $\beta$ up --- the standard way to demand more compression --- drives
+$\beta_{\mathrm{IB}} = 1 + 1/\beta \to 1^+$: the objective approaches the Caveats
+paper's $\beta = 1$ degeneracy (their Eq.~7 discussion), at which \emph{every} point of
+the diagonal is simultaneously optimal, from above. Fischer (2020, p.~7) anticipates
+this: under $\rho = \log\gamma$, ``$\rho < 0$ may capture less than the MNI''.
+Proposition~\ref{prop:flat} quantifies it: at $\rho \to -\infty$ the price of capturing
+less vanishes.
+\end{remark}
+
+\begin{remark}[Approximately deterministic labels]\label{rem:approx}
+The Caveats paper (Appendix~C, Issue~1) shows that when $Y$ is only $\epsilon$-close to
+deterministic, all optimizers fall within $O(-\epsilon\log\epsilon)$ of a single corner:
+the dead-knob statement of Proposition~\ref{prop:dead} degrades gracefully, and the
+near-optimality band of Proposition~\ref{prop:flat} is perturbed by the same order.
+\end{remark}
+
+\begin{proposition}[Channel P3, collusion collapse: the variance race and the overfit channel]\label{prop:variance}
+For the diagonal Gaussian family $e(z|x) = \mathcal{N}(m(x), \sigma^2 I)$,
+$b(z|y) = \mathcal{N}(g(y), \tau^2 I)$ (the implementation's setup, with the
+\texttt{logvar} clamp $[-10, 10]$ of \texttt{kl\_divergence}):
+\begin{enumerate}
+\item[(i)] for fixed means, $\operatorname{KL}$ is minimized over $\sigma^2$ at
+$\sigma^2 = \tau^2$, with value $\tfrac{1}{2\tau^2}\|m - g\|^2$ --- a pure mean-matching
+term;
+\item[(ii)] the classifier term favors $\sigma^2 \to 0$ (by Jensen,
+$\mathbb{E}_z[\mathrm{CE}(c(z), y)] \ge \mathrm{CE}(c(m), y)$, the log-softmax being
+concave), while the KL term is indifferent along the matched line $\sigma^2 = \tau^2$;
+the equilibrium is therefore $\sigma^2 = \tau^2 \to 0$ with $m \to g$ --- the encoder
+collapses toward the deterministic code $z \approx g(y)$ --- and in the codebase the race
+is stopped only by the clamp at $s = e^{-10}$, where
+$\mathrm{ReX} = \tfrac{1}{2s}\mathbb{E}\|m(x) - g(y)\|^2$: a mean-matching force of
+weight $1/s = e^{10} \approx 2.2\times10^{4}$ between two \emph{trainable} maps;
+\item[(iii)] the encoder therefore overfits $z$ to the backward encoder's per-class
+targets (memorizing the label code $g(y)$ rather than compressing $x$), while for the
+resulting near-deterministic continuous code the true residual $I(X;Z|Y)$ grows without
+bound as the noise vanishes (the pathology of deterministic networks, Amjad \& Geiger
+2018; Kolchinsky et al.\ 2017): the certificate and its object diverge --- the model
+reports $\mathrm{ReX} \approx 0$ on an effectively unregularized, overfit code.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+The closed form
+$\operatorname{KL} = \tfrac{d}{2}\big[\sigma^2/\tau^2 + \|m-g\|^2/(d\tau^2)
+- 1 + \ln(\tau^2/\sigma^2)\big]$ has derivative $\tfrac{d}{2}(1/\tau^2 - 1/\sigma^2)$
+in $\sigma^2$, so the variance optimum is $\sigma^2 = \tau^2$, giving (i); at
+$\sigma^2 = \tau^2 = s$ the value is $\|m-g\|^2/(2s)$. For (ii): the log-softmax is
+concave, so Jensen gives the stated inequality, and its gradient on $\sigma^2$ is
+negative wherever the classifier is unsaturated; the KL gradient on the encoder mean is
+$(m - g)/s$, a matching force of weight $1/s$. For (iii): a deterministic continuous $z$
+carrying within-class detail has divergent mutual information with $X$ (Amjad \& Geiger;
+Kolchinsky et al.), while the certificate is computed from the finite Gaussian KL and
+reports $\approx 0$ at the clamp. \hfill\qed
+\end{proof}
+
+\begin{remark}[Train--evaluation mismatch]\label{rem:mismatch}
+The classifier is trained on the sampled code $z$ and evaluated on the mean $m(x)$
+(Fischer 2020, Appendix~A.1). Proposition~\ref{prop:variance}(ii) is the force that
+closes this gap by destroying the noise altogether ($\sigma \to 0$), at which point the
+bottleneck's stochasticity --- the object the bound is defined on --- disappears.
+\end{remark}
+
+\begin{proposition}[Channel P4, certificate-object mismatch: the bound is an upper bound only on the training code]\label{prop:object}
+(a)~\emph{CEB}. The classifier consumes the sampled code $Z$ at training and the mean
+$\mu(X)$ at evaluation (Fischer 2020, Appendix~A.1). At the variance-optimal posterior,
+$\sigma(x) \equiv \sqrt{S_\theta(y)}$ (the backward encoder's per-class standard
+deviation) is class-constant, so $Z = \mu(X) + \sqrt{S_\theta(Y)}\,\varepsilon$ is a
+noisy function of $\mu(X)$ given $Y$; by the DPI,
+\begin{equation}
+I(X; Z | Y) \;\le\; I(X;\, \mu(X) | Y) ,
+\label{eq:dpi}
+\end{equation}
+strictly so whenever the noise destroys within-class detail. Hence CEB's bound
+$\mathrm{ReX} \ge I(X;Z|Y)$ is \emph{not} an upper bound on the residual information of
+the representation actually used at inference: its object sits strictly below the
+inference residual, and the deficit $I(X;\mu(X)|Y) - I(X;Z|Y)$ --- the within-class
+information destroyed by the training noise --- is positive, a trained quantity
+($S_\theta$ is a model output), and unobservable during training. The CE term presses the
+noise toward $0$ (by Jensen,
+$\mathbb{E}_z[\mathrm{CE}(c(z),y)] \ge \mathrm{CE}(c(\mu),y)$): this shrinks the
+deficit, but it drives the pair into the noise-free regime where the certificate
+degenerates (Remark~\ref{rem:limit}), so the deficit can never be read
+off the certificate.
+(b)~\emph{FGIB}. The inference path is $h$ at both training and evaluation; the side
+noise of Proposition~\ref{prop:inverse} is not part of any inference path. The bound's
+deficit $I(X;H|Y) - I(X;\,h+\sigma_p(A^{\top}A)^{-1/2}\varepsilon\,|Y)$ is the
+information destroyed by a known perturbation, and it is removable by
+\emph{side-path-only} parameters: as the anchor variance $\sigma_p^2 \to 0$ (point
+anchors), the variance-optimal posterior collapses ($\sigma^2 = \sigma_p^2 \to 0$) and
+the bound's object converges to $I(X;H|Y)$ itself, without changing the classifier or
+the inference behavior. CEB cannot take this limit: its noise is in the training path,
+and removing it changes the model (the classifier is trained on the noisy codes).
+(c)~\emph{Conclusion}. In the pure variational sense (same encoder, same Gaussian
+family), CEB's bound is tighter (Proposition~\ref{prop:ordering}). As an upper bound on
+the residual of the representation used at inference --- the object the regularizer is
+meant to control --- FGIB's bound, taken through the inverse linear transform, is the
+tighter (in the point-anchor limit, the only valid) one: its object is the inference
+representation up to a known, removable perturbation, while CEB's object is the training
+code, which lies strictly below the inference residual by an unobservable, model-driven
+deficit (Eq.~\eqref{eq:dpi}).
+\end{proposition}
+
+\begin{remark}[The bound is a training instrument, not an inference one]\label{rem:training-role}
+No method computes its bound at inference: the bound's roles are \emph{training-time}
+--- a regularizer (a differentiable surrogate for the intractable information term) and
+a meter (Fischer 2020, p.~7: ``observing ReX tells us exactly how many bits we are from
+the MNI point''). In the $Z \perp X \mid Y$ limit CEB's mean is also class-constant
+($m(x) = \mathbb{E}[Z|x] = \mathbb{E}[Z|y]$), so the mismatch of
+Proposition~\ref{prop:object}(a) is not a limit failure: it is a finite-$\beta$
+\emph{under-reporting} --- the regularizer controls, and the meter reports, the training
+code, which is strictly more compressed than the deployed representation $\mu(X)$, by a
+positive, trained, unobservable deficit. FGIB's side-path noise is known and removable
+($\sigma_p \to 0$), so its regularizer and meter act on the deployed object itself.
+The one genuine inference-time use of a certificate value is as a detection score
+(Fischer 2020, RG3, uses the marginal rate $R$): CEB's label-conditioned
+$\mathrm{ReX}$ is not even computable at inference (the label is unknown --- Fischer
+trains a separate marginal for this purpose), while FGIB's geometry gives a label-free
+score, the distance to the nearest anchor
+$\min_y \operatorname{KL}(q(z|x)\|\mathcal{N}(a v_y, I))$, with no extra network.
+\end{remark}
+
+\textbf{The problem addressed by FGIB.}
+The four channels above are closed one-to-one by the FGIB design, each documented in
+Part~II:
+\begin{itemize}
+\item \emph{Dead knob and flatness} (Props.~\ref{prop:dead}, \ref{prop:flat}): FGIB's
+compression term is the anchor gap $\tfrac12(s-a)^2$, quadratic in the alignment scalar,
+and the Lagrangian $\mathrm{CE}(s) + \tfrac{\beta}{2}(s-a)^2$ is strictly convex with a
+\emph{unique interior} minimizer per $\beta$ --- the $\beta$-sweep is one-to-one onto the
+whole trade-off curve, and the y-deficit is penalized quadratically, not with slope
+$1/\beta$ (Props.~\ref{prop:sweep}, \ref{prop:curve}).
+\item \emph{Blind certificate} (Prop.~\ref{prop:flat}): with the fixed anchor
+$r(z|y) = \mathcal{N}(a v_y, I)$ the gap
+$\mathbb{E}_y[\operatorname{KL}(q(z|y)\,\|\,r(z|y))]$ can shrink only if the
+\emph{encoder} moves toward the anchors --- there is no gameable party left to absorb it,
+so bound tightness is monotonically equivalent to compression
+(Prop.~\ref{prop:ordering} and Remark~\ref{rem:force}).
+\item \emph{Variance collapse} (Prop.~\ref{prop:variance}): the classifier consumes the
+deterministic $h$ at both training and evaluation, so $\sigma^{2*} = 1$ for every $\beta$
+(the variance decouples from the prediction term; Lemma~\ref{lem:lagrangian}), the
+side path keeps a finite covariance and the bound stays well-defined
+(Remark~\ref{rem:limit}), and the trivial collapse $\mu \equiv 0$ pays
+the fixed positive price $\operatorname{KL} = \tfrac12 a^2 > 0$ for every class --- the
+degenerate corner is excluded by geometry rather than by the optimizer's good behavior.
+\item \emph{Certificate-object mismatch} (Prop.~\ref{prop:object}): the classifier
+consumes the deterministic $h$ at both training and evaluation --- there is no
+training-code/evaluation-mean split --- and the bound's object is the inference
+representation up to known, side-path-only noise, removable by the anchor variance alone
+(Prop.~\ref{prop:object}(b)).
+\end{itemize}
+
+% =====================================================================
+\section*{Part II. The FGIB theory}
+% =====================================================================
+
+\textbf{FGIB notation.}
+The deterministic main path computes $h = f_{\mathrm{enc}}(X)$ and the classifier
+consumes $h$ directly; the side path parameterizes $q(z|x) = \mathcal{N}(\mu(x),
+\Sigma(x))$ with linear mean head $\mu(x) = A\,h(x)$ for $A \in \mathbb{R}^{z \times z}$,
+unconstrained ($z = d$, so $A$ is a.s.\ invertible; the bias of the implementation's
+Linear head is omitted), and the label-conditional prior is the \emph{fixed} anchor
+$r(z|y) = \mathcal{N}(a\,v_y, I)$: the $v_y$ are orthonormal directions obtained by
+QR-decomposing a random matrix ($K \le z$; the orthonormal factor of the random matrix),
+scaled by the anchor scale $a$ (default $4.0$), variance fixed at $1$, stored as
+non-trainable buffers. The orthogonality of the method lies in this fixed frame and in
+the equilibrium it induces --- the KL drives the class-conditional means
+$\mu_y = A\,\mathbb{E}[h|y]$ toward the orthonormal anchors $a v_y$, so the transformed
+class representations become mutually orthogonal (the aligned family below) --- while
+$A$ itself remains an unconstrained linear map. For regression, fixed random-Fourier
+anchors $\mu_p(y) = a\sqrt{2/z}\,\cos(2\pi\omega y + b)$ with frozen
+$\omega \sim \mathcal{N}(0, 2^2)$, $b \sim U[0, 2\pi)$ replace the per-class table
+($\|\mu_p(y)\| \approx a$). The loss is
+$L_{\mathrm{FGIB}} = \mathbb{E}[\mathrm{CE}(c(h), y)]
++ \beta\,\mathbb{E}[\operatorname{KL}(q(z|x)\,\|\,r(z|y))]$, with gradients reaching the
+main path only through the shared encoder; the zero-initialized logvar head fixes
+$\sigma^2 = 1$ at initialization, so training starts at
+$\operatorname{KL} \approx \tfrac12 a^2$.
+
+% ---------------------------------------------------------------
+\subsection{The equivalence: the side path is a CEB bottleneck on the main path}
+% ---------------------------------------------------------------
+
+\textbf{Motivation.}
+Stochastic bottlenecks such as VIB and CEB are \emph{stochastic at training time but
+deterministic at evaluation time}: the classifier is trained on sampled codes
+$z \sim q(z|x)$ yet evaluated on the mean $\mu_q(x)$ (Fischer 2020, Appendix A.1), so
+its training and evaluation distributions differ. In the same models the cross-entropy
+gradient and the KL gradient act on the same heads: the classification term can exploit
+the variance (by Jensen, $\mathbb{E}_z[\mathrm{CE}(c(z), y)] \ge \mathrm{CE}(c(\mu_q),
+y)$, so loosening the noise relaxes the upper bound), while the KL term pushes the
+posterior back toward the prior. Finally, the regularizer constrains the noisy code $z$,
+whereas inference consumes the noise-free mean --- the object being regularized is not
+the object being used. FGIB resolves all three mismatches by design: the classifier
+consumes the deterministic representation $h$ at both training and evaluation time, the
+two objectives act on disjoint parameter sets (the classification gradient does not
+enter the side heads, and the KL gradient reaches the main path only through the shared
+encoder), and, by Proposition~\ref{prop:fgib-ceb} below, the side-path regularizer is
+exactly a CEB bottleneck applied to the representation that inference actually uses.
+Confining the stochasticity to a side path also keeps the variational objective
+well-defined: for continuous deterministic representations the residual information
+diverges (Amjad \& Geiger; Kolchinsky et al.), so a purely deterministic bottleneck
+admits no finite variational bound, while the finite side-path covariance of FGIB does
+(Remark~\ref{rem:limit}). Whether the robustness benefits of the stochastic bottleneck
+survive the deterministic inference path is the empirical question studied in the
+experiments.
+
+\begin{lemma}[Linear invariance of the Gaussian KL]\label{lem:kl-invariance}
+Let $q = \mathcal{N}(\mu_q, \Sigma_q)$ and $p = \mathcal{N}(\mu_p, \Sigma_p)$ on
+$\mathbb{R}^{z}$, and let $A \in \mathbb{R}^{z \times z}$ be invertible. Define the
+common pushforwards $q' = A_\# q = \mathcal{N}(A\mu_q, A\Sigma_q A^\top)$ and
+$p' = A_\# p$. Then $\operatorname{KL}(q'\,\|\,p') = \operatorname{KL}(q\,\|\,p)$.
+\end{lemma}
+
+\begin{proof}
+With $d = z$, the closed form reads
+$\operatorname{KL}(q\,\|\,p)
+= \tfrac{1}{2}\big[\operatorname{tr}(\Sigma_p^{-1}\Sigma_q)
++ (\mu_q - \mu_p)^\top \Sigma_p^{-1}(\mu_q - \mu_p)
+- d + \ln|\Sigma_p| - \ln|\Sigma_q|\big]$.
+Under the common map $A$ the three non-constant terms are unchanged:
+\begin{align*}
+\operatorname{tr}\big((A\Sigma_p A^\top)^{-1}(A\Sigma_q A^\top)\big)
+&= \operatorname{tr}(A^{-\top}\Sigma_p^{-1}A^{-1} A\,\Sigma_q A^\top)
+ = \operatorname{tr}(A^{-\top}\Sigma_p^{-1}\Sigma_q A^\top) \\
+&= \operatorname{tr}(\Sigma_p^{-1}\Sigma_q A^\top A^{-\top})
+ = \operatorname{tr}(\Sigma_p^{-1}\Sigma_q), \\[2pt]
+(A\Delta\mu)^\top (A\Sigma_p A^\top)^{-1} (A\Delta\mu)
+&= \Delta\mu^\top A^\top A^{-\top}\Sigma_p^{-1}A^{-1}A\,\Delta\mu
+ = \Delta\mu^\top \Sigma_p^{-1}\Delta\mu, \\[2pt]
+\ln|A\Sigma_p A^\top| - \ln|A\Sigma_q A^\top|
+&= \big(\ln|\Sigma_p| + 2\ln|A|\big) - \big(\ln|\Sigma_q| + 2\ln|A|\big)
+ = \ln|\Sigma_p| - \ln|\Sigma_q|,
+\end{align*}
+where $\Delta\mu = \mu_q - \mu_p$ and the trace step uses the cyclic property. \hfill\qed
+\end{proof}
+
+\begin{lemma}[Invariance of the CEB objective and the MNI point]\label{lem:mi-invariance}
+For any bijective measurable map $\phi$,
+$I(X;\phi(Z)|Y) = I(X;Z|Y)$ and $I(Y;\phi(Z)) = I(Y;Z)$.
+Consequently the CEB objective (Eq.~5) is invariant under bijections of $Z$, and
+$Z$ attains the MNI point (Eq.~1) if and only if $\phi(Z)$ does.
+\end{lemma}
+
+\begin{proof}
+Mutual information is invariant under bijective transformations of either argument
+(data processing inequality applied in both directions). \hfill\qed
+\end{proof}
+
+\begin{proposition}[The FGIB side path is a CEB bottleneck on the main path]\label{prop:fgib-ceb}
+Let $z = d$ and let the learned head $A$ be invertible (unconstrained). The \emph{fixed}
+prior $r(z|y) = \mathcal{N}(\mu_p(y), \Sigma_p(y))$ --- for FGIB, the orthonormal anchor
+table $\mu_p(y) = a\,v_y$, $\Sigma_p = I$ --- is, by construction, the image under $A$
+of the canonical prior
+$r'(\tilde{z}|y) = \mathcal{N}(A^{-1}\mu_p(y), A^{-1}\Sigma_p(y) A^{-\top})$
+(since $A A^{-1} = I$), and the posterior $q(z|x) = \mathcal{N}(A\,h(x), \Sigma_q(x))$
+is the image of
+$q'(\tilde{z}|x) = \mathcal{N}(h(x), A^{-1}\Sigma_q(x) A^{-\top})$.
+The prior is never transformed by training: $A^{-1}$ only reads the fixed anchor
+geometry in the coordinates in which the posterior is centered at $h$.
+By KL invariance under the common invertible map $A^{-1}$
+(Lemma~\ref{lem:kl-invariance}), pointwise for every $(x, y)$,
+\begin{equation}
+\operatorname{KL}\big(q(z|x)\,\|\,r(z|y)\big)
+= \operatorname{KL}\big(q'(\tilde{z}|x)\,\|\,r'(\tilde{z}|y)\big),
+\label{eq:fgib-ceb}
+\end{equation}
+That is, the side-path regularizer is pointwise identical to a CEB bottleneck applied to
+a noisy version of the main-path representation,
+$\tilde{z} = h + \tilde{\epsilon}$ with
+$\tilde{\epsilon} \sim \mathcal{N}(0, A^{-1}\Sigma_q A^{-\top})$,
+using the canonical prior $r'$ as the backward encoder. For FGIB the canonical backward
+encoder is the frame $\mathcal{N}(a\,A^{-1} v_y, A^{-1}A^{-\top})$, whose anchors
+$A^{-1}v_y$ are orthonormal at scale $a$ in the induced metric $A^{\top}A$
+($\langle A^{-1}v_i, A^{-1}v_j\rangle_{A^{\top}A} = \delta_{ij}$): the orthogonality
+enters through the fixed frame $\{v_y\}$ and the equilibrium it induces, not through a
+constraint on $A$.
+Hence the regularizer's gradient with respect to $h$ (through the shared encoder)
+coincides, up to the fixed linear map $A^{\top}$, with the gradient that a CEB model
+applies to its representation mean.
+\end{proposition}
+
+\begin{proof}
+The map $z \mapsto \tilde{z} = A^{-1}z$ is a bijection, and
+$q' = (A^{-1})_\# q$, $r' = (A^{-1})_\# r$:
+$A^{-1}A\,h = h$ and $A^{-1}\Sigma_q A^{-\top}$ give the canonical posterior, and
+$A^{-1}\mu_p$, $A^{-1}\Sigma_p A^{-\top}$ give the canonical prior, with
+$A\,(A^{-1}\mu_p) = \mu_p$ and $A\,(A^{-1}\Sigma_p A^{-\top})\,A^{\top} = \Sigma_p$, so
+$r$ is exactly the image of $r'$ under $A$.
+Equation~\eqref{eq:fgib-ceb} is Lemma~\ref{lem:kl-invariance} applied to $A^{-1}$.
+Sampling $\tilde{z} \sim q'$ is equivalent to
+$\tilde{z} = h + \tilde{\epsilon}$ with the stated noise.
+Combined with the variational bound of Fischer (2020, Eqs.~9--11), the regularizer
+upper-bounds the residual information of the noisy main-path representation:
+$I(X;\tilde{Z}|Y) \le \mathbb{E}[\operatorname{KL}(q'(\tilde{z}|x)\,\|\,r'(\tilde{z}|y))]$.
+\hfill\qed
+\end{proof}
+
+\begin{remark}[Family closure]\label{rem:closure}
+Lemma~\ref{lem:kl-invariance} holds for the underlying Gaussian distributions. Within a
+restricted variational family the equality of Proposition~\ref{prop:fgib-ceb} is exact
+only if the family is closed under the inverse map $A^{-1}$: the full-covariance family
+is closed (and is the parameterization used by Fischer 2020); the diagonal family is not
+--- for diagonal $q, r$ the transformed pair is diagonal only if $A^{-1}$ preserves
+diagonality (e.g., permutations and sign flips) and approximate otherwise. The diagonal
+implementation of the codebase is therefore covered at the distribution level, with the
+family approximation confined to the noise covariance $A^{-1}\Sigma_q A^{-\top}$
+(Remark~\ref{rem:orth}).
+\end{remark}
+
+\begin{remark}[Rank deficiency]\label{rem:rank}
+If $z < d$ or $A$ is rank-deficient, only the projection of $h$ onto the image of $A$
+receives gradient from the regularizer; the null-space component is unconstrained.
+In the default configuration $z = d$ and a randomly initialized $A$ is almost surely
+invertible.
+\end{remark}
+
+\begin{remark}[Noise-free limit]\label{rem:limit}
+The equivalence of Proposition~\ref{prop:fgib-ceb} should be understood at the level of
+the variational objective, not as a mutual-information limit: as the side-path noise
+vanishes, $I(X;Z|Y)$ diverges for continuous deterministic $H$ (the pathology of
+deterministic networks discussed by Amjad \& Geiger and Kolchinsky et al.), and the
+variational KL bound becomes loose. Keeping the side-path covariance finite --- without
+injecting noise into the inference path --- is precisely what keeps the regularizer
+well-defined; this is the design rationale of FGIB.
+\end{remark}
+
+% ---------------------------------------------------------------
+\subsection{The sweep}
+% ---------------------------------------------------------------
+
+\textbf{The degeneracy to be addressed (restated in our terms).}
+When $Y = f(X)$, the IB curve saturates the data-processing bound and is piecewise
+linear, $F(r) = \min\{r, H(Y)\}$ (Caveats paper, Section~3). Two consequences (their
+Caveat~1): (i)~by the DPI, $L^{\mathrm{IB}}_\beta(T) = I(Y;T) - \beta I(X;T)
+\le (1-\beta)I(Y;T) \le (1-\beta)H(Y)$, and $T_{\mathrm{copy}} := f(X) = Y$ attains the
+bound for \emph{every} $\beta \in [0,1]$: all $\beta \in (0,1)$ are pinned at the single
+corner point $\langle H(Y), H(Y)\rangle$ of the curve; (ii)~conversely, at $\beta = 1$
+every point of the increasing part simultaneously maximizes $L^{\mathrm{IB}}_1$. The
+mechanism is exposed by writing $\max_T L^{\mathrm{IB}}_\beta = \max_r [F(r) - \beta r]$
+(the Legendre transform of $-F$): on the linear increasing part every point has the
+\emph{same} derivative $F'(r) = 1$, hence the same supporting slope --- a Lagrangian of
+the form ``prediction $-\beta\cdot{}$compression'' sweeps a Pareto curve only if each
+point of the curve has a \emph{unique} supporting slope, i.e.\ the curve is strictly
+concave. The dIB variant fails identically: on the hard-clustering family $T = g(Y)$ one
+has $H(T|Y) = 0$, hence $I(Y;T) = H(T)$, so $L^{\mathrm{dIB}}_\beta = (1-\beta)H(T)$
+--- a \emph{monotone} function of the single compression scalar $H(T)$, maximized by the
+finest partition for every $\beta < 1$. The squared fixes repair this by making the
+objective strictly concave in the compression scalar: $F'(r)/(2r) = \beta$ is strictly
+decreasing, so each $\beta$ selects a unique $r$ (Eq.~8 argument), and squared-dIB has
+the unique maximizer $H(T) = 1/(2\beta)$ (their Eq.~A20). By Proposition~\ref{prop:dead}
+this degeneracy is inherited verbatim by CEB ($\beta_{\mathrm{IB}} = 1+\gamma > 1$),
+which is the first channel of Part~I.
+
+\textbf{Reduced model of FGIB.}
+The KL depends on the side mean $\mu$ alone, and the classifier term is invariant under
+the coordinate change $\tilde w_j = A^{-\top} w_j$ (since $w_j \cdot h =
+\tilde w_j \cdot \mu$): with $A$ invertible ($z = d$ in the default configuration, so a
+random $A$ is a.s.\ invertible), every equilibrium in $(h, w)$ coordinates maps
+bijectively to one in $(\mu, \tilde w)$ coordinates. We therefore analyze the reduced
+model $\mu(x) = h(x)$ without loss of generality.
+Consider the \emph{class-symmetric aligned family}: the encoder maps every input of
+class $y$ to $h_y = s\,v_y$ ($s \ge 0$), the classifier is held at the symmetric
+configuration $w_j = c\,v_j$, $b_j = 0$ with fixed scale $c > 0$, and the posterior is
+$q_y = \mathcal{N}(s v_y, \sigma^2 I)$. The family is the natural equilibrium manifold of
+the two forces: the KL gradient $\nabla_h \operatorname{KL} = (\mu - a v_y)$ acts exactly
+along $v_y$, and the classification force on the class center acts along $v_y$ at the
+symmetric configuration; the ansatz is exact in the $\beta$-dominant regime and
+idealizes the cross terms $O(c/\beta)$ otherwise (see Remark~\ref{rem:caveats}).
+
+\begin{lemma}[FGIB Lagrangian on the aligned family]\label{lem:lagrangian}
+On the aligned family,
+\begin{equation}
+\operatorname{KL}(s, \sigma^2)
+= \tfrac{z}{2}\big(\sigma^2 - 1 - \ln\sigma^2\big) + \tfrac{1}{2}(s-a)^2,
+\qquad
+\mathrm{CE}(s) = \ln\!\big(1 + (K-1)e^{-cs}\big),
+\label{eq:kl-ce}
+\end{equation}
+and the optimizer over $\sigma^2$ is $\sigma^2 = 1$ for \emph{every} $\beta$, since the
+CE term does not depend on $\sigma^2$ (the classifier consumes the deterministic $h$,
+not $z$).
+\end{lemma}
+
+\begin{proof}
+With $h_y = s v_y$ and $w_j = c v_j$, the logits are $c\,\langle v_j, s v_y\rangle
+= cs\,\delta_{jy}$, so $p_y = e^{cs}/(e^{cs} + K - 1)$ and
+$\mathrm{CE} = -\ln p_y = \ln(1 + (K-1)e^{-cs})$.
+For the KL, the diagonal closed form with $\Sigma_q = \sigma^2 I$, $\Sigma_p = I$ reads
+$\tfrac{1}{2}\sum_d\big[\sigma^2 + (\mu_d - a v_{yd})^2 - 1 - \ln\sigma^2\big]$, giving
+Eq.~\eqref{eq:kl-ce} since $\|v_y\| = 1$. The variance term is non-negative with a
+unique minimum at $\sigma^2 = 1$, and $\mathrm{CE}$ is independent of $\sigma^2$.
+\hfill\qed
+\end{proof}
+
+\begin{proposition}[Unique interior optimum per $\beta$ --- the sweep]\label{prop:sweep}
+For every $\beta > 0$, the FGIB Lagrangian on the aligned family,
+\begin{equation}
+L_\beta(s) := \ln\!\big(1 + (K-1)e^{-cs}\big) + \tfrac{\beta}{2}(s-a)^2,
+\label{eq:fgib-lag}
+\end{equation}
+is strictly convex in $s$ and has a unique minimizer $s^*(\beta) > a$, given implicitly
+by
+\begin{equation}
+\beta\,(s-a) = c\,\varphi(cs),
+\qquad
+\varphi(u) := \frac{(K-1)e^{-u}}{1 + (K-1)e^{-u}} \in (0,1) .
+\label{eq:stationarity}
+\end{equation}
+The map $\beta \mapsto s^*(\beta)$ is continuous and strictly decreasing, with
+$s^*(\beta) \to a$ as $\beta \to \infty$ and $s^*(\beta) \to \infty$ as $\beta \to 0$.
+Consequently the map $\beta \mapsto \big(\operatorname{KL}(s^*), \mathrm{CE}(s^*)\big)$
+is one-to-one onto the entire curve
+$\{\big(\tfrac{1}{2}(s-a)^2,\; \ln(1+(K-1)e^{-cs})\big) : s \in (a, \infty)\}$: no two
+$\beta$ share the same optimum, and every interior point of the trade-off curve is
+attained --- the exact failure mode of $L^{\mathrm{IB}}_\beta$ (all $\beta$ pinned at
+$T_{\mathrm{copy}}$) is absent.
+\end{proposition}
+
+\begin{proof}
+Compute $\mathrm{CE}'(s) = -c\varphi(cs)$ and
+$\mathrm{CE}''(s) = c^2 (K-1) e^{-cs}/(1 + (K-1)e^{-cs})^2 > 0$, so CE is strictly
+convex and strictly decreasing in $s$; the compression term $\tfrac{1}{2}(s-a)^2$ is
+strictly convex. Hence $L_\beta''(s) = \mathrm{CE}''(s) + \beta > 0$: $L_\beta$ is
+strictly convex with at most one minimizer, characterized by
+$0 = L_\beta'(s) = -c\varphi(cs) + \beta(s-a)$, i.e.\ Eq.~\eqref{eq:stationarity}.
+The left side $\beta(s-a)$ is strictly increasing from $-\beta a$ (at $s=0$) through $0$
+(at $s=a$) to $+\infty$; the right side $c\varphi(cs)$ is strictly decreasing in $s$
+with $c\varphi(cs) \in (0, c)$. The unique crossing therefore satisfies $s^* > a$.
+Differentiating Eq.~\eqref{eq:stationarity} with respect to $\beta$ gives
+$(s-a) + \beta s' = c^2\varphi'(cs)\,s'$ with $\varphi' < 0$, so
+$s' = -(s-a)/(\beta - c^2\varphi'(cs)) < 0$: $s^*$ is strictly decreasing.
+The limits follow by monotonicity: as $\beta \to \infty$ the left side can only match
+the bounded right side when $s \to a$; as $\beta \to 0$ the crossing requires
+$\varphi(cs)\to 0$, i.e.\ $s \to \infty$. \hfill\qed
+\end{proof}
+
+\begin{proposition}[The trade-off curve is strictly concave in the compression--prediction plane]\label{prop:curve}
+On the curve of Proposition~\ref{prop:sweep},
+\begin{equation}
+\frac{d\,\mathrm{CE}}{d\,\operatorname{KL}}
+= \frac{\mathrm{CE}'(s)}{(s-a)}
+= -\frac{c\varphi(cs)}{s-a},
+\label{eq:slope}
+\end{equation}
+which is strictly increasing from $-\infty$ (as $s \to a^+$) to $0^-$ (as $s \to
+\infty$). Thus the curve $\operatorname{KL} \mapsto -\mathrm{CE}$ (compression versus
+achievable prediction) is strictly concave, and each of its points has a \emph{unique}
+supporting slope $-\beta$. By the criterion of the Caveats paper (their Fig.~2 right
+panel and the $F'(r)/(2r)$ argument of Eq.~8), this is precisely the property that makes
+the Lagrangian $-\mathrm{CE} - \beta\,\operatorname{KL}$ sweep the full curve: FGIB
+satisfies the sweep condition \emph{without squaring the compression term}.
+\end{proposition}
+
+\begin{proof}
+$\varphi$ is positive and strictly decreasing and $s-a$ is positive and strictly
+increasing, so $c\varphi(cs)/(s-a)$ is strictly decreasing in $s$; the signs give the
+stated limits. The stationarity condition Eq.~\eqref{eq:stationarity} is exactly
+$-d\mathrm{CE}/d\operatorname{KL} = \beta$, i.e.\ $\beta$ is the supporting slope at the
+optimum. \hfill\qed
+\end{proof}
+
+\textbf{Where the convexity comes from (mechanism).}
+Compare the three objectives on their natural solution families, as functions of the
+single compression scalar:
+\begin{itemize}
+\item \emph{dIB on hard clusterings} (Caveats Appendix~B): $L^{\mathrm{dIB}}_\beta
+= (1-\beta)H(T)$ --- compression $H(T)$ and prediction $I(Y;T) = H(T)$ are the
+\emph{same} scalar, so the objective is monotone in it and the optimum sits at the
+endpoint for every $\beta < 1$. Squared-dIB restores interior optima by hand,
+$H(T) - \beta H(T)^2$ with unique maximizer $H(T) = 1/(2\beta)$.
+\item \emph{Standard IB} (deterministic): the curve is linear ($F'(r) \equiv 1$), every
+point shares one supporting slope, and the corner $\langle H(Y), H(Y)\rangle$ is
+selected for all $\beta \in (0,1)$. Squared-IB convexifies via $F'(r)/(2r)$ strictly
+decreasing.
+\item \emph{FGIB}: the compression term is $\operatorname{KL}(q_y \| r_y) =
+\tfrac{1}{2}\|\mu_y - a v_y\|^2 + {}$(variance terms), equal to $\tfrac{1}{2}(s-a)^2$
+at the variance optimum --- \emph{quadratic} in the alignment scalar $s$, hence strictly
+convex, because the KL is measured against a \emph{fixed} reference $a v_y$:
+$\operatorname{KL}(\mathcal{N}(\mu,\cdot)\|\mathcal{N}(\mu_p,\cdot))
+= \tfrac{1}{2}\|\mu - \mu_p\|^2 + {}$(variance terms) is quadratic in the displacement
+$\mu - \mu_p$ whenever $\mu_p$ does not move. Entropy-based compression ($H(T)$,
+$I(X;T)$) is self-referential --- it depends only on the representation's own
+distribution and enters linearly in the clustering probabilities; the fixed anchor
+supplies an absolute reference frame and turns compression into a squared distance. The
+convexification that squared-IB installs by squaring the compression term is thus built
+into FGIB's fixed-anchor KL. Together with the strictly convex prediction term
+(Lemma~\ref{lem:lagrangian}), the Lagrangian is strictly convex with a unique interior
+minimizer per $\beta$ (Proposition~\ref{prop:sweep}), and the resulting curve is
+strictly concave (Proposition~\ref{prop:curve}).
+\end{itemize}
+
+\begin{remark}[Non-triviality of the compressed endpoint --- the paper's Caveat 2]\label{rem:endpoint}
+VIB's fixed marginal $m(z) = \mathcal{N}(0, I)$ places the $\operatorname{KL}=0$ point
+at $\mu = 0$ for \emph{all} classes: the fully compressed solution is the trivial
+collapse with $\mathrm{CE} = \ln K$ (chance level), and squaring (SVIB) leaves this
+corner in place since $\operatorname{KL}^2$ is stationary at $\operatorname{KL}=0$.
+FGIB's per-class orthonormal anchors make the $\operatorname{KL}=0$ point a
+\emph{class-separated} configuration: $\mu_y = a v_y$ with
+$\langle v_y, v_{y'}\rangle = \delta_{yy'}$, so at the corner
+$\mathrm{CE}(a) = \ln(1 + (K-1)e^{-ca})$, which is bounded and tends to $0$ as the
+anchor scale $a$ grows. The anchor geometry thus removes not only the sweep degeneracy
+(Caveat~1) but also the triviality of the compressed solutions (Caveat~2); $a = 0$
+collapses the anchors to the origin and recovers the VIB corner.
+\end{remark}
+
+\begin{remark}[Residual-information interpretation (CEB)]\label{rem:residual}
+For any backward encoder, $\mathbb{E}[\operatorname{KL}(q(z|x)\|r(z|y))]
+= I(X;Z|Y) + \mathbb{E}_y[\operatorname{KL}(q(z|y)\|r(z|y))]
+\ge I(X;Z|Y)$ (Fischer 2020, Eqs.~9--11, 20; Lemma~\ref{lem:gap}). FGIB is therefore a
+CEB bottleneck with a \emph{fixed} backward encoder: the regularizer upper-bounds the
+residual information, and on the aligned family the residual vanishes identically
+($q(z|x)$ depends on $y$ alone), so the regularizer equals the anchor-matching gap
+$\tfrac{1}{2}(s-a)^2$. The quadratic mechanism of Proposition~\ref{prop:sweep} is
+inherited from this gap term, which exists only because the anchor is not allowed to
+follow the encoder.
+\end{remark}
+
+\begin{remark}[Variance decoupling and training--evaluation consistency]
+Since the classifier consumes the deterministic $h$ (and the KL does not see the
+classifier), the posterior variance decouples: $\sigma^{2*} = 1$ for all $\beta$, and
+the trade-off is purely geometric (mean alignment). This contrasts with VIB, where the
+classifier consumes the sampled $z$: the noise couples into the prediction term (by
+Jensen, $\mathbb{E}_z[\mathrm{CE}(c(z),y)] \ge \mathrm{CE}(c(\mu),y)$), the rate
+$R \ge I(X;Z)$ over-counts compression, and training-time sampling versus
+evaluation-time mean creates a distribution mismatch (Fischer 2020, Appendix~A.1).
+\end{remark}
+
+\begin{remark}[Idealizations and the finite-scale caveat]\label{rem:caveats}
+(i)~The classifier scale $c$ is held fixed in the reduced model. In the actual model the
+linear classifier is trained jointly, and its row norm grows (logistically, since the CE
+gradient on $W$ vanishes as $p_y \to 1$) rather than diverging in finite time; at any
+fixed training time $c$ is bounded and the equilibrium $s^*(\beta; c)$ follows the curve
+of Proposition~\ref{prop:sweep}, so the $\beta$-sweep is realized. In the limit
+$c \to \infty$ the infimum for \emph{every} $\beta$ is the aligned corner
+($\operatorname{KL} = 0$, $\mathrm{CE} \to 0$) --- the
+maximal-compression-at-zero-loss corner itself --- and no minimizer is attained
+($\mathrm{CE} = 0$ requires infinite margin); the degeneracy question is therefore
+properly posed about the finite-scale equilibrium, where the curve is strictly concave
+(Proposition~\ref{prop:curve}). (ii)~The class-symmetric ansatz idealizes the
+equilibrium geometry; it is exact in the $\beta$-dominant regime and captures the
+direction of the KL force in general. (iii)~For regression, the continuous RFF anchors
+satisfy $\|\mu_p(y)\| \approx a$, so the KL again contains the quadratic displacement
+term $\tfrac{1}{2}\|\mu - \mu_p(y)\|^2 + {}$(variance terms) --- the same convexity
+mechanism carries over. (iv)~Training starts at $\operatorname{KL} \approx a^2/2$
+(zero-initialized logvar head, $\sigma = 1$, $\mu \approx 0$), so the anchor scale sets
+the initial regularization pressure; larger $a$ delays the approach to $s^*$.
+\end{remark}
+
+% ---------------------------------------------------------------
+\subsection{The certificate}
+% ---------------------------------------------------------------
+
+\begin{lemma}[Gap identity]\label{lem:gap}
+For any conditional $r(z|y)$,
+\begin{equation}
+\mathbb{E}\big[\operatorname{KL}(q(z|x)\,\|\,r(z|y))\big]
+= I(X;Z|Y) + \mathbb{E}_y\big[\operatorname{KL}(q(z|y)\,\|\,r(z|y))\big] .
+\label{eq:gap}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+$\mathbb{E}[\operatorname{KL}(q(z|x)\|r(z|y))] = \mathbb{E}[\ln q(z|x) - \ln r(z|y)]$
+and $I(X;Z|Y) = \mathbb{E}[\ln q(z|x) - \ln q(z|y)]$ (Fischer 2020, Eqs.~9--10), where
+both expectations are over $p(x,y)q(z|x)$; subtracting,
+$\mathbb{E}[\ln q(z|y) - \ln r(z|y)] = \mathbb{E}_y[\operatorname{KL}(q(z|y)\|r(z|y))]$
+since the argument depends on $z, y$ only. \hfill\qed
+\end{proof}
+
+\begin{lemma}[Moment matching]\label{lem:mm}
+Within the per-class Gaussian (diagonal) family, the gap of Lemma~\ref{lem:gap} is
+minimized by the moment-matched Gaussian $b^*_y = \mathcal{N}(m_y, S_y)$ with
+$m_y = \mathbb{E}\,q(z|y)$, $S_y = \operatorname{diag}\operatorname{Var} q(z|y)$.
+\end{lemma}
+
+\begin{proof}
+$\operatorname{KL}(p\|q)$ as a function of $q$ is minimized by matching the first two
+moments of $p$ (standard; for Gaussians the minimizer is unique). \hfill\qed
+\end{proof}
+
+\begin{proposition}[Variational ordering: CEB's bound is tighter in value]\label{prop:ordering}
+For every fixed encoder $q(z|x)$,
+$\mathrm{ReX}(\theta^*) \le \mathrm{ReX}_F$ where $\theta^*$ is CEB's optimal backward
+encoder, and the excess is the \emph{anchor gap}
+\begin{equation}
+\Delta := \mathrm{ReX}_F - \mathrm{ReX}(\theta^*)
+= \mathbb{E}_y\big[\operatorname{KL}(q(z|y)\,\|\,N(a v_y, I))\big]
+- \mathbb{E}_y\big[\operatorname{KL}(q(z|y)\,\|\,N(m_y, S_y))\big] \ge 0 ,
+\label{eq:anchor-gap}
+\end{equation}
+with equality iff the anchors equal the moment-matched marginals.
+On the aligned family of the sweep analysis ($q(z|y) = \mathcal{N}(s v_y, \sigma^2 I)$,
+so $I(X;Z|Y) = 0$ and $b^* = q(z|y)$ exactly),
+\begin{equation}
+\Delta = \tfrac{1}{2}(s-a)^2 + \tfrac{z}{2}\big(\sigma^2 - 1 - \ln\sigma^2\big) ,
+\label{eq:aligned-gap}
+\end{equation}
+i.e.\ $\mathrm{ReX}_F = \Delta$ and $\mathrm{ReX}(\theta^*) = 0$: FGIB's bound value
+\emph{equals} the sweep-driving compression term of Proposition~\ref{prop:sweep}, while
+CEB's bound collapses to the (zero) residual.
+\end{proposition}
+
+\begin{proof}
+The anchor $N(a v_y, I)$ is a member of CEB's per-class Gaussian family, so the minimum
+over the family is no larger than the value at the anchor: the ordering and
+Eq.~\eqref{eq:anchor-gap} follow from Lemmas~\ref{lem:gap} and~\ref{lem:mm}.
+On the aligned family the marginal is itself Gaussian, so $b^* = q(z|y)$ gives gap $0$,
+$I(X;Z|Y) = 0$ (the posterior is class-constant), and
+$\operatorname{KL}(\mathcal{N}(s v_y, \sigma^2 I)\|\mathcal{N}(a v_y, I))
+= \tfrac{1}{2}(s-a)^2 + \tfrac{z}{2}(\sigma^2-1-\ln\sigma^2)$. \hfill\qed
+\end{proof}
+
+\begin{remark}[Tightness--force trade-off]\label{rem:force}
+Proposition~\ref{prop:ordering} is the price of the fixed anchor, and it is paid for a
+reason: the gap is the only quantity the encoder can reduce. CEB's gap is a function of
+the \emph{backward encoder alone} --- $b_\theta \to q(z|y)$ eliminates it with the
+encoder held fixed, so CEB's bound can become tight while the representation stays
+uncompressed: its tightness certifies nothing about compression, and the gap is an
+unobservable optimization residual that tracks the forward encoder. FGIB's gap can
+shrink only if the \emph{encoder} moves toward the anchors (the anchor is fixed), and on
+the aligned family the bound value \emph{is} the compression certificate
+(Eq.~\eqref{eq:aligned-gap}): bound tightness is monotonically equivalent to
+compression. This is the same fixed-anchor mechanism that keeps the sweep force
+persistent (Proposition~\ref{prop:sweep}).
+\end{remark}
+
+\begin{proposition}[The inverse linear transform: the object of the bound]\label{prop:inverse}
+Let the side head $A$ be \emph{invertible} ($z = d$, unconstrained), and let the trained
+posterior be isotropic, $\Sigma(x) = \sigma_p^2 I$ (the KL variance term is minimized at
+$\sigma^2 = \sigma_p^2$, the anchor variance, so this holds at the variance optimum).
+Then $\tilde z := A^{-1} z$ gives
+$q'(\tilde z|x) = \mathcal{N}(h(x), \sigma_p^2 (A^{\top}A)^{-1})$ --- the posterior is
+centered at the \emph{inference representation} $h$ with side noise
+$\sigma_p^2 (A^{\top}A)^{-1}$ --- and the transformed anchors
+$r'(\tilde z|y) = \mathcal{N}(a\, A^{-1} v_y, (A^{\top}A)^{-1})$ form an orthonormal
+frame at scale $a$ in the induced metric $A^{\top}A$
+($\langle A^{-1}v_i, A^{-1}v_j\rangle_{A^{\top}A} = \delta_{ij}$: the fixed frame
+$\{v_y\}$ read in canonical coordinates). By KL invariance under invertible linear maps
+(Lemma~\ref{lem:kl-invariance}),
+\begin{equation}
+\mathrm{ReX}_F
+= I(X;\, h + \sigma_p\,(A^{\top}A)^{-1/2}\varepsilon\,|Y)
++ \mathbb{E}_y\big[\operatorname{KL}\big(q'(\tilde z|y)\,\|\,r'(\tilde z|y)\big)\big],
+\qquad \varepsilon \sim \mathcal{N}(0, I) .
+\label{eq:object}
+\end{equation}
+The bound's object is the inference representation perturbed by \emph{known,
+side-path-only} noise (its covariance is a model parameter), and the anchor geometry is
+preserved exactly under the transform, in the induced metric.
+\end{proposition}
+
+\begin{proof}
+$A^{-1}A = I$; $A^{-1}\Sigma A^{-\top} = \sigma_p^2 A^{-1}A^{-\top}
+= \sigma_p^2 (A^{\top}A)^{-1}$ for $\Sigma = \sigma_p^2 I$; the prior covariance maps to
+$A^{-1} I A^{-\top} = (A^{\top}A)^{-1}$; and
+$\langle A^{-1}v_i, A^{-1}v_j\rangle_{A^{\top}A}
+= v_i^{\top} A^{-\top} A^{\top} A\, A^{-1} v_j = \delta_{ij}$.
+Equation~\eqref{eq:object} is Lemma~\ref{lem:gap} applied to the transformed pair.
+\hfill\qed
+\end{proof}
+
+\begin{proposition}[Orthogonal-factor conditioning: the reference is fixed and well-conditioned]\label{prop:conditioning}
+FGIB's anchor frame $V = [v_1, \dots, v_K]$ is the orthonormal factor of a random matrix
+(QR: $G = QR$, $V := Q$, $V^{\top}V = I_K$), and the anchor covariance is the identity.
+Then, for every anchor scale $a \ge 0$ and throughout training:
+\begin{enumerate}
+\item[(i)] the \emph{reference} of the matching --- the prior's mean frame and
+covariance --- is fixed (non-trainable buffers) and has condition number $1$: the
+certificate is a distance to a compact, non-degenerate, class-separated (for $a > 0$)
+target;
+\item[(ii)] in side-mean coordinates the certificate's displacement metric is the
+identity: the KL's displacement term is $\tfrac12\|\mu - a v_y\|^2$ with gradient
+$\mu - a v_y$;
+\item[(iii)] on the shared-encoder side the metric is $A^{\top}A$, where $A$ is a
+learnable unconstrained map, so its \emph{global} condition number is not controlled by
+construction. However, on the class-aligned equilibrium family ($A h_y = s v_y$) the
+metric restricted to the class-mean subspace is $s^2 I$ --- condition number $1$ on
+every direction that carries the matching force --- and the only gradient $A$ receives
+is the alignment force $(\mu - a v_y)\,h^{\top}$ toward the orthonormal target, which
+never points toward degeneracy; an orthogonal parameterization of $A$ is the optional
+hard guarantee (Remark~\ref{rem:orth}).
+\end{enumerate}
+CEB's backward encoder $b_\theta(z|y) = \mathcal{N}(m_\theta(y), S_\theta(y))$ is an
+unconstrained linear map of the label: \emph{both} sides of its matching are trainable,
+its covariance diagonal can lie anywhere in the clamp $[e^{-10}, e^{10}]$ (condition
+number up to $e^{20}$), its means can be rank-deficient (class-merged codes, or the
+collapse solution $m_\theta \equiv 0$), and the variance race drives $S_\theta$ to the
+clamp, degenerating the certificate into a mean-matching force of weight $1/s = e^{10}$
+(Prop.~\ref{prop:variance}). The fixed QR reference is what keeps FGIB's bound
+well-conditioned in the regime where CEB's bound degenerates.
+\end{proposition}
+
+\begin{proof}
+$V^{\top}V = I_K$: all singular values of $V$ are $1$; the covariance is $I$ with all
+eigenvalues $1$; both are frozen buffers, so (i) holds. The diagonal closed form of
+$\operatorname{KL}(\mathcal{N}(\mu, \sigma^2 I)\,\|\,\mathcal{N}(a v_y, I))$ has
+displacement term $\tfrac12\|\mu - a v_y\|^2$, giving (ii). For (iii):
+$h_i^{\top} A^{\top} A\, h_j = \mu_i^{\top}\mu_j = s^2 v_i^{\top} v_j = s^2\delta_{ij}$
+on the aligned family, and the KL gradient on $A$ is
+$(\mu - a v_y)\,h^{\top}$, an alignment force toward the orthonormal frame that vanishes
+only at perfect alignment. For CEB, the displacement term is
+$\tfrac12(m - g)^{\top} S_\theta^{-1}(m - g)$: the metric $S_\theta^{-1}$ has condition
+number up to $e^{20}$ under the logvar clamp, and the gradient weight $1/s$ at the
+collapse equilibrium is Prop.~\ref{prop:variance}. \hfill\qed
+\end{proof}
+
+\begin{remark}[Two senses of tightness]\label{rem:senses}
+In the pure variational \emph{value} sense (same encoder, same Gaussian family), CEB's
+bound is tighter: $\mathrm{ReX}(\theta^*) \le \mathrm{ReX}_F$
+(Prop.~\ref{prop:ordering}), the excess being the anchor gap --- the price of the fixed
+anchor. The statement ``FGIB's bound is tighter'' holds in the \emph{object} sense: as
+an upper bound on the residual of the representation used at inference, CEB's optimized
+bound is not a bound at all --- it can lie strictly below its target
+(Prop.~\ref{prop:object}(a)) --- while FGIB's bound is valid, has a fixed
+well-conditioned reference and a closed variance channel
+(Prop.~\ref{prop:conditioning}), and becomes exact in the point-anchor limit
+(Prop.~\ref{prop:object}(b)). Being below the target is not tightness; it is invalidity.
+The learnability of the side head $A$ does not disturb this picture: $A$ is part of the
+encoder, so the value ordering of Prop.~\ref{prop:ordering} holds for every fixed $q$,
+including any trained $A$; its optimization only drives the gap toward its equilibrium
+value $\tfrac12(s^*-a)^2$ on the aligned family (Prop.~\ref{prop:sweep}) --- the
+legitimate alignment channel, not a tightness lever.
+\end{remark}
+
+\begin{remark}[Unconstrained side head (the implementation)]\label{rem:orth}
+Proposition~\ref{prop:inverse} holds for any invertible $A$: the KL invariance is exact,
+and the object claim needs only that the perturbation covariance
+$\sigma_p^2(A^{\top}A)^{-1}$ be \emph{known} ($A$ is a model parameter). The diagonal
+variational family is not closed under $A^{-1}$ (Remark~\ref{rem:closure}), so within
+the diagonal parameterization of the codebase the equivalence is exact at the
+distribution level and approximate as a variational identity; a full-covariance side
+head would make it exact within the family. No orthogonality constraint on $A$ is
+required --- the orthogonality of the method lives in the fixed anchor frame and in the
+equilibrium it induces (the aligned family).
+\end{remark}
+
+\begin{remark}[Anchor-frame reading]\label{rem:frame}
+With the orthonormal anchor matrix $V$ (columns $v_y$), the transform $V^{\top}$
+expresses $z$ in class coordinates: the anchors become $a\,e_y$, and the gap of
+Lemma~\ref{lem:gap} decomposes into $K$ independent per-class terms. The orthogonal
+frame is the geometric content of the prior; both inverse transforms ($A^{\top}$ and
+$V^{\top}$) preserve it.
+\end{remark}
+
+\begin{remark}[Positioning against VIB and NIB]\label{rem:position}
+VIB's rate bounds the \emph{full} mutual information $I(X;Z)$ with a marginal prior;
+CEB removes the retained label information ($\mathrm{ReX} = R - I(Y;Z)$ at the optima),
+and FGIB inherits the residual-level object while replacing the learnable backward
+encoder with a fixed geometric prior (Prop.~\ref{prop:ordering}).
+NIB's non-parametric bound $\widehat I \ge I(X;M)$ is $y$-unconditioned and tight only
+when the components share a covariance and form well-separated clusters (Kolchinsky et
+al.\ 2017, Eq.~10 and the discussion following Eq.~11); when the noise is small relative
+to the cluster spread it saturates at $\ln N$ and its gradient vanishes (their
+Section~IVA) --- loose exactly in the regime where the parametric FGIB bound is
+well-behaved. The two bounds are complementary: NIB certifies the full compression
+non-parametrically when the geometry is favorable; FGIB certifies the residual
+parametrically with a geometry of its own choosing.
+\end{remark}
+
+\begin{remark}[Degenerate anchors]\label{rem:a0}
+At $a = 0$ the anchors collapse to $N(0, I)$ for all classes and the gap loses its class
+structure: $\Delta = \mathbb{E}_y[\operatorname{KL}(q(z|y)\|N(0,I))]$ --- a VIB-style
+marginal gap, and the object-tightness argument of
+Prop.~\ref{prop:object}(b) still holds, but the compressed endpoint becomes the trivial
+collapse (Remark~\ref{rem:endpoint}).
+\end{remark}

@@ -1,0 +1,194 @@
+% fgib_ceb_collapse.tex —— CEB 编码器坍缩性：确定性场景下 CEB ≡ IB(β=1+γ>1) 的退化证明
+% （受 Kolchinsky & Tracey, ICLR 2019 "Caveats" 的确定性退化证明启发）
+% 记号沿用 Fischer (2020) 与 Kolchinsky & Tracey (2019)；用法同 fgib_degeneration.tex
+% 核心结论（三条坍缩通道，FGIB 论文问题陈述）：
+% (1) 旋钮失效：CEB ≡ IB(β=1+γ>1)，确定性场景下所有 γ>0 的唯一最优解钉在拷贝角点
+%     (I(Y;Z)=H(Y), I(X;Z|Y)=0)，γ 扫不出任何中间点（SIB Caveat 1 的 β>1 半区）；
+% (2) y 信息赤字近零代价：在 SIB 的 T_α 流形上 VCEB = γ(H(Y)−I(Y;T_α))，
+%     丢失 δ nat 的标签信息只损失 γδ = δ/β（项目约定 β=1/γ）——β→∞（重正则化）时
+%     保留全部/部分/零 y 信息的解不可区分，且 ReX 证书在该流形上恒为 0（对 y 保留盲视）；
+% (3) 方差坍缩通道（过分拟合 z）：KL 的方差最优为 σ²=τ²、分类项按 Jensen 压 σ²→0，
+%     平衡点 σ²=τ²→0（代码 clamp e^{-10}）处 ReX ≈ ½||m−g||²/s，梯度权重 1/s=e^{10}≈2.2e4 的
+%     均值匹配把编码器钉死在反向编码器的标签目标 g(y) 上——压缩靠确定性坍缩而非信息压缩，
+%     真实残差随噪声消失而无界增长（Amjad & Geiger），证书却报零。
+% 论文层面的第四条通道（证书作用对象错位：训练码 vs 推理均值）在 fgib_bound.tex Prop. object 处理。
+% FGIB 关闭全部四条通道：固定锚点无博弈方（fgib_bound.tex）、y 赤字被二次惩罚且 β 扫出
+% 唯一内点（fgib_degeneration.tex）、确定性主路 + 有限旁路协方差保持界良定义（fgib_linear.tex）。
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\textbf{Notation.}
+$X$ input, $Y$ label with $K$ classes, \emph{deterministic scenario} $Y = f(X)$
+($H(Y|X) = 0$). The encoder induces the Markov chain $Y - X - Z$. Following
+Fischer (2020), we write the chain-rule identity $I(X;Z|Y) = I(X;Z) - I(Y;Z)$ (Eq.~4),
+the CEB objective $\mathrm{CEB} \equiv \min_Z I(X;Z|Y) - \gamma I(Y;Z)$ (Eq.~5), the IB
+objective $\mathrm{IB} \equiv \min_Z I(X;Z) - \beta_{\mathrm{IB}} I(Y;Z)$ (Eq.~16), the
+variational objective
+$\mathrm{VCEB} \equiv \min_{e,b,c} \langle \log e(z|x)\rangle - \langle \log b(z|y)\rangle
+- \gamma \langle \log c(y|z)\rangle$ (Eq.~15), and the residual certificate
+$\mathrm{ReX} \equiv \langle \log e(z|x)\rangle - \langle \log b(z|y)\rangle
+\ge I(X;Z|Y)$ (Eq.~20). In the project's loss convention
+($\mathrm{CE} + \beta\,\mathrm{KL}$), the weights are $\beta = 1/\gamma$ and
+$\beta_{\mathrm{IB}} = 1 + \gamma$. Following Kolchinsky \& Tracey (2019), we write the
+DPI-saturating manifold $T_\alpha := B_\alpha \cdot Y$ (their Eq.~6), the bound
+$L^{\mathrm{IB}}_\beta \le (1-\beta)H(Y)$ (their Eq.~7), and their footnote~4
+(the $\beta > 1$ regime of trivial maximizers).
+
+\begin{proposition}[Dead knob: every $\gamma > 0$ selects the same corner]\label{prop:dead}
+Assume $Y = f(X)$. For every $\gamma > 0$,
+\begin{equation}
+\min_Z L_\gamma(Z) = -\gamma H(Y),
+\qquad
+L_\gamma(Z) := I(X;Z|Y) - \gamma I(Y;Z),
+\label{eq:min}
+\end{equation}
+attained exactly on the corner family
+$\{Z : I(Y;Z) = H(Y),\; I(X;Z|Y) = 0\}$ (e.g.\ $Z = Y$, or $Z = (Y, N)$ with
+$N \perp X \mid Y$). Consequently the map
+$\gamma \mapsto \big(I(X;Z^*|Y),\, I(Y;Z^*)\big)$ is constant: no interior point of the
+IB curve is ever a Lagrangian minimizer, and CEB inherits the deterministic degeneration
+of the Caveats paper (their Issue~1) over its \emph{entire} parameter range, since
+$\beta_{\mathrm{IB}} = 1 + \gamma > 1$ always.
+\end{proposition}
+
+\begin{proof}
+By Fischer's Eq.~4, $L_\gamma(Z) = I(X;Z) - (1+\gamma)I(Y;Z)$. The DPI
+($I(Y;Z) \le I(X;Z)$, by the Markov chain $Y - X - Z$) gives
+\begin{equation}
+L_\gamma(Z) \ge I(Y;Z) - (1+\gamma)\,I(Y;Z)
+= -\gamma\,I(Y;Z) \ge -\gamma H(Y),
+\label{eq:chain}
+\end{equation}
+with equality iff both inequalities bind: $I(X;Z) = I(Y;Z)$ and $I(Y;Z) = H(Y)$.
+$Z = Y$ attains the bound. Fischer (2020, p.~7) states the underlying equivalence
+explicitly: CEB and IB are the same objective for $\gamma = \beta_{\mathrm{IB}} - 1$.
+In the Caveats paper's maximizing convention, minimizing $L_\gamma$ is maximizing
+$L^{\mathrm{IB}}$ with $\beta' = 1/\beta_{\mathrm{IB}} = 1/(1+\gamma) \in (0,1)$ ---
+precisely the range in which their Eq.~7 pins every maximizer at the copy corner (their
+Issue~1); their footnote~4 covers the complementary regime $\beta' > 1$ (i.e.\
+$\gamma < 0$, outside CEB's range), whose maximizers are the trivial collapse. \hfill\qed
+\end{proof}
+
+\begin{proposition}[Flatness: partial label-information loss is nearly free, and the certificate is blind]\label{prop:flat}
+On the manifold $T_\alpha = B_\alpha \cdot Y$ of the Caveats paper (their Eq.~6),
+$I(X;T_\alpha|Y) = 0$ for every $\alpha$, and with the optimal backward encoder and
+classifier the variational value is
+\begin{equation}
+\mathrm{VCEB}(T_\alpha) = \gamma\big(H(Y) - I(Y;T_\alpha)\big).
+\label{eq:vceb}
+\end{equation}
+Hence a code dropping $\delta = H(Y) - I(Y;Z)$ nats of label information costs exactly
+$\gamma\delta = \delta/\beta$ (project convention): as $\beta \to \infty$ --- the
+heavy-regularization regime in which the bottleneck is supposed to act --- the entire
+manifold, from total collapse ($\alpha = 0$, all label information lost) to the full copy
+($\alpha = 1$), lies within $\gamma H(Y) \to 0$ of optimal. Moreover
+$\mathrm{ReX}(T_\alpha) = 0$ for every $\alpha$: the certificate is \emph{blind to label
+retention} --- its tightness is compatible with retaining all, part, or none of $Y$.
+\end{proposition}
+
+\begin{proof}
+$T_\alpha$ is a function of $Y$ alone, so $T_\alpha \perp X \mid Y$ and
+$I(X;T_\alpha|Y) = 0$; the Caveats paper shows $I(Y;T_\alpha)$ sweeps $[0, H(Y)]$.
+With the true backward encoder ($b = p(z|y)$) the certificate is tight:
+$\mathrm{ReX} = I(X;T_\alpha|Y) = 0$ (Fischer Eqs.~9--11, 20). The optimal classifier
+achieves $\langle \log c(y|z)\rangle = -H(Y|T_\alpha)$ (Fischer Eq.~12), so
+Eq.~\eqref{eq:vceb} follows from the VCEB form (Eq.~15). \hfill\qed
+\end{proof}
+
+\begin{remark}[The project convention sharpens the statement]\label{rem:convention}
+In the project's loss ($\mathrm{CE} + \beta\,\mathrm{KL}$) the flatness band is
+$H(Y)/\beta$. Pushing $\beta$ up --- the standard way to demand more compression --- drives
+$\beta_{\mathrm{IB}} = 1 + 1/\beta \to 1^+$: the objective approaches the Caveats paper's
+$\beta = 1$ degeneracy (their Eq.~7 discussion), at which \emph{every} point of the
+diagonal is simultaneously optimal, from above. Fischer (2020, p.~7) anticipates this:
+under $\rho = \log\gamma$, ``$\rho < 0$ may capture less than the MNI''.
+Proposition~\ref{prop:flat} quantifies it: at $\rho \to -\infty$ the price of capturing
+less vanishes.
+\end{remark}
+
+\begin{remark}[Approximately deterministic labels]\label{rem:approx}
+The Caveats paper (Appendix~C, Issue~1) shows that when $Y$ is only $\epsilon$-close to
+deterministic, all optimizers fall within $O(-\epsilon\log\epsilon)$ of a single corner:
+the dead-knob statement of Proposition~\ref{prop:dead} degrades gracefully, and the
+near-optimality band of Proposition~\ref{prop:flat} is perturbed by the same order.
+\end{remark}
+
+\begin{proposition}[Variance collapse: the overfit channel]\label{prop:variance}
+For the diagonal Gaussian family $e(z|x) = \mathcal{N}(m(x), \sigma^2 I)$,
+$b(z|y) = \mathcal{N}(g(y), \tau^2 I)$ (the project's implementation, with the
+\texttt{logvar} clamp $[-10, 10]$ of \texttt{kl\_divergence}):
+\begin{enumerate}
+\item[(i)] for fixed means, $\operatorname{KL}$ is minimized over $\sigma^2$ at
+$\sigma^2 = \tau^2$, with value $\tfrac{1}{2\tau^2}\|m - g\|^2$ --- a pure mean-matching
+term;
+\item[(ii)] the classifier term favors $\sigma^2 \to 0$ (by Jensen,
+$\mathbb{E}_z[\mathrm{CE}(c(z), y)] \ge \mathrm{CE}(c(m), y)$, the log-softmax being
+concave), while the KL term is indifferent along the matched line $\sigma^2 = \tau^2$;
+the equilibrium is therefore $\sigma^2 = \tau^2 \to 0$ with $m \to g$ --- the encoder
+collapses toward the deterministic code $z \approx g(y)$ --- and in the codebase the race
+is stopped only by the clamp at $s = e^{-10}$, where
+$\mathrm{ReX} = \tfrac{1}{2s}\mathbb{E}\|m(x) - g(y)\|^2$: a mean-matching force of
+weight $1/s = e^{10} \approx 2.2\times10^{4}$ between two \emph{trainable} maps;
+\item[(iii)] the encoder therefore overfits $z$ to the backward encoder's per-class
+targets (memorizing the label code $g(y)$ rather than compressing $x$), while for the
+resulting near-deterministic continuous code the true residual $I(X;Z|Y)$ grows without
+bound as the noise vanishes (the pathology of deterministic networks, Amjad \& Geiger
+2018; Kolchinsky et al.\ 2017): the
+certificate and its object diverge --- the model reports $\mathrm{ReX} \approx 0$ on an
+effectively unregularized, overfit code.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+The closed form
+$\operatorname{KL} = \tfrac{d}{2}\big[\sigma^2/\tau^2 + \|m-g\|^2/(d\tau^2)
+- 1 + \ln(\tau^2/\sigma^2)\big]$ has derivative $\tfrac{d}{2}(1/\tau^2 - 1/\sigma^2)$
+in $\sigma^2$, so the variance optimum is $\sigma^2 = \tau^2$, giving (i); at
+$\sigma^2 = \tau^2 = s$ the value is $\|m-g\|^2/(2s)$. For (ii): the log-softmax is
+concave, so Jensen gives the stated inequality, and its gradient on $\sigma^2$ is
+negative wherever the classifier is unsaturated; the KL gradient on the encoder mean is
+$(m - g)/s$, a matching force of weight $1/s$. For (iii): a deterministic continuous $z$
+carrying within-class detail has divergent mutual information with $X$ (Amjad \& Geiger;
+Kolchinsky et al.), while the certificate is computed from the finite Gaussian KL and
+reports $\approx 0$ at the clamp. \hfill\qed
+\end{proof}
+
+\begin{remark}[Train--evaluation mismatch]\label{rem:mismatch}
+The classifier is trained on the sampled code $z$ and evaluated on the mean $m(x)$
+(Fischer 2020, Appendix~A.1). Proposition~\ref{prop:variance}(ii) is the force that
+closes this gap by destroying the noise altogether ($\sigma \to 0$), at which point the
+bottleneck's stochasticity --- the object the bound is defined on --- disappears.
+\end{remark}
+
+\textbf{The problem addressed by FGIB.}
+The three channels above, together with the certificate-object mismatch of
+fgib\_bound.tex (Prop.~object), are closed one-to-one by the FGIB design, each documented
+in the companion notes:
+\begin{itemize}
+\item \emph{Dead knob and flatness} (Props.~\ref{prop:dead}, \ref{prop:flat}): FGIB's
+compression term is the anchor gap $\tfrac12(s-a)^2$, quadratic in the alignment scalar,
+and the Lagrangian $\mathrm{CE}(s) + \tfrac{\beta}{2}(s-a)^2$ is strictly convex with a
+\emph{unique interior} minimizer per $\beta$ --- the $\beta$-sweep is one-to-one onto the
+whole trade-off curve, and the y-deficit is penalized quadratically, not with slope
+$1/\beta$ (fgib\_degeneration.tex, Props.~1--2).
+\item \emph{Blind certificate} (Prop.~\ref{prop:flat}): with the fixed anchor
+$r(z|y) = \mathcal{N}(a v_y, I)$ the gap
+$\mathbb{E}_y[\operatorname{KL}(q(z|y)\,\|\,r(z|y))]$ can shrink only if the
+\emph{encoder} moves toward the anchors --- there is no gameable party left to absorb it,
+so bound tightness is monotonically equivalent to compression (fgib\_bound.tex, Prop.~1
+and the tightness--force remark).
+\item \emph{Variance collapse} (Prop.~\ref{prop:variance}): the classifier consumes the
+deterministic $h$ at both training and evaluation, so $\sigma^{2*} = 1$ for every $\beta$
+(the variance decouples from the prediction term; fgib\_degeneration.tex, Lemma~1), the
+side path keeps a finite covariance and the bound stays well-defined
+(fgib\_linear.tex, noise-free-limit remark), and the trivial collapse $\mu \equiv 0$ pays
+the fixed positive price $\operatorname{KL} = \tfrac12 a^2 > 0$ for every class --- the
+degenerate corner is excluded by geometry rather than by the optimizer's good behavior.
+\item \emph{Certificate-object mismatch} (fgib\_bound.tex, Prop.~object): the classifier
+consumes the deterministic $h$ at both training and evaluation --- there is no
+training-code/evaluation-mean split --- and the bound's object is the inference
+representation up to known, side-path-only noise, removable by the anchor variance alone
+(fgib\_bound.tex, Prop.~object(b)).
+\end{itemize}
