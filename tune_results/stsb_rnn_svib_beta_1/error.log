@@ -1,0 +1,30 @@
+/root/miniconda3/bin/python /root/autodl-tmp/FGIB/train.py --backbone rnn --task stsb --model svib --beta 1.0 --no-save --log-path /root/autodl-tmp/FGIB/tune_results/stsb_rnn_svib_beta_1/train.log
+
+
+2026-08-27 14:59:27 | Device: cuda
+2026-08-27 14:59:27 | Args: {'model': 'svib', 'backbone': 'rnn', 'task': 'stsb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 4.0, 'max_len': 250, 'random_labels': False, 'beta': 1.0, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/stsb_rnn_svib/stsb_rnn_svib.pt', 'log_path': '/root/autodl-tmp/FGIB/tune_results/stsb_rnn_svib_beta_1/train.log', 'no_save': True}
+2026-08-27 14:59:27 | STS-B 预处理缓存：mmap 共享 ./data/stsb/stsb_processed_maxlen250
+2026-08-27 14:59:27 | ===== Run 1/5 (seed 0) =====
+2026-08-27 14:59:37 | Epoch   1/100 | Train Loss 0.6506 | Val Loss 0.2277 MAE 1.9196 R2 -1.3678
+2026-08-27 14:59:38 |   Val R2 improved to -1.3678, model saved
+2026-08-27 14:59:52 | Epoch   2/100 | Train Loss 0.4570 | Val Loss 0.2225 MAE 1.8265 R2 -1.1392
+2026-08-27 14:59:53 |   Val R2 improved to -1.1392, model saved
+2026-08-27 15:00:09 | Epoch   3/100 | Train Loss 0.4060 | Val Loss 0.2356 MAE 1.9333 R2 -1.3939
+2026-08-27 15:00:24 | Epoch   4/100 | Train Loss 0.3690 | Val Loss 0.2475 MAE 2.0202 R2 -1.6124
+2026-08-27 15:00:39 | Epoch   5/100 | Train Loss 0.3460 | Val Loss 0.2522 MAE 2.0228 R2 -1.6211
+Traceback (most recent call last):
+  File "/root/autodl-tmp/FGIB/train.py", line 832, in <module>
+    main()
+  File "/root/autodl-tmp/FGIB/train.py", line 719, in main
+    train_loss, _ = train_one_epoch(
+                    ^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/train.py", line 132, in train_one_epoch
+    loss.backward()
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

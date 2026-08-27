@@ -523,7 +523,10 @@ def main():
         output_name = f"{dataset_name}_{backbone}_{args.model}"
 
     output_dir = os.path.join("output", output_name)
-    os.makedirs(output_dir, exist_ok=True)
+    # 仅当 save_path/log_path 的默认值需要落在 output 目录内时才创建它；
+    # tune.py 的 --no-save + 显式 --log-path 调用不会在 output/ 留下空子文件夹
+    if args.save_path is None or args.log_path is None:
+        os.makedirs(output_dir, exist_ok=True)
     if args.save_path is None:
         args.save_path = os.path.join(output_dir, f"{output_name}.pt")
     if args.log_path is None:

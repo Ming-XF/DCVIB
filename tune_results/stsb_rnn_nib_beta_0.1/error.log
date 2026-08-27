@@ -1,0 +1,35 @@
+/root/miniconda3/bin/python /root/autodl-tmp/FGIB/train.py --backbone rnn --task stsb --model nib --beta 0.1 --no-save --log-path /root/autodl-tmp/FGIB/tune_results/stsb_rnn_nib_beta_0.1/train.log
+
+
+2026-08-27 14:59:28 | Device: cuda
+2026-08-27 14:59:28 | Args: {'model': 'nib', 'backbone': 'rnn', 'task': 'stsb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 4.0, 'max_len': 250, 'random_labels': False, 'beta': 0.1, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/stsb_rnn_nib/stsb_rnn_nib.pt', 'log_path': '/root/autodl-tmp/FGIB/tune_results/stsb_rnn_nib_beta_0.1/train.log', 'no_save': True}
+2026-08-27 14:59:28 | STS-B 预处理缓存：mmap 共享 ./data/stsb/stsb_processed_maxlen250
+2026-08-27 14:59:28 | ===== Run 1/5 (seed 0) =====
+2026-08-27 14:59:46 | Epoch   1/100 | Train Loss 1.0654 | Val Loss 0.1172 MAE 1.4037 R2 -0.2476
+2026-08-27 14:59:47 |   Val R2 improved to -0.2476, model saved
+2026-08-27 15:00:03 | Epoch   2/100 | Train Loss 0.9308 | Val Loss 0.1021 MAE 1.2362 R2 -0.0518
+2026-08-27 15:00:04 |   Val R2 improved to -0.0518, model saved
+2026-08-27 15:00:19 | Epoch   3/100 | Train Loss 0.8444 | Val Loss 0.1026 MAE 1.2768 R2 -0.0564
+2026-08-27 15:00:34 | Epoch   4/100 | Train Loss 0.7995 | Val Loss 0.1025 MAE 1.2549 R2 -0.0297
+2026-08-27 15:00:35 |   Val R2 improved to -0.0297, model saved
+Traceback (most recent call last):
+  File "/root/autodl-tmp/FGIB/train.py", line 832, in <module>
+    main()
+  File "/root/autodl-tmp/FGIB/train.py", line 719, in main
+    train_loss, _ = train_one_epoch(
+                    ^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/train.py", line 120, in train_one_epoch
+    for images, labels in loader:
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 732, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 788, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/utils/data/_utils/fetch.py", line 55, in fetch
+    return self.collate_fn(data)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/datasets/stsb.py", line 164, in collate_stsb
+    tokens = tokens[:, : (tokens != PAD_IDX).sum(1).max()]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

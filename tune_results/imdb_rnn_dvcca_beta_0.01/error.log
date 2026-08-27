@@ -1,0 +1,23 @@
+/root/miniconda3/bin/python /root/autodl-tmp/FGIB/train.py --backbone rnn --task imdb --model dvcca --beta 0.01 --no-save --log-path /root/autodl-tmp/FGIB/tune_results/imdb_rnn_dvcca_beta_0.01/train.log
+
+
+2026-08-27 08:46:34 | Device: cuda
+2026-08-27 08:46:34 | Args: {'model': 'dvcca', 'backbone': 'rnn', 'task': 'imdb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 4.0, 'max_len': 250, 'random_labels': False, 'beta': 0.01, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/imdb_rnn_dvcca/imdb_rnn_dvcca.pt', 'log_path': '/root/autodl-tmp/FGIB/tune_results/imdb_rnn_dvcca_beta_0.01/train.log', 'no_save': True}
+2026-08-27 08:46:34 | IMDb 预处理缓存：mmap 共享 ./data/imdb/imdb_processed_maxlen250
+2026-08-27 08:46:34 | ===== Run 1/5 (seed 0) =====
+Traceback (most recent call last):
+  File "/root/autodl-tmp/FGIB/train.py", line 832, in <module>
+    main()
+  File "/root/autodl-tmp/FGIB/train.py", line 733, in main
+    train_loss, train_acc = train_one_epoch(
+                            ^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/train.py", line 132, in train_one_epoch
+    loss.backward()
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 736.00 MiB. GPU 0 has a total capacity of 31.36 GiB of which 329.62 MiB is free. Process 267271 has 8.59 GiB memory in use. Process 268934 has 9.84 GiB memory in use. Process 269458 has 7.95 GiB memory in use. Including non-PyTorch memory, this process has 4.63 GiB memory in use. Of the allocated memory 2.19 GiB is allocated by PyTorch, and 1.81 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
