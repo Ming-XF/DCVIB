@@ -1,0 +1,62 @@
+我认同这轮意见——在"理论模型 / 代码实现"分层后，它指出的 6
+  个问题都是对的。我已按这个分层全部改完，并选了它给出的"方案 B"来处理 σ_p 矛盾（引入统一锚点方差
+  τ²），因为它让 point-anchor 极限成为合法陈述而不是删掉。文件现在 1255
+  行，环境配对、交叉引用、$ 配对全部通过。
+ 
+  6 点处理结果
+  
+  1. σ_p 与 point-anchor 极限 → 采用统一 τ² 写法。
+  - 理论先验改为 r(z|y) = N(a v_y, τ²I)，τ² 为锚点方差（默认 1.0，与代码 anchor_var 一致）；
+  - 后验方差最优为 σ²* = τ²，σ_p 仅作为"公共方差"记号，不再兼任两个角色；
+  - point-anchor 极限统一写为 τ→0，发散项写为 ‖μ − a v_y‖²/(2τ²)（先验协方差为 τ²I
+    时的正确均值项）；
+  - 全文同步：prop:inverse 的逆变换先验协方差改为 τ²(AᵀA)⁻¹、prop:ordering 的对齐族 gap 公式改为
+    (z/2)(σ²/τ² − 1 − ln(σ²/τ²))、lem:lagrangian 及 sweep 的 Lagrange 项改为
+    (β/2τ²)(s−a)²（stationarity 变为 β(s−a)/τ² = cφ(cs)，定性不变）。
+
+2. bias / MLP → 按你说的分层处理。
+  - 理论旁路固定为可逆线性头 T(h)=Ah（z=d），全文去掉仿射形式；bias 移入新增的 "Implementation
+    caveat (theory–code layering)" 段落：代码的 nn.Linear 带 bias、用 MLP
+    学这个正交因子，只是理论的近似，正交/可逆/条件数保证不自动转移到实现；
+  - 因为理论不再有 bias，aA⁻¹v_y 直接就是正交锚点，centering
+    问题消失（这比在仿射形式里加"中心化方向正交"的补丁干净）。
+    
+  3. surrogate 曲线 ≠ IB 曲线 → 新增 rem:surrogate。
+  明确：sweep 证明的是对齐族上 (KL_anchor, CE) 的严格凸代理曲线及 β 一一参数化；该族上 I(X;Z|Y)=0
+  且 s>0 时 I(Y;H)=H(Y)，变化的只是锚点失配和 margin，不等价于恢复 Caveats 的 (I(X;T), I(Y;T)) 
+  IB 曲线。sec:limits 的 proved 清单同步改写。
+
+4. +∞ 需要分布假设 → 新增 standing assumption。
+  Notation 末尾加"Distributional standing assumption"：非原子 X|Y 且 H(X)|Y
+  非原子连续；有限经验分布不作此结论。三处 +∞ 陈述（P3、P4、rem:limit）及 rem:senses
+  全部挂靠该假设。P3 near-match 条件也按建议改为 E‖m(X)−g(Y)‖² = o(s)。
+  
+  5. CEB 排序命题的先验族 → 已写明。
+  prop:ordering 加句：θ* 取遍理想的任意 per-class Gaussian 条件先验族；代码的单层 affine
+  prior_net 只是其近似，排序是对理想 CEB 的陈述。因此不需要把命题限制到分类。
+
+  6. 架构修法收紧 → 已改。
+  rem:c-scale(c)：只有归一化特征 + 归一化权重 + 固定 temperature 的 cosine 分类器能按构造满足固定
+  c；weight normalization 若 gain 可学仍可能无界；weight decay 只缓解发散、把问题换成 (s,c)
+  联合优化需重推。
+
+小项
+ 
+  - infimum=0 处加 "(for a>0)"，并注明 a=0 时 margin 增长单独无法压 CE 到 0；
+  - prop:conditioning(i) 改为"未缩放帧 V 与协方差 τ²I 条件数为 1"，a=0 时均值矩阵 aV
+    为零、无条件数；
+  - "梯度只在完美对齐时为零"改为"在非退化样本上、且无跨 batch 抵消时"；
+  - rem:rank 的 image of A 改为 row space of A（Aᵀ 的像），左逆不等式中的 B(Z−b) 改为 BZ；
+  - rem:frame/rem:orth/sec:limits 中的 "affine" 全部改为 linear，σ_p² 改为 τ²。
+  
+  我的一个补充说明
+
+  对第 2 点我比这轮意见更保守一点：把 bias 和 MLP 放进 implementation caveat 是对的，但注意
+  rem:A-channel 的分析不依赖 bias——只要 A
+  在代码里可训练且推理不用它，第二个自由方和近奇异吸引子的机制就成立。所以分层后 A-channel
+  的定位应写为"理论可训练 A 下的机制分析 + 实现风险"，目前文件里正是这么写的（理论含可训练 A
+  的讨论，实现 caveat 注明不保证条件数）。
+  
+  现在这份文件的定位就是它自己说的那句话：证明了固定锚点 KL 
+  的若干变分性质，并在固定分类器尺度的受限对齐模型上展示了严格凸的 KL–CE surrogate 机制——"恢复 IB
+  sweep"和"证明压缩推理表示"两句话都已在文中撤掉。
