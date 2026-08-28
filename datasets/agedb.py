@@ -47,6 +47,9 @@ IMG_SIZE = 64
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 AGE_PATTERN = re.compile(r"_(\d+)_([fm])\.jpg$")
+# 身份 = 文件名第二段（姓名），如 10622_LindaEvans_47_f.jpg → LindaEvans。
+# 首段数字是图像编号（全数据集唯一），不是身份 id，不能用它做 subject 划分。
+SUBJECT_PATTERN = re.compile(r"^\d+_([^_]+)_\d+_[fm]\.jpg$")
 MIN_AGE, MAX_AGE = 0, 120
 
 
@@ -96,6 +99,24 @@ def _extract_ages(filenames: pd.Series) -> np.ndarray:
             f"（期望 {MIN_AGE}~{MAX_AGE}）"
         )
     return ages
+
+
+def _extract_subjects(filenames: pd.Series) -> pd.Series:
+    """从文件名提取身份（姓名段，如 LindaEvans）并做全量覆盖校验。
+
+    AgeDB 命名 `{id}_{name}_{age}_{fm}.jpg`：首段数字是图像编号（每张图
+    唯一），身份是第二段姓名（全库 567 人、每人多张照片）。与 _extract_ages
+    相同的严谨度：任一行不匹配直接报错，不静默过滤。
+    """
+    matched = filenames.str.extract(SUBJECT_PATTERN)
+    bad = matched[0].isna()
+    if bad.any():
+        examples = filenames[bad].head(5).tolist()
+        raise ValueError(
+            f"{int(bad.sum())}/{len(filenames)} 个文件名无法提取身份"
+            f"（正则 {SUBJECT_PATTERN.pattern}），示例：{examples}"
+        )
+    return matched[0]
 
 
 def _load_image_array(cache_dir: str, paths: list) -> np.ndarray:
@@ -150,12 +171,18 @@ def get_agedb_dataloaders(
     val_ratio: float = 0.2,
     test_ratio: float = 0.2,
     seed: int = 42,
+    subject_disjoint: bool = False,
 ):
     """加载 AgeDB 并返回 (train_loader, val_loader, test_loader, y_scaler)。
 
     全部图像合并后 60/20/20 划分（seed 固定，回归不分层）；图像 RGB 64×64
     + ImageNet 均值/标准差归一化；目标年龄 MinMaxScaler 归一化到 [0,1]
     （仅训练集拟合），y_scaler 供评估时逆归一化 MAE 到岁。
+
+    subject_disjoint=True 时按身份（subject id）分组划分：同一人的所有
+    照片只落在一个划分内，防止人脸身份跨 train/val/test 泄漏年龄信息
+    （AgeDB 平均每人 ~29 张照片，图像级划分必然同人跨划分）。划分在
+    身份级别做 60/20/20（seed 固定，身份不按年龄分层，同图像级约定）。
     """
     cache_dir = download_agedb(data_dir)
     extract_dir = os.path.join(cache_dir, EXTRACT_DIR)
@@ -167,18 +194,37 @@ def get_agedb_dataloaders(
     df = pd.DataFrame({"filename": filenames})
     df["path"] = df["filename"].map(lambda f: os.path.join(extract_dir, f))
     df["age"] = _extract_ages(df["filename"])
+    df["subject"] = _extract_subjects(df["filename"])
     logger.info(
         "AgeDB 图像：%d 张，年龄 %.0f~%.0f 岁", len(df), df["age"].min(), df["age"].max()
     )
 
-    df_train, df_test = train_test_split(df, test_size=test_ratio, random_state=seed)
-    df_train, df_val = train_test_split(
-        df_train, test_size=val_ratio / (1 - test_ratio), random_state=seed
-    )
-    logger.info(
-        "AgeDB 划分（60/20/20）：train %d / val %d / test %d（共 %d 张）",
-        len(df_train), len(df_val), len(df_test), len(df),
-    )
+    if subject_disjoint:
+        subjects = np.sort(df["subject"].unique())
+        sub_train, sub_test = train_test_split(
+            subjects, test_size=test_ratio, random_state=seed
+        )
+        sub_train, sub_val = train_test_split(
+            sub_train, test_size=val_ratio / (1 - test_ratio), random_state=seed
+        )
+        df_train = df[df["subject"].isin(sub_train)]
+        df_val = df[df["subject"].isin(sub_val)]
+        df_test = df[df["subject"].isin(sub_test)]
+        logger.info(
+            "AgeDB 划分（subject-disjoint 60/20/20）：train %d 人/%d 张，"
+            "val %d 人/%d 张，test %d 人/%d 张（共 %d 人/%d 张）",
+            len(sub_train), len(df_train), len(sub_val), len(df_val),
+            len(sub_test), len(df_test), len(subjects), len(df),
+        )
+    else:
+        df_train, df_test = train_test_split(df, test_size=test_ratio, random_state=seed)
+        df_train, df_val = train_test_split(
+            df_train, test_size=val_ratio / (1 - test_ratio), random_state=seed
+        )
+        logger.info(
+            "AgeDB 划分（图像级 60/20/20）：train %d / val %d / test %d（共 %d 张）",
+            len(df_train), len(df_val), len(df_test), len(df),
+        )
 
     y_train = df_train["age"].to_numpy(dtype="float32")
     y_scaler = MinMaxScaler().fit(y_train.reshape(-1, 1))

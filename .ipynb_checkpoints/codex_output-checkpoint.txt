@@ -1,0 +1,91 @@
+总体判断：想法有潜力，但当前稿件更像“对 CEB/VIB 缺陷的理论诊断 + 固定原型正则化实验”，还不足以支撑“新的信息瓶颈方法”这一强定位。若按当前版本投稿，最可能的主要质疑会集中在：FGIB 是否真的压缩了部署表示、理论是否适用于实际模型、实验比较是否公平，以及测试协议是否存在选择偏差。我的评审倾向会是 Major Revision / Weak Reject。
+
+必须优先修改的问题
+
+1. 核心方法与“信息瓶颈”定义不一致。
+
+paper.tex 第 298 行附近中，分类器始终使用确定性表示 h，KL 只作用于旁路 q(z|x)。因此 ReX_F 只上界旁路噪声变量的 I(X;Z|Y)，不控制部署时的 I(X;H|Y)。稿件在 paper.tex 第 440 行附近已承认这一点，但标题、摘要和结论仍频繁使用“压缩表示”“压缩旋钮”等强表述。
+
+更严重的是，A 是可训练且推理不用的映射。若 A 退化或接近低秩，Ah 可以对齐锚点，而 h 的零空间仍可携带大量输入信息。因此“KL=0 时部署表示不会坍缩”的结论只适用于理想化的可逆、良态 A，不适用于当前实现。
+
+建议将方法明确定位为“fixed-anchor variational/prototype regularizer”，或者固定 A=I/正交参数化并增加部署表示的残差信息代理实验。
+
+2. 最核心的 sweep 理论只适用于受限玩具模型。
+
+fgib_theory.tex 第 742 行附近的严格凸性和一一对应关系依赖于 class-symmetric aligned family 以及固定分类器尺度 c。但实际模型使用无约束的 Linear 分类器，c 可随训练增大；稿件自己在 fgib_theory.tex 第 835 行附近说明此时所有 beta 的全局下确界都可能趋近同一个角点。
+
+因此当前实验不能被描述为“理论证明了 FGIB 的全局 beta-sweep”。建议使用固定温度的 cosine classifier、固定/正交 A 后重新运行全部实验；否则将该部分明确改名为“受限对齐族上的 surrogate analysis”。
+
+3. P3 方差竞赛在摘要中被写成已证事实，但正文承认尚未测量。
+
+paper.tex 第 105 行附近和摘要声称 CEB 的方差会跑到 clamp，而 paper.tex 第 671 行附近明确说没有记录该现象。当前理论最多给出梯度方向和一种可能的训练动力学，不是收敛定理。
+
+必须二选一：补充 CEB 的 posterior/prior log-variance、clamp 占比和训练曲线；或者把“variance race”从“我们证明的失败通道”降级为可检验假设。另需在命题中显式加入“分类器对 z 为线性”的条件，否则 CE 对 z 的凸性并不普遍成立。
+
+4. FGIB 与其他方法的比较存在结构性混淆。
+
+FGIB 的分类器直接看 h，而 VIB/CEB/DVCCA 的分类器训练时看采样的 z，测试时看均值。这使 FGIB 的优势可能主要来自“绕过随机瓶颈”，而不是冻结先验或正交锚点。
+
+至少需要加入以下消融：
+
+- 确定性分类器 + 可训练条件先验的 CEB-style side loss；
+- 固定锚点但直接使用 MSE/center loss；
+- 可训练锚点版本；
+- 分类器使用 h 与使用 z 的交叉组合；
+- 固定 A=I、固定正交 A、无条件数约束的 A；
+- 参数量、训练 FLOPs 和推理 FLOPs 对齐。
+
+如果简单的 prototype/center loss 已达到同样结果，论文贡献应转向“固定原型正则化的稳定性”，而不是信息论新方法。
+
+5. 超参数搜索预算不公平。
+
+主表中 FGIB 搜索 6x9=54 个组合，其他瓶颈只搜索 6 个 beta，稿件虽在 paper.tex 第 527 行附近承认这一点，但仍将主表的 mean rank 作为主要证据。
+
+应同时报告：
+
+- 所有方法使用相同搜索预算；
+- FGIB 固定 a 的结果；
+- 其他方法增加相应的方差/温度/噪声超参数后的结果；
+- 嵌套验证或独立验证集结果。
+
+6. 存在测试集参与模型选择/汇总的问题。
+
+论文声称“只看验证集”，但并列时的最终 tie-break 使用测试分数；即使选择较低测试分数是“悲观处理”，仍然是 test-dependent selection。更明显的是，tab_robust 的“Median gain at best beta”是对测试分数取最大值后再汇总，这会乐观地夸大“旋钮有用”。
+
+应删除所有测试集 tie-break，改用固定配置顺序或第三个验证指标；“best beta”应使用验证选择后的测试结果，或者明确标为 exploratory upper bound，并重新锁定测试集后报告最终数字。
+
+7. 统计证据不足以支撑“最佳”“唯一”“可靠”等措辞。
+
+目前只有 5 个初始化、一个固定数据划分，主要汇总是 mean rank 和 best-count。许多提升小于 1 个百分点，和运行标准差处于同一量级。
+
+应报告按 seed 配对的差值、95% 置信区间、Wilcoxon/置换检验或 bootstrap，并重复多个 split seed。mean rank 应作为辅助结果，不应作为唯一主证据。safe、useful、destroyed 和 5 个百分点阈值也需要在看结果之前预先定义并做敏感性分析。
+
+8. 数据划分会影响外部可比性，AgeDB 还有潜在身份泄漏。
+
+IMDb 是将官方 train/test 合并后重新划分，STS-B 使用 train/dev 重划，Cora 也不是常用的固定 Planetoid split；这些结果不能直接与文献数字比较。AgeDB 按图像随机划分，而同一个人有多张照片，可能出现同一身份跨 train/val/test。
+
+建议使用 subject-disjoint AgeDB split，并同时报告当前 split 作为附加实验；明确每个数据集的版本、样本数、类别数、官方/自定义 split 和预处理来源。
+
+9. 回归 RFF 锚点的理论和实验支撑明显不足。
+
+当前只是说明 ||mu_p(y)|| 约等于 a，没有证明锚点对连续目标具有足够的区分性、单调性或稳定的几何结构；这与 STS-B、ZINC 上 FGIB 退化的结果是一致的。
+
+应加入 RFF 频率带宽、随机种子、锚点维度、tau、a 的敏感性，以及线性目标锚点、固定 Fourier 特征、直接 MSE-to-anchor 等对照。否则回归部分应从主要贡献中降级为探索性结果。
+
+论文叙事与格式方面
+
+- “CEB 的死旋钮”在理想确定性分布和全局最优意义下成立，但 CEB 作者本身把 MNI corner 视为目标。建议将措辞从“failure”改为“trade-off/limitation”，并明确区分 population optimum、有限网络和 early stopping。
+- 正交 frame 不是 centered simplex/ETF，不应直接称为 neural-collapse geometry；可改为“orthogonal class-code geometry”或“neural-collapse-like”。
+- paper.tex 第 978 行附近的数据附录仍是 [To be written.]，这是投稿前必须完成的内容。
+- paper.tex 第 750 行附近的 AI use statement 仍为模板占位符，必须填写。
+- 摘要中的“only bottleneck”“safe and useful”“all classification settings”等措辞应加入“在本实验网格和协议下”的限定。
+- 建议将目前大量重复的 P1-P4 讨论压缩，增加两张核心图：完整 beta-accuracy/KL 曲线，以及 a-accuracy、||A||/条件数和 log-variance 的训练曲线。
+- 统一修正文中 “Amjad & Geiger 2018/2020” 的年份，并明确 NIB 的 log 单位、DVCCA 重建项尺度与各目标的 beta 是否可直接比较。
+
+最小可接受修订集
+
+1. 固定温度 cosine classifier + 良态 A，重新验证 sweep 理论。
+2. 增加 deterministic-side-CEB、center loss 和 trainable-anchor 消融。
+3. 删除测试集 tie-break，修正 best-beta 汇总并重新生成表格。
+4. 补充配对置信区间、多 split seed 和 subject-disjoint AgeDB。
+5. 完成数据附录，并把论文主张收紧为“固定锚点的变分代理正则化”，除非能实证证明它确实改善部署表示的压缩或鲁棒性。

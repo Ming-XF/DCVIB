@@ -48,6 +48,7 @@
 
 import argparse
 import logging
+import math
 import os
 
 import torch
@@ -71,7 +72,7 @@ from datasets.datasets import (
 from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
-from model import CEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, VIB
+from model import CEB, DCEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, TAFGIB, VIB, CentFGIB
 from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
@@ -192,6 +193,64 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
     recall = recall_score(labels, preds, average="macro", zero_division=0)
 
     return total_loss / total, correct / total, auc, precision, recall
+
+
+def _diag_stats_line(model, val_loader, device):
+    """P3 方差竞赛 / FGIB 旁路条件数诊断（--log-variance-stats）。
+
+    在验证集第一个 batch 上以 forward hook 捕获**原始**（未 clamp）的对数
+    方差头输出，返回 "Diag ..." 日志行；不适用于的模型返回 None。
+    - vib：后验 logvar 均值与处于 clamp 下限（≤ -9.9，对应 s=e^-10）的单元占比；
+    - ceb/dceb：另加先验 logvar 均值与 clamp 占比（P3 测量核心）；
+    - fgib/tafgib/dceb：另加 log10 κ(AᵀA)（旁路均值头条件数，A=I 时无）；
+    - centfgib：仅 log10 κ(AᵀA)（logvar 头不参与损失）。
+    """
+    if not isinstance(model, (VIB, CEB, DCEB, FGIB, TAFGIB, CentFGIB)):
+        return None
+    try:
+        x, y = next(iter(val_loader))
+    except StopIteration:
+        return None
+    x, y = x.to(device), y.to(device)
+
+    captured = {}
+
+    def hook(name):
+        def f(_module, _inp, out):
+            captured[name] = out.detach()
+        return f
+
+    handles = []
+    if isinstance(model, (CEB, DCEB)):
+        handles.append(model.logvar_head.register_forward_hook(hook("logvar_q")))
+        handles.append(model.prior_net.register_forward_hook(hook("prior_out")))
+    elif isinstance(model, (VIB, FGIB, TAFGIB)):
+        handles.append(model.logvar_head.register_forward_hook(hook("logvar_q")))
+    was_training = model.training
+    model.eval()
+    with torch.no_grad():
+        model(x, y)
+    for h in handles:
+        h.remove()
+    if was_training:
+        model.train()
+
+    parts = []
+    if "logvar_q" in captured:
+        lv = captured["logvar_q"]
+        parts.append(f"logvar_q_mean={lv.mean().item():.4f}")
+        parts.append(f"logvar_q_clamp={(lv <= -9.9).float().mean().item():.4f}")
+    if "prior_out" in captured:
+        z_dim = captured["prior_out"].shape[1] // 2
+        lv_p = captured["prior_out"][:, z_dim:]
+        parts.append(f"logvar_p_mean={lv_p.mean().item():.4f}")
+        parts.append(f"logvar_p_clamp={(lv_p <= -9.9).float().mean().item():.4f}")
+    if isinstance(model, (FGIB, TAFGIB, CentFGIB)) and isinstance(model.mu_head, nn.Linear):
+        a = model.mu_head.weight
+        sv = torch.linalg.svdvals(a)
+        kappa = (sv[0] / sv[-1]).item()
+        parts.append(f"kappa_log10={math.log10(max(kappa, 1e-30)):.4f}")
+    return "Diag " + " ".join(parts)
 
 
 def train_one_epoch_cora(model, x, adj, y, train_mask, optimizer, criterion, beta, device):
@@ -328,6 +387,10 @@ MODEL_CLASSES = {
     ("fgib", "cnn"): CNNFGIB,
     ("fgib", "gnn"): GNNFGIB,
     ("fgib", "rnn"): RNNFGIB,
+    # 消融变体（审稿人要求的混淆隔离实验，仅 MLP 骨干）
+    ("dceb", "mlp"): DCEB,
+    ("tafgib", "mlp"): TAFGIB,
+    ("centfgib", "mlp"): CentFGIB,
 }
 
 
@@ -352,7 +415,8 @@ def build_parser():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca"],
+        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca",
+                 "dceb", "tafgib", "centfgib"],
         default="mlp",
         help="svib is Squared-IB (ICLR 2019 Caveats): a VIB subclass whose forward "
         "returns the squared KL (loss becomes CE + β·KL²), mainly for classification; "
@@ -361,7 +425,10 @@ def build_parser():
         "pairwise-distance upper bound on I(X;M) (loss = CE + β·Î); "
         "dvcca is supervised beta-DVCCA (DVMIB, JMLR 2025): VIB plus an input "
         "reconstruction decoder (loss = CE + β·KL + β·MSE_recon), "
-        "not available for the RNN backbone",
+        "not available for the RNN backbone; "
+        "dceb/tafgib/centfgib 为消融变体（仅 MLP 骨干）：dceb = 确定性主路 + "
+        "可训练 prior_net 旁路 KL，tafgib = 可训练锚点 FGIB，centfgib = "
+        "MSE-to-anchor 的 center-loss 版 FGIB",
     )
     parser.add_argument(
         "--backbone",
@@ -468,6 +535,35 @@ def build_parser():
         action="store_true",
         help="不保存模型 checkpoint，最优模型仅保留在内存中用于测试评估（默认保存）",
     )
+    parser.add_argument(
+        "--freeze-a",
+        action="store_true",
+        help="fgib 消融：旁路均值头 A 随机初始化后冻结（检验可训练 A 通道是否被利用）",
+    )
+    parser.add_argument(
+        "--a-identity",
+        action="store_true",
+        help="fgib 消融：旁路均值头固定为恒等映射 mu = h（要求 z_dim == hidden_dims[-1]）",
+    )
+    parser.add_argument(
+        "--cosine-classifier",
+        action="store_true",
+        help="vib/ceb/fgib/dceb/tafgib/centfgib 使用固定温度 cosine 分类器 "
+        "（权重行归一化 + 特征归一化，按构造满足 sweep 理论的固定分类器尺度 c 条件）",
+    )
+    parser.add_argument(
+        "--log-variance-stats",
+        action="store_true",
+        help="每 epoch 记录诊断统计（P3 方差竞赛测量 / FGIB 的 A 条件数）："
+        "vib/ceb 记录验证批后验 logvar 均值与 clamp 占比（ceb 另记先验 logvar），"
+        "fgib 记录 log10 κ(AᵀA)；日志行以 'Diag' 开头",
+    )
+    parser.add_argument(
+        "--subject-disjoint",
+        action="store_true",
+        help="agedb 按身份（subject）分组划分 train/val/test（防同一人脸跨划分泄漏），"
+        "仅 agedb 任务有效",
+    )
     return parser
 
 
@@ -496,6 +592,11 @@ def main():
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews/stsb")
+    if args.model in ("dceb", "tafgib", "centfgib"):
+        if args.backbone != "mlp":
+            parser.error("dceb/tafgib/centfgib 消融变体仅支持 MLP 骨干")
+        if args.task != "mnist":
+            parser.error("dceb/tafgib/centfgib 消融变体仅支持 mnist 任务（审稿人消融实验）")
 
     # 图批拼块对角后 512 批约 1.2 万节点、稠密邻接约 566MB；128 批约 3 千
     # 节点 / 36MB（benchmarking-gnns 的 ZINC 约定批大小），未显式设置时覆写
@@ -562,7 +663,10 @@ def main():
         )
     elif args.task == "agedb":
         train_loader, val_loader, test_loader, target_scaler = (
-            get_agedb_dataloaders(args.batch_size, args.data_dir)
+            get_agedb_dataloaders(
+                args.batch_size, args.data_dir,
+                subject_disjoint=args.subject_disjoint,
+            )
         )
     elif args.task == "housing":
         train_loader, val_loader, test_loader, target_scaler = (
@@ -605,8 +709,13 @@ def main():
         model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
     if args.model not in ("mlp", "cnn", "gcn", "rnn"):
         model_kwargs["z_dim"] = args.z_dim
-    if args.model == "fgib":
+    if args.model in ("fgib", "tafgib", "centfgib"):
         model_kwargs["anchor_scale"] = args.anchor_scale
+    if args.model in ("vib", "ceb", "fgib", "dceb", "tafgib", "centfgib"):
+        model_kwargs["cosine_classifier"] = args.cosine_classifier
+    if args.model == "fgib":
+        model_kwargs["freeze_a"] = args.freeze_a
+        model_kwargs["a_identity"] = args.a_identity
     if args.task == "housing":
         model_kwargs["input_dim"] = 8
         model_kwargs["num_classes"] = 1
@@ -746,6 +855,10 @@ def main():
                     f"Val Loss {val_loss:.4f} Acc {val_acc:.4f} AUC {val_auc:.4f} "
                     f"Pre {val_pre:.4f} Rec {val_rec:.4f}"
                 )
+                if args.log_variance_stats:
+                    diag = _diag_stats_line(model, val_loader, device)
+                    if diag:
+                        logging.info(diag)
 
             if val_score > best_score:
                 best_score, best_epoch = val_score, epoch

@@ -122,6 +122,27 @@ def metric_key(setting):
     return "R2" if setting in REG else "Acc"
 
 
+def pick_key(r):
+    """验证集选模的排序键：主指标（最佳验证 AUC/R²）+ 次级验证指标 + 固定配置顺序。
+
+    日志只到 4 位小数、分类任务上 AUC 常饱和，因此精确打平并不罕见
+    （72 个格子中约 9 个）。打平时用次级**验证**指标（最佳 epoch 的验证
+    Acc / −MAE）分胜负；仍然打平则按固定配置顺序（β 升序、a 升序）取
+    网格中先出现的组合。**测试分数不参与选模**（审稿人要求：任何
+    test-dependent selection 都会使测试集失去"只读一次"的地位）。
+    """
+    return (
+        r["val"], r["val2"],
+        -(r["beta"] if r["beta"] is not None else 0.0),
+        -(r["anchor"] if r["anchor"] is not None else 0.0),
+    )
+
+
+def select_one(items):
+    """按 pick_key 从配置列表中选择最佳记录（确定性、无测试信息）。"""
+    return max(items, key=pick_key)
+
+
 def build_index(recs):
     by_setting = collections.defaultdict(list)
     for r in recs:
@@ -135,16 +156,7 @@ def build_index(recs):
                 baseline[setting] = r
                 continue
             cur = best.get(r["model"])
-            if cur is None:
-                best[r["model"]] = r
-                continue
-            # 主指标为最佳验证 AUC/R²；日志只到 4 位小数、分类任务上 AUC 常饱和，
-            # 因此精确打平并不罕见（72 个格子中约 9 个）。打平时用次级**验证**指标
-            # （最佳 epoch 的验证 Acc / −MAE）分胜负；仍然打平才退到悲观 tie-break
-            # （取测试分较低者），保证并列永远不会替某个方法抬分。
-            rank_new = (r["val"], r["val2"], -r["test"][key][0])
-            rank_cur = (cur["val"], cur["val2"], -cur["test"][key][0])
-            if rank_new > rank_cur:
+            if cur is None or pick_key(r) > pick_key(cur):
                 best[r["model"]] = r
         selected[setting] = best
         assert setting in baseline, f"{setting} 缺少确定性基线"
@@ -152,9 +164,68 @@ def build_index(recs):
     return by_setting, selected, baseline
 
 
+def build_fixed_anchor_index(by_setting):
+    """FGIB 的等预算对照：固定 a=16、只扫 6 个 beta（与其余瓶颈同预算），验证集选模。
+
+    返回 {setting: 选中记录}，用于报告与其余瓶颈搜索预算相同时 FGIB 的 rank。
+    """
+    out = {}
+    for setting, items in by_setting.items():
+        cands = [r for r in items
+                 if r["model"] == "fgib" and r["anchor"] == 16.0 and r["beta"] is not None]
+        assert len(cands) == len(BETAS), f"{setting}: 固定 a=16 的 fgib 配置数 {len(cands)}"
+        out[setting] = select_one(cands)
+    return out
+
+
 def fmt(v, bold=False):
     s = f"{100 * v:.2f}"
     return "\\textbf{" + s + "}" if bold else s
+
+
+def rank_stats(vals_by_name):
+    """按指标值计算各方法的 (mean_rank, wins)：vals_by_name[name] = 12 个设定值列表。"""
+    # wins 预置全部键为 0：从未赢过任何设定的方法也要有输出
+    ranks, wins = collections.defaultdict(list), {name: 0 for name in vals_by_name}
+    for i in range(len(next(iter(vals_by_name.values())))):
+        vals = [vals_by_name[n][i] for n in vals_by_name]
+        best = max(vals)
+        for name in vals_by_name:
+            v = vals_by_name[name][i]
+            ranks[name].append(1 + sum(1 for w in vals if w > v + TIE_EPS))
+            if v >= best - TIE_EPS:
+                wins[name] += 1
+    mean_rank = {m: statistics.fmean(ranks[m]) for m in vals_by_name}
+    return mean_rank, wins
+
+
+def equal_budget_fgib_summary(by_setting, selected, baseline, out):
+    """等预算对照：FGIB 固定 a=16（6 个 beta，与其余瓶颈同预算）的选模结果。
+
+    打印 mean rank / wins 对比（全网格 FGIB vs 固定 a=16 FGIB），并写入
+    out（LaTeX 片段）供论文正文引用。
+    """
+    fgib16 = build_fixed_anchor_index(by_setting)
+    order = ["det"] + BOTTLENECKS
+    full = {m: [selected[s][m]["test"][metric_key(s)][0] for s in CLS + REG] for m in BOTTLENECKS}
+    full["det"] = [baseline[s]["test"][metric_key(s)][0] for s in CLS + REG]
+    eq = dict(full)
+    eq["fgib"] = [fgib16[s]["test"][metric_key(s)][0] for s in CLS + REG]
+    mr_full, wins_full = rank_stats(full)
+    mr_eq, wins_eq = rank_stats(eq)
+    print(f"[等预算对照] FGIB 全网格(54 组) mean rank = {mr_full['fgib']:.2f}, wins = {wins_full['fgib']}/12")
+    print(f"[等预算对照] FGIB 固定 a=16(6 组) mean rank = {mr_eq['fgib']:.2f}, wins = {wins_eq['fgib']}/12")
+    print(f"[等预算对照] 其余方法（不受影响）：" + ", ".join(
+        f"{m}={mr_eq[m]:.2f}({wins_eq[m]}/12)" for m in order if m != "fgib"))
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(
+            "\\emph{Equal-budget control.} Selected over the same 6-point $\\beta$ grid as "
+            "every other bottleneck at a single anchor scale $a=16$ fixed a priori, FGIB's "
+            f"mean rank is {mr_eq['fgib']:.2f} of 7 (vs.\\ {mr_full['fgib']:.2f} over the full "
+            f"$6\\times9$ grid) and it is best or tied-best on {wins_eq['fgib']} of 12 settings "
+            f"(vs.\\ {wins_full['fgib']}).\n"
+        )
+    return fgib16
 
 
 def table_main(selected, baseline, out):
@@ -165,9 +236,11 @@ def table_main(selected, baseline, out):
         "regression; higher is better. \\emph{Det.}\\ is the deterministic backbone trained with the "
         "task loss alone. For every bottleneck $\\beta$ is chosen per cell by mean best-epoch "
         "validation score --- and for FGIB the anchor scale $a$ as well --- never by test score, so "
-        "FGIB is selected over a $6\\times9$ grid and the others over a $6$-point grid. Best per row "
+        "FGIB is selected over a $6\\times9$ grid and the others over a $6$-point grid; exact ties "
+        "are broken by a second validation quantity and then by fixed grid order. Best per row "
         "in bold (ties within $0.01$ points both bolded); per-run standard deviations and the "
-        "selected hyperparameters are in Table~\\ref{tab:main-std}.}",
+        "selected hyperparameters are in Table~\\ref{tab:main-std}, whose last column reports the "
+        "equal-budget FGIB control.}",
         "\\label{tab:main}",
         "\\begin{center}\\small",
         "\\begin{tabular}{llccccccc}",
@@ -213,7 +286,7 @@ def series(by_setting, setting, model, anchor=None):
             and (anchor is None or r["anchor"] == anchor)}
 
 
-def table_robust(by_setting, selected, baseline, out):
+def table_robust(by_setting, selected, fgib16, baseline, out):
     cols = BOTTLENECKS + ["fgib16"]
     stats = {}
     for setting in CLS + REG:
@@ -223,10 +296,15 @@ def table_robust(by_setting, selected, baseline, out):
             anchor = selected[setting]["fgib"]["anchor"] if m == "fgib" else None
             s = series(by_setting, setting, m, anchor)
             assert len(s) == len(BETAS), f"{setting}/{m}: {len(s)} betas"
-            stats[setting][m] = {"worst": base - min(s.values()), "best": max(s.values()) - base}
+            # best-beta 行是**测试集上**取最大——探索性上界，不是选模结果
+            # （选模只用验证集；此行的定位在 caption 与论文正文中说明）
+            stats[setting][m] = {"worst": base - min(s.values()),
+                                 "best_test": max(s.values()) - base,
+                                 "val_gain": selected[setting][m]["test"][metric_key(setting)][0] - base}
         s16 = series(by_setting, setting, "fgib", 16.0)
         stats[setting]["fgib16"] = {"worst": base - min(s16.values()),
-                                    "best": max(s16.values()) - base}
+                                    "best_test": max(s16.values()) - base,
+                                    "val_gain": fgib16[setting]["test"][metric_key(setting)][0] - base}
     lines = [
         "\\begin{table}[t]",
         "\\caption{Robustness of the compression knob. For each objective we sweep "
@@ -236,7 +314,10 @@ def table_robust(by_setting, selected, baseline, out):
         "Table~\\ref{tab:main}. FGIB is shown twice: at the anchor scale selected on validation in "
         "Table~\\ref{tab:main}, and at a fixed $a=16$ chosen a priori. Lower is better; best per row "
         "in bold. The summary rows take medians over the 12 settings and count settings where the "
-        "worst case falls more than 5 points below the backbone.}",
+        "worst case falls more than 5 points below the backbone. The ``best $\\beta$'' gain row is "
+        "the maximum over the grid of the \\emph{test} score --- an exploratory upper bound, not a "
+        "model-selection result; the validation-selected gain row is the selection result of "
+        "Table~\\ref{tab:main} expressed relative to the backbone.}",
         "\\label{tab:robust}",
         "\\begin{center}\\small",
         "\\begin{tabular}{llccccc|cc}",
@@ -257,13 +338,16 @@ def table_robust(by_setting, selected, baseline, out):
     lines.append("\\hline \\\\[-1.8ex]")
     med_worst = [statistics.median([stats[s][c]["worst"] for s in CLS + REG]) for c in cols]
     destroyed = [sum(1 for s in CLS + REG if stats[s][c]["worst"] > DESTROY_EPS) for c in cols]
-    med_best = [statistics.median([stats[s][c]["best"] for s in CLS + REG]) for c in cols]
+    med_best_test = [statistics.median([stats[s][c]["best_test"] for s in CLS + REG]) for c in cols]
+    med_val_gain = [statistics.median([stats[s][c]["val_gain"] for s in CLS + REG]) for c in cols]
     lines.append("\\multicolumn{2}{l}{Median deficit} & "
                  + " & ".join(fmt(v) for v in med_worst) + " \\\\")
     lines.append("\\multicolumn{2}{l}{Settings destroyed (of 12)} & "
                  + " & ".join(str(v) for v in destroyed) + " \\\\")
-    lines.append("\\multicolumn{2}{l}{Median gain at best $\\beta$} & "
-                 + " & ".join(fmt(v) for v in med_best) + " \\\\")
+    lines.append("\\multicolumn{2}{l}{Median gain at best $\\beta$ (test-selected upper bound)} & "
+                 + " & ".join(fmt(v) for v in med_best_test) + " \\\\")
+    lines.append("\\multicolumn{2}{l}{Median gain at validation-selected $\\beta$} & "
+                 + " & ".join(fmt(v) for v in med_val_gain) + " \\\\")
     lines.append("\\end{tabular}\\end{center}\\end{table}")
     open(out, "w").write("\n".join(lines) + "\n")
 
@@ -302,27 +386,29 @@ def table_anchor(by_setting, baseline, out):
     open(out, "w").write("\n".join(lines) + "\n")
 
 
-def table_main_std(selected, baseline, out):
+def table_main_std(selected, fgib16, baseline, out):
     lines = [
         "\\begin{table}[t]",
         "\\caption{Standard deviations over the 5 runs for every cell of Table~\\ref{tab:main}, with "
         "the validation-selected hyperparameters underneath each cell ($\\beta$, and $\\beta,a$ for "
-        "FGIB; \\texttt{--} for the deterministic backbone, which has neither). Units as in "
-        "Table~\\ref{tab:main}.}",
+        "FGIB; \\texttt{--} for the deterministic backbone, which has neither). The last column is "
+        "the equal-budget control: FGIB selected over the same 6-point $\\beta$ grid as every other "
+        "bottleneck at a fixed $a=16$, so its search budget matches the comparison (see "
+        "Section~\\ref{sec:exp}). Units as in Table~\\ref{tab:main}.}",
         "\\label{tab:main-std}",
         "\\begin{center}\\scriptsize",
-        "\\begin{tabular}{llccccccc}",
+        "\\begin{tabular}{llcccccccc}",
         "Task & Backbone & Det. & " + " & ".join(h.replace("\\textbf{", "").replace("}", "")
-                                                 for h in HEADERS) + " \\\\ \\hline \\\\[-1.8ex]",
+                                                 for h in HEADERS) + " & FGIB ($a{=}16$) \\\\ \\hline \\\\[-1.8ex]",
     ]
     for group, label in [(CLS, "\\emph{Classification (Acc \\%)}"),
                          (REG, "\\emph{Regression ($R^2\\times100$)}")]:
-        lines.append("\\multicolumn{9}{l}{" + label + "} \\\\[0.3ex]")
+        lines.append("\\multicolumn{10}{l}{" + label + "} \\\\[0.3ex]")
         for setting in group:
             task, bb = NAMES[setting]
             key = metric_key(setting)
             cells, hyper = [], []
-            for r in [baseline[setting]] + [selected[setting][m] for m in BOTTLENECKS]:
+            for r in [baseline[setting]] + [selected[setting][m] for m in BOTTLENECKS] + [fgib16[setting]]:
                 mu, sd = r["test"][key]
                 cells.append(f"{100 * mu:.2f}$\\pm${100 * sd:.2f}")
                 if r["beta"] is None:
@@ -347,10 +433,14 @@ def main():
     recs = load(args.results_dir)
     by_setting, selected, baseline = build_index(recs)
     os.makedirs(args.out_dir, exist_ok=True)
+    fgib16 = equal_budget_fgib_summary(
+        by_setting, selected, baseline,
+        os.path.join(args.out_dir, "equal_budget.tex"),
+    )
     table_main(selected, baseline, os.path.join(args.out_dir, "tab_main.tex"))
-    table_robust(by_setting, selected, baseline, os.path.join(args.out_dir, "tab_robust.tex"))
+    table_robust(by_setting, selected, fgib16, baseline, os.path.join(args.out_dir, "tab_robust.tex"))
     table_anchor(by_setting, baseline, os.path.join(args.out_dir, "tab_anchor.tex"))
-    table_main_std(selected, baseline, os.path.join(args.out_dir, "tab_main_std.tex"))
+    table_main_std(selected, fgib16, baseline, os.path.join(args.out_dir, "tab_main_std.tex"))
     print(f"{len(recs)} configurations, {sum(r['runs'] for r in recs)} runs, "
           f"{len(by_setting)} task×backbone settings → {args.out_dir}/")
 

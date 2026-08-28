@@ -28,6 +28,28 @@ def build_hidden_layers(
     return layers
 
 
+class CosineClassifier(nn.Module):
+    """固定温度 cosine 分类器：logits = normalize(x) @ normalize(W).T / T。
+
+    fgib_theory.tex 的 rem:c-scale(c) 指出 sweep 命题（prop:sweep）要求
+    分类器尺度 c 固定，而默认 nn.Linear 无约束。本分类器对权重行做 L2
+    归一化（无 bias），温度 T 固定（默认 1.0、不可学习），按构造满足
+    固定 c 条件；特征侧也归一化（normalized features）。用于理论验证
+    实验（--cosine-classifier）。
+    """
+
+    def __init__(self, in_features: int, out_features: int, temp: float = 1.0):
+        super().__init__()
+        self.weight = nn.Parameter(torch.empty(out_features, in_features))
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        self.temp = temp
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        w = torch.nn.functional.normalize(self.weight, dim=1)
+        x = torch.nn.functional.normalize(x, dim=1)
+        return x @ w.t() / self.temp
+
+
 def reparameterize(mu: torch.Tensor, logvar: torch.Tensor, stochastic: bool):
     """重参数化采样：stochastic 时 z = mu + sigma*eps，否则 z = mu。"""
     if stochastic:

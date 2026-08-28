@@ -4,6 +4,7 @@ import torch.nn as nn
 
 from .utils import (
     ContinuousAnchorPrior,
+    CosineClassifier,
     build_anchor_prior,
     build_hidden_layers,
     flatten,
@@ -37,21 +38,39 @@ class FGIB(nn.Module):
         continuous_y: bool = False,
         anchor_scale: float = 4.0,
         anchor_var: float = 1.0,
+        freeze_a: bool = False,
+        a_identity: bool = False,
+        cosine_classifier: bool = False,
     ):
         super().__init__()
         self.num_classes = num_classes
         self.continuous_y = continuous_y
+        self.z_dim = z_dim
 
         self.encoder = nn.Sequential(
             *build_hidden_layers(input_dim, hidden_dims, dropout)
         )
         hidden_dim = hidden_dims[-1]
 
-        # 主路：h 直接分类，无采样
-        self.classifier = nn.Linear(hidden_dim, num_classes)
+        # 主路：h 直接分类，无采样；--cosine-classifier 时用固定温度 cosine
+        # 分类器（权重行归一化 + 特征归一化，按构造满足理论命题的固定 c 条件）
+        if cosine_classifier:
+            self.classifier = CosineClassifier(hidden_dim, num_classes)
+        else:
+            self.classifier = nn.Linear(hidden_dim, num_classes)
 
         # 旁路：h -> (mu, logvar)，参数化 z ~ N(mu, sigma^2)
-        self.mu_head = nn.Linear(hidden_dim, z_dim)
+        # a_identity 消融：A 固定为恒等映射（mu = h，要求 z_dim == hidden_dim），
+        # 用于检验可训练 A 是否为结果的关键成分；freeze_a 消融：A 随机初始化后
+        # 冻结，检验"旁路头可训练"通道是否被利用
+        if a_identity:
+            assert z_dim == hidden_dim, "a_identity 要求 z_dim == hidden_dims[-1]"
+            self.mu_head = nn.Identity()
+        else:
+            self.mu_head = nn.Linear(hidden_dim, z_dim)
+            if freeze_a:
+                self.mu_head.weight.requires_grad_(False)
+                self.mu_head.bias.requires_grad_(False)
         self.logvar_head = nn.Linear(hidden_dim, z_dim)
 
         # 固定类条件先验：分类为每类一个高斯分布表；回归为连续锚点映射

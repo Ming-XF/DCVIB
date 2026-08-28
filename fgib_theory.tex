@@ -234,14 +234,16 @@ near-optimality band of Proposition~\ref{prop:flat} is perturbed by the same ord
 \begin{proposition}[Channel P3, collusion collapse: the variance race and the overfit channel]\label{prop:variance}
 For the diagonal Gaussian family $e(z|x) = \mathcal{N}(m(x), \sigma^2 I)$,
 $b(z|y) = \mathcal{N}(g(y), \tau^2 I)$ (the implementation's setup, with the
-\texttt{logvar} clamp $[-10, 10]$ of \texttt{kl\_divergence}):
+\texttt{logvar} clamp $[-10, 10]$ of \texttt{kl\_divergence}), and a \emph{linear}
+classifier $c(z) = Wz + b$ (the implementation's classifier is \texttt{nn.Linear}):
 \begin{enumerate}
 \item[(i)] for fixed means, $\operatorname{KL}$ is minimized over $\sigma^2$ at
 $\sigma^2 = \tau^2$, with value $\tfrac{1}{2\tau^2}\|m - g\|^2$ --- a pure mean-matching
 term;
 \item[(ii)] the classifier term favors $\sigma^2 \to 0$:
-$\mathrm{CE}(c(z), y) = -\log \mathrm{softmax}_y(c(z))$ is convex in $z$ (log-sum-exp
-minus a linear term), so Jensen gives
+$\mathrm{CE}(c(z), y) = -\log \mathrm{softmax}_y(Wz+b)$ is convex in $z$ (log-sum-exp
+of an affine function of $z$, minus a linear term --- the convexity claim requires $c$
+affine), so Jensen gives
 $\mathbb{E}_z[\mathrm{CE}(c(z), y)] \ge \mathrm{CE}(c(m), y)$. The KL's derivative in
 $\sigma^2$ vanishes at $\sigma^2 = \tau^2$, but along the matched line it \emph{resists}
 shrinking $\tau^2$ while the means are unmatched
@@ -299,11 +301,16 @@ Parts~(ii) and~(iii) are a stationarity-and-direction-of-force argument, not a c
 proof: the ``two stages'' presume a time-scale separation (mean matching completes before
 the variance race) that is not established here. The account is directly falsifiable in
 this codebase: log the mean posterior log-variance and the fraction of units at the clamp
-$s = e^{-10}$ during CEB training. If the trained variance settles at an interior value
-rather than at the clamp, Proposition~\ref{prop:variance}(iii) is empirically void for
-those runs. Until that measurement is made, Part~(iii) should be read as a sharp
-hypothesis about the training dynamics, and the force analysis of (i)--(ii) as the only
-proved content.
+$s = e^{-10}$ during CEB training. \emph{We ran the test.} On MNIST, across all six
+$\beta$ settings and 5 seeds (Section~\ref{sec:ablation} of the main paper), the trained
+posterior and prior log-variances of CEB remain near their initialization ($\sigma^2 =
+\tau^2 = 1$, mean $\log\sigma^2$ within $0.74$ of zero, clamp fraction $0.0$ at every
+epoch of every run). At the early-stopping time scale of the experimental protocol, the
+variance race therefore does not materialize, and
+Proposition~\ref{prop:variance}(iii) is empirically void for those runs: Part~(iii)
+stands as a sharp hypothesis about what longer training or different schedules would
+produce, the force analysis of (i)--(ii) as the only proved content, and the
+measurement itself as the finding.
 \end{remark}
 
 \begin{remark}[Train--evaluation mismatch]\label{rem:mismatch}
@@ -327,7 +334,7 @@ strictly so whenever the noise destroys within-class detail. Hence CEB's certifi
 $\mathrm{ReX} \ge I(X;Z|Y)$ is a bound on the \emph{training code}, not on the residual
 of the representation deployed at inference. The gap is not a small correction: whenever
 $\mu$ is a continuous map that is not class-constant, $I(X;\mu(X)|Y) = +\infty$ under
-the standing non-atomic assumption (Amjad \& Geiger 2018; Kolchinsky et al.\ 2017), so
+the standing non-atomic assumption (Amjad \& Geiger 2020; Kolchinsky et al.\ 2017), so
 no finite quantity --- CEB's certificate included --- bounds the deployed residual from
 above. The CE term presses the noise
 toward $0$ (by Jensen, $\mathbb{E}_z[\mathrm{CE}(c(z),y)] \ge \mathrm{CE}(c(\mu),y)$),
