@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..mlp.utils import kl_divergence, reparameterize
+from ..mlp.utils import kl_divergence, reparameterize, CosineClassifier
 from .utils import build_rnn_encoder
 
 
@@ -34,6 +34,7 @@ class CEB(nn.Module):
         input_dim: int | None = None,
         pretrained_emb: torch.Tensor | None = None,
         pooling: str = "last",
+        cosine_classifier: bool = False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -47,7 +48,11 @@ class CEB(nn.Module):
         # 标签先验线性层：无激活，one-hot 标签（或连续 y）-> (mu_prior, logvar_prior)
         prior_in = 1 if continuous_y else num_classes
         self.prior_net = nn.Linear(prior_in, 2 * z_dim)
-        self.classifier = nn.Linear(z_dim, num_classes)
+        # --cosine-classifier 时用固定温度 cosine 分类器（理论验证实验）
+        if cosine_classifier:
+            self.classifier = CosineClassifier(z_dim, num_classes)
+        else:
+            self.classifier = nn.Linear(z_dim, num_classes)
 
         # 置零初始化：训练开始时 sigma = sigma_p = 1、mu_p = 0，KL 接近 0
         nn.init.zeros_(self.logvar_head.weight)

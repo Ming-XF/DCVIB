@@ -1,6 +1,7 @@
 """RNN 模型包：RNN / VIB / SVIB / CEB / FGIB / NIB / DVCCA 及 LSTM 编码器工具。"""
 
 from .ceb import CEB
+from .centfgib import CentFGIB
 from .dvcca import DVCCA
 from .fgib import FGIB
 from .nib import NIB

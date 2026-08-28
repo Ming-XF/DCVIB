@@ -1,91 +1,116 @@
-总体判断：想法有潜力，但当前稿件更像“对 CEB/VIB 缺陷的理论诊断 + 固定原型正则化实验”，还不足以支撑“新的信息瓶颈方法”这一强定位。若按当前版本投稿，最可能的主要质疑会集中在：FGIB 是否真的压缩了部署表示、理论是否适用于实际模型、实验比较是否公平，以及测试协议是否存在选择偏差。我的评审倾向会是 Major Revision / Weak Reject。
+# ICLR 2027 审稿意见与修改建议
 
-必须优先修改的问题
+## 总体评价
 
-1. 核心方法与“信息瓶颈”定义不一致。
+修改后论文的可信度和完整性明显提高：验证集选模、等预算对照、配对统计、关键消融、负结果披露和局限性说明都比较扎实。以当前版本模拟 ICLR 2027 评分，我倾向于 **5/10，Borderline / Weak Reject，置信度 4/5**。主要障碍不再是实验不足，而是新增实验已经改变了论文真正支持的贡献，但摘要、理论包装和结论尚未完全跟上。
 
-paper.tex 第 298 行附近中，分类器始终使用确定性表示 h，KL 只作用于旁路 q(z|x)。因此 ReX_F 只上界旁路噪声变量的 I(X;Z|Y)，不控制部署时的 I(X;H|Y)。稿件在 paper.tex 第 440 行附近已承认这一点，但标题、摘要和结论仍频繁使用“压缩表示”“压缩旋钮”等强表述。
+最可能将评分推到 6/10 的不是重跑全部实验，而是重新定位贡献、补齐直接相关工作、收紧理论措辞，并对现有结果做敏感性重算。
 
-更严重的是，A 是可训练且推理不用的映射。若 A 退化或接近低秩，Ah 可以对齐锚点，而 h 的零空间仍可携带大量输入信息。因此“KL=0 时部署表示不会坍缩”的结论只适用于理想化的可逆、良态 A，不适用于当前实现。
+## 主要审稿意见
 
-建议将方法明确定位为“fixed-anchor variational/prototype regularizer”，或者固定 A=I/正交参数化并增加部署表示的残差信息代理实验。
+### 1. 当前开篇的因果诊断不准确
 
-2. 最核心的 sweep 理论只适用于受限玩具模型。
+`paper.tex` 摘要称标准 VIB 的 marginal prior 也与 encoder 共同训练，这通常不成立，标准 VIB 使用固定的各向同性高斯先验。更重要的是，P1/P2 是目标和信息量的性质，P4 是训练/部署对象错位，均不能归因于“KL 两侧共同可训练”；P3 又未在实验中发生。
 
-fgib_theory.tex 第 742 行附近的严格凸性和一一对应关系依赖于 class-symmetric aligned family 以及固定分类器尺度 c。但实际模型使用无约束的 Linear 分类器，c 可随训练增大；稿件自己在 fgib_theory.tex 第 835 行附近说明此时所有 beta 的全局下确界都可能趋近同一个角点。
+建议删除“shared trainability is the source of four failure channels”，改成两类不同问题：
 
-因此当前实验不能被描述为“理论证明了 FGIB 的全局 beta-sweep”。建议使用固定温度的 cosine classifier、固定/正交 A 后重新运行全部实验；否则将该部分明确改名为“受限对齐族上的 surrogate analysis”。
+- marginal prior 把零惩罚点放在无标签信息的公共分布；
+- learned conditional prior 使零惩罚集合欠约束，无法决定最终标签几何。
 
-3. P3 方差竞赛在摘要中被写成已证事实，但正文承认尚未测量。
+P4 单独表述为 stochastic training code 与 deterministic deployed representation 的对象错位。
 
-paper.tex 第 105 行附近和摘要声称 CEB 的方差会跑到 clamp，而 paper.tex 第 671 行附近明确说没有记录该现象。当前理论最多给出梯度方向和一种可能的训练动力学，不是收敛定理。
+### 2. 新增消融支持的是“端点几何”，而不是冻结或 KL 的必要性
 
-必须二选一：补充 CEB 的 posterior/prior log-variance、clamp 占比和训练曲线；或者把“variance race”从“我们证明的失败通道”降级为可检验假设。另需在命题中显式加入“分类器对 z 为线性”的条件，否则 CE 对 z 的凸性并不普遍成立。
+消融结果中，CentFGIB 与 FGIB 数值完全一致，TAFGIB 也稳定。这意味着在 MNIST 上：
 
-4. FGIB 与其他方法的比较存在结构性混淆。
+- KL 不是稳定性的必要条件；
+- anchor mean 的冻结不是必要条件；
+- trainability 本身也不是坍缩的充分原因。
 
-FGIB 的分类器直接看 h，而 VIB/CEB/DVCCA 的分类器训练时看采样的 z，测试时看均值。这使 FGIB 的优势可能主要来自“绕过随机瓶颈”，而不是冻结先验或正交锚点。
+因此不应继续把创新中心放在“冻结一侧的 variational certificate”。更合适的核心定位是：
 
-至少需要加入以下消融：
+> We study how the zero-penalty set determines high-beta behavior. Fixed class-conditional geometry relocates this set from collapse or an underdetermined family to a prescribed predictive label code. FGIB is a variational instantiation of this principle.
 
-- 确定性分类器 + 可训练条件先验的 CEB-style side loss；
-- 固定锚点但直接使用 MSE/center loss；
-- 可训练锚点版本；
-- 分类器使用 h 与使用 z 的交叉组合；
-- 固定 A=I、固定正交 A、无条件数约束的 A；
-- 参数量、训练 FLOPs 和推理 FLOPs 对齐。
+另外，TAFGIB 的 anchor 一旦可训练，就不能再称为“保持正交 anchor table”，除非测量了最终 Gram matrix、范数和类间角度。
 
-如果简单的 prototype/center loss 已达到同样结果，论文贡献应转向“固定原型正则化的稳定性”，而不是信息论新方法。
+### 3. “certificate”存在明显过度表述
 
-5. 超参数搜索预算不公平。
+Result 1 给出的是辅助含噪码的条件互信息上界，并不认证：
 
-主表中 FGIB 搜索 6x9=54 个组合，其他瓶颈只搜索 6 个 beta，稿件虽在 paper.tex 第 527 行附近承认这一点，但仍将主表的 mean rank 作为主要证据。
+- 部署表示 h 的压缩；
+- 分类准确率或高 beta 稳定性；
+- 默认 trainable A、free classifier scale 下的整体优化行为。
 
-应同时报告：
+因此 `paper.tex` 中“FGIB behavior is certified rather than merely observed”应删除。建议改为：
 
-- 所有方法使用相同搜索预算；
-- FGIB 固定 a 的结果；
-- 其他方法增加相应的方差/温度/噪声超参数后的结果；
-- 嵌套验证或独立验证集结果。
+> FGIB retains an exact variational upper-bound interpretation for the auxiliary noisy code; its predictive robustness and endpoint behavior outside the analyzed family remain empirical.
 
-6. 存在测试集参与模型选择/汇总的问题。
+“not an ad hoc prototype loss”也不再合适。CentFGIB 已证明，在当前测量条件下它实际上退化为 fixed-prototype/center regularization。
 
-论文声称“只看验证集”，但并列时的最终 tie-break 使用测试分数；即使选择较低测试分数是“悲观处理”，仍然是 test-dependent selection。更明显的是，tab_robust 的“Median gain at best beta”是对测试分数取最大值后再汇总，这会乐观地夸大“旋钮有用”。
+### 4. 理论结论必须始终带上适用范围
 
-应删除所有测试集 tie-break，改用固定配置顺序或第三个验证指标；“best beta”应使用验证选择后的测试结果，或者明确标为 exploratory upper bound，并重新锁定测试集后报告最终数字。
+“every beta selects a distinct interior optimum”只成立于 class-symmetric aligned family、固定 classifier scale 和理想化 A 条件下。默认实现不满足 fixed c，cosine 实验也只在 MNIST/MLP 且保留 early stopping。
 
-7. 统计证据不足以支撑“最佳”“唯一”“可靠”等措辞。
+建议将其称为“sanity check under the theorem's scale condition”，而不是对完整 sweep 命题的验证。回归 RFF anchor 没有对应证明，且高 beta 下 STS-B/AgeDB 明显失效，应将回归定位为 exploratory transfer，核心主张集中在分类。
 
-目前只有 5 个初始化、一个固定数据划分，主要汇总是 mean rank 和 best-count。许多提升小于 1 个百分点，和运行标准差处于同一量级。
+### 5. 侧头条件数结论需要实质降调
 
-应报告按 seed 配对的差值、95% 置信区间、Wilcoxon/置换检验或 bootstrap，并重复多个 split seed。mean rank 应作为辅助结果，不应作为唯一主证据。safe、useful、destroyed 和 5 个百分点阈值也需要在看结果之前预先定义并做敏感性分析。
+`paper.tex` 前文仍称“we have not done so”，与后文已经测量矛盾。最终 kappa(A^T A) 达到 10^5.8--10^6.8，单条轨迹还出现 10^8.3，这已经是严重病态，不能写“never approaches numerical singularity”。
 
-8. 数据划分会影响外部可比性，AgeDB 还有潜在身份泄漏。
+准确结论应是：
 
-IMDb 是将官方 train/test 合并后重新划分，STS-B 使用 train/dev 重划，Cora 也不是常用的固定 Planetoid split；这些结果不能直接与文献数字比较。AgeDB 按图像随机划分，而同一个人有多张照片，可能出现同一身份跨 train/val/test。
+> A^T A becomes severely ill-conditioned, although predictive accuracy remains stable in this experiment.
 
-建议使用 subject-disjoint AgeDB split，并同时报告当前 split 作为附加实验；明确每个数据集的版本、样本数、类别数、官方/自定义 split 和预处理来源。
+准确率稳定只能说明 A 的病态没有损害 MNIST 预测，不能证明 KL certificate 仍与 h 保持良好对应。若后续允许有限重跑，固定正交 A 或 A=I 是比 trainable A 更干净的默认方法。
 
-9. 回归 RFF 锚点的理论和实验支撑明显不足。
+### 6. 统计证据应以排序和稳定性为主，而非显著正增益
 
-当前只是说明 ||mu_p(y)|| 约等于 a，没有证明锚点对连续目标具有足够的区分性、单调性或稳定的几何结构；这与 STS-B、ZINC 上 FGIB 退化的结果是一致的。
+使用现有日志去掉 AgeDB 两行重算后得到：
 
-应加入 RFF 频率带宽、随机种子、锚点维度、tau、a 的敏感性，以及线性目标锚点、固定 Fourier 特征、直接 MSE-to-anchor 等对照。否则回归部分应从主要贡献中降级为探索性结果。
+- FGIB mean rank 为 **1.70**，best-or-tied 为 **6/10**，排序结论不依赖 AgeDB；
+- FGIB-vs-backbone 的全网格 Wilcoxon 从 p=0.014 变为约 p=0.055；
+- 平均增益降为约 +0.62 点，中位数约 +0.16 点。
 
-论文叙事与格式方面
+因此“排名和稳定性”是稳健结论，“唯一显著提高 backbone”则对任务集合敏感。建议在正文报告该敏感性分析，并把 AgeDB 移到附录或明确排除于核心统计。
 
-- “CEB 的死旋钮”在理想确定性分布和全局最优意义下成立，但 CEB 作者本身把 MNI corner 视为目标。建议将措辞从“failure”改为“trade-off/limitation”，并明确区分 population optimum、有限网络和 early stopping。
-- 正交 frame 不是 centered simplex/ETF，不应直接称为 neural-collapse geometry；可改为“orthogonal class-code geometry”或“neural-collapse-like”。
-- paper.tex 第 978 行附近的数据附录仍是 [To be written.]，这是投稿前必须完成的内容。
-- paper.tex 第 750 行附近的 AI use statement 仍为模板占位符，必须填写。
-- 摘要中的“only bottleneck”“safe and useful”“all classification settings”等措辞应加入“在本实验网格和协议下”的限定。
-- 建议将目前大量重复的 P1-P4 讨论压缩，增加两张核心图：完整 beta-accuracy/KL 曲线，以及 a-accuracy、||A||/条件数和 log-variance 的训练曲线。
-- 统一修正文中 “Amjad & Geiger 2018/2020” 的年份，并明确 NIB 的 log 单位、DVCCA 重建项尺度与各目标的 beta 是否可直接比较。
+五个 pairwise Wilcoxon 应做 Holm 校正；按当前 p 值，校正后结论预计仍保持。五个 seed 的 bootstrap CI 只能描述训练随机性，不能代表数据划分不确定性。
 
-最小可接受修订集
+### 7. 等预算结果应成为主结果
 
-1. 固定温度 cosine classifier + 良态 A，重新验证 sweep 理论。
-2. 增加 deterministic-side-CEB、center loss 和 trainable-anchor 消融。
-3. 删除测试集 tie-break，修正 best-beta 汇总并重新生成表格。
-4. 补充配对置信区间、多 split seed 和 subject-disjoint AgeDB。
-5. 完成数据附录，并把论文主张收紧为“固定锚点的变分代理正则化”，除非能实证证明它确实改善部署表示的压缩或鲁棒性。
+当前全搜索 FGIB 使用 6x9 网格，而其他方法只有 6 个配置。建议以固定 a=16、mean rank 2.33 的等预算结果为正文主结论，完整网格作为补充。
+
+除非 a=16 确实在查看结果之前决定，否则不要称其为“fixed a priori”，应写成“a single globally fixed scale”或“post-hoc equal-budget sensitivity control”。摘要和结论也不应再突出 test-selected exploratory best。
+
+### 8. 最直接的相关工作仍严重不足
+
+相关工作仅引用 Papyan 不足以建立新颖性。至少应覆盖：
+
+- center loss：Wen et al., 2016；
+- hyperspherical prototype networks：Mettes et al., 2019；
+- fixed classifiers：Hoffer et al., 2018；
+- simplex/ETF classifiers；
+- neural-collapse-inspired regularization。
+
+建议增加一个对比表，明确 fixed prototypes、center loss、fixed classifier 与 FGIB 在“训练对象、零惩罚集合、是否含 variational bound、是否约束部署表示”上的区别。否则审稿人很可能将方法概括为“center loss + variational packaging”。
+
+## 无需重跑的优先修改
+
+建议标题改为：
+
+> Fixed-Geometry Bottlenecks: Designing Predictive Zero-Penalty Endpoints
+
+摘要中删除 P3 细节、test-selected best 和“behavior certified”，只保留：问题、端点设计原则、方法、受限理论、分类稳定性结果和明确局限。
+
+贡献点建议收敛为三条：
+
+1. 提出并分析 bottleneck 的 zero-penalty set，统一解释 marginal-prior collapse 与 learned-conditional underdetermination。
+2. 用 fixed class geometry 将高压端点设计为 predictive label code，并在受限 aligned family 中分析其 KL--CE surrogate。
+3. 大规模实验表明分类稳定性主要来自 endpoint geometry；KL 提供辅助含噪码的 variational interpretation，而不是部署表示的压缩证书。
+
+全文还需统一把“six decades”改为“six-point grid spanning five orders of magnitude”；beta=10^-4 到 10 是五个数量级。
+
+## 仅在可接受少量补实验时
+
+最高价值的小实验不是重跑所有方法，而是在 ImageNet-100/MLP 和 Cora/GCN 上补 CentFGIB 的 6 个 beta x 5 seeds，共约 60 runs，直接判断“geometry alone”能否跨越 MNIST。若预算再多一些，可只重跑固定 a=16、A=I 的 FGIB sweep，而不重跑其他基线，从而消除论文最主要的理论--实现缺口。
+
+若不补这些实验，也可以投稿，但必须把“geometry mechanism”严格限定为 MNIST 消融证据，并将跨模态结论限定为 FGIB 本身的经验稳定性。

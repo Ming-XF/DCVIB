@@ -2,7 +2,7 @@
 
 import torch.nn as nn
 
-from ..mlp.utils import ContinuousAnchorPrior, build_anchor_prior, kl_divergence
+from ..mlp.utils import ContinuousAnchorPrior, build_anchor_prior, kl_divergence, CosineClassifier
 from .utils import build_cnn_encoder
 
 
@@ -32,6 +32,7 @@ class FGIB(nn.Module):
         anchor_var: float = 1.0,
         continuous_y: bool = False,
         input_size: int = 28,
+        cosine_classifier: bool = False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -42,7 +43,11 @@ class FGIB(nn.Module):
         )
 
         # 主路：h 直接分类，无采样
-        self.classifier = nn.Linear(hidden_dim, num_classes)
+        # --cosine-classifier 时用固定温度 cosine 分类器（理论验证实验）
+        if cosine_classifier:
+            self.classifier = CosineClassifier(hidden_dim, num_classes)
+        else:
+            self.classifier = nn.Linear(hidden_dim, num_classes)
 
         # 旁路：h -> (mu, logvar)，参数化 z ~ N(mu, sigma^2)
         self.mu_head = nn.Linear(hidden_dim, z_dim)

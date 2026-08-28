@@ -73,10 +73,11 @@ from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
 from model import CEB, DCEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, TAFGIB, VIB, CentFGIB
-from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
-from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
+from model.cnn import CEB as CNNCEB, CentFGIB as CNNCentFGIB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
+from model.gnn import CEB as GNNCEB, CentFGIB as GNNCentFGIB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
     CEB as RNNCEB,
+    CentFGIB as RNNCentFGIB,
     DVCCA as RNNDVCCA,
     FGIB as RNNFGIB,
     NIB as RNNNIB,
@@ -250,6 +251,20 @@ def _diag_stats_line(model, val_loader, device):
         sv = torch.linalg.svdvals(a)
         kappa = (sv[0] / sv[-1]).item()
         parts.append(f"kappa_log10={math.log10(max(kappa, 1e-30)):.4f}")
+    if isinstance(model, TAFGIB) and not model.continuous_y:
+        # 审稿人第 2 条：可训练锚点是否仍保持正交几何——记录锚点表列范数与
+        # 归一化 Gram 的最大非对角元（类间相关）与成对角度极值
+        p = model.prior_mu  # (K, z)
+        norms = p.norm(dim=1)
+        pn = p / norms.clamp(min=1e-12).unsqueeze(1)
+        gram = pn @ pn.t()
+        off = gram - torch.eye(gram.size(0), device=gram.device)
+        angles = torch.acos(gram.clamp(-1.0, 1.0))
+        ang = angles[torch.triu(torch.ones_like(angles, dtype=torch.bool), diagonal=1)]
+        parts.append(f"anchor_norm_mean={norms.mean().item():.3f}")
+        parts.append(f"anchor_norm_min={norms.min().item():.3f}")
+        parts.append(f"anchor_corr_max={off.abs().max().item():.4f}")
+        parts.append(f"anchor_angle_min={ang.min().item():.3f}")
     return "Diag " + " ".join(parts)
 
 
@@ -387,10 +402,13 @@ MODEL_CLASSES = {
     ("fgib", "cnn"): CNNFGIB,
     ("fgib", "gnn"): GNNFGIB,
     ("fgib", "rnn"): RNNFGIB,
-    # 消融变体（审稿人要求的混淆隔离实验，仅 MLP 骨干）
+    # 消融变体（审稿人要求的混淆隔离实验）
     ("dceb", "mlp"): DCEB,
     ("tafgib", "mlp"): TAFGIB,
     ("centfgib", "mlp"): CentFGIB,
+    ("centfgib", "cnn"): CNNCentFGIB,
+    ("centfgib", "gnn"): GNNCentFGIB,
+    ("centfgib", "rnn"): RNNCentFGIB,
 }
 
 
@@ -575,28 +593,28 @@ def main():
         parser.error("CNN backbone is not supported for housing")
     if args.task in ("cora", "zinc"):
         ok = args.model == "gcn" or (
-            args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca")
+            args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca", "centfgib")
         )
         if not ok:
-            parser.error("Cora/ZINC 任务仅支持 --model gcn 或 --backbone gnn 加 vib/ceb/fgib/svib/nib/dvcca")
+            parser.error("Cora/ZINC 任务仅支持 --model gcn 或 --backbone gnn 加 vib/ceb/fgib/svib/nib/dvcca/centfgib")
     elif args.model == "gcn" or args.backbone == "gnn":
         parser.error("GNN backbone is only supported for cora/zinc")
     if args.task in ("imdb", "agnews", "stsb"):
         ok = args.model == "rnn" or (
-            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca")
+            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca", "centfgib")
         )
         if not ok:
             parser.error(
                 f"{args.task} task only supports --model rnn or "
-                "--backbone rnn with vib/ceb/fgib/svib/nib/dvcca"
+                "--backbone rnn with vib/ceb/fgib/svib/nib/dvcca/centfgib"
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews/stsb")
-    if args.model in ("dceb", "tafgib", "centfgib"):
+    if args.model in ("dceb", "tafgib"):
         if args.backbone != "mlp":
-            parser.error("dceb/tafgib/centfgib 消融变体仅支持 MLP 骨干")
+            parser.error("dceb/tafgib 消融变体仅支持 MLP 骨干")
         if args.task != "mnist":
-            parser.error("dceb/tafgib/centfgib 消融变体仅支持 mnist 任务（审稿人消融实验）")
+            parser.error("dceb/tafgib 消融变体仅支持 mnist 任务（审稿人消融实验）")
 
     # 图批拼块对角后 512 批约 1.2 万节点、稠密邻接约 566MB；128 批约 3 千
     # 节点 / 36MB（benchmarking-gnns 的 ZINC 约定批大小），未显式设置时覆写
@@ -719,7 +737,7 @@ def main():
     if args.task == "housing":
         model_kwargs["input_dim"] = 8
         model_kwargs["num_classes"] = 1
-        if args.model in ("ceb", "fgib"):
+        if args.model in ("ceb", "fgib", "centfgib"):
             model_kwargs["continuous_y"] = True
     elif args.task == "stsb":
         model_kwargs["vocab_size"] = vocab_size
@@ -732,7 +750,7 @@ def main():
         # 实验验证：单层 val R²≈0.27 vs 两层 0.07）
         if tuple(args.hidden_dims) == tuple(parser.get_default("hidden_dims")):
             model_kwargs["hidden_dims"] = (256,)
-        if args.model in ("ceb", "fgib"):
+        if args.model in ("ceb", "fgib", "centfgib"):
             model_kwargs["continuous_y"] = True
     elif args.task == "imagenet100":
         model_kwargs["num_classes"] = 100
@@ -756,7 +774,7 @@ def main():
         model_kwargs["input_dim"] = zinc_input_dim
         model_kwargs["num_classes"] = 1
         model_kwargs["pooling"] = "mean"  # 图级读出（编码器后 mean 池化）
-        if args.model in ("ceb", "fgib"):
+        if args.model in ("ceb", "fgib", "centfgib"):
             model_kwargs["continuous_y"] = True
     elif args.task == "agedb":
         model_kwargs["num_classes"] = 1
@@ -765,7 +783,7 @@ def main():
         else:  # backbone == "cnn"（gnn/rnn 已被约束块拒绝）
             model_kwargs["input_channels"] = 3
             model_kwargs["input_size"] = 64
-        if args.model in ("ceb", "fgib"):
+        if args.model in ("ceb", "fgib", "centfgib"):
             model_kwargs["continuous_y"] = True
     elif args.task == "imdb":
         model_kwargs["vocab_size"] = vocab_size

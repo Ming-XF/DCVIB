@@ -1,0 +1,49 @@
+/root/miniconda3/bin/python /root/autodl-tmp/FGIB/train.py --backbone rnn --task imdb --model centfgib --beta 0.0001 --anchor-scale 16.0 --no-save --log-path /root/autodl-tmp/FGIB/tune_results_ablation/centfgib_all/imdb_rnn_centfgib_beta_0.0001_anchor_16/train.log
+
+
+2026-08-29 03:32:59 | Device: cuda
+2026-08-29 03:32:59 | Args: {'model': 'centfgib', 'backbone': 'rnn', 'task': 'imdb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 16.0, 'max_len': 250, 'random_labels': False, 'beta': 0.0001, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/imdb_rnn_centfgib/imdb_rnn_centfgib.pt', 'log_path': '/root/autodl-tmp/FGIB/tune_results_ablation/centfgib_all/imdb_rnn_centfgib_beta_0.0001_anchor_16/train.log', 'no_save': True, 'freeze_a': False, 'a_identity': False, 'cosine_classifier': False, 'log_variance_stats': False, 'subject_disjoint': False}
+2026-08-29 03:32:59 | IMDb 预处理缓存：mmap 共享 ./data/imdb/imdb_processed_maxlen250
+2026-08-29 03:32:59 | ===== Run 1/5 (seed 0) =====
+2026-08-29 03:33:17 | Epoch   1/100 | Train Loss 0.6311 Acc 0.6484 | Val Loss 0.6280 Acc 0.6521 AUC 0.7502 Pre 0.6909 Rec 0.6521
+2026-08-29 03:33:17 |   Val AUC improved to 0.7502, model saved
+Traceback (most recent call last):
+  File "/root/autodl-tmp/FGIB/train.py", line 966, in <module>
+    main()
+  File "/root/autodl-tmp/FGIB/train.py", line 863, in main
+    train_loss, train_acc = train_one_epoch(
+                            ^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/train.py", line 126, in train_one_epoch
+    logits, kl, recon = run_model(model, images, labels, stochastic=True)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/train.py", line 107, in run_model
+    logits, kl = model(images, labels)
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/model/rnn/centfgib.py", line 17, in forward
+    h = self.encoder(x)
+        ^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/FGIB/model/rnn/utils.py", line 87, in forward
+    packed, (h_n, _) = lstm(packed)
+                       ^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/rnn.py", line 1139, in forward
+    result = _VF.lstm(
+             ^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 448.00 MiB. GPU 0 has a total capacity of 31.36 GiB of which 438.38 MiB is free. Process 59512 has 6.63 GiB memory in use. Process 59515 has 6.75 GiB memory in use. Including non-PyTorch memory, this process has 3.61 GiB memory in use. Process 59518 has 4.96 GiB memory in use. Process 59517 has 3.99 GiB memory in use. Process 59519 has 4.96 GiB memory in use. Of the allocated memory 2.36 GiB is allocated by PyTorch, and 664.05 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)

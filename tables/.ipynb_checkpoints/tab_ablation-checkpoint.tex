@@ -1,0 +1,19 @@
+\begin{table}[t]
+\caption{Confound ablations and fixed-scale checks on MNIST/MLP. Test accuracy (\%) across the $\beta$ grid for each variant (fixed $a=16$ where an anchor scale applies), plus the validation-selected configuration. \emph{DCEB} keeps the deterministic classifier path of FGIB but trains the conditional prior (CEB's backward encoder); \emph{TAFGIB} trains the anchor means instead of freezing them; \emph{CentFGIB} replaces the KL with a direct MSE-to-anchor center loss; \emph{frozen $A$} and \emph{$A{=}I$} constrain the side head; \emph{cosine} rows use the fixed-temperature cosine classifier of Remark~\ref{rem:c-scale}(c). Protocol identical to the main experiments (100 epochs, patience 10, 5 seeds).}
+\label{tab:ablation}
+\begin{center}\small
+\begin{tabular}{lccccccc}
+Variant & $10^{-4}$ & $10^{-3}$ & $10^{-2}$ & $10^{-1}$ & $1$ & $10$ & val-sel. \\ \hline \\[-1.8ex]
+Det. & -- & -- & -- & -- & -- & -- & 98.33 \\
+VIB & 98.18 & 98.28 & 98.18 & 97.83 & 15.27 & 11.35 & \textbf{98.28} \\
+CEB & 98.28 & 98.30 & 98.43 & 98.16 & 26.82 & 10.64 & \textbf{98.28} \\
+FGIB ($a{=}16$) & 98.35 & 98.31 & 98.49 & 98.37 & 98.36 & 98.31 & \textbf{98.49} \\
+DCEB (trainable prior) & 98.26 & 98.26 & 98.38 & 98.24 & 98.04 & 11.35 & \textbf{98.26} \\
+TAFGIB (trainable anchors) & 98.22 & 98.31 & 98.42 & 98.42 & 98.41 & 98.33 & \textbf{98.42} \\
+CentFGIB (MSE-to-anchor) & 98.35 & 98.31 & 98.49 & 98.37 & 98.36 & 98.31 & \textbf{98.49} \\
+FGIB frozen $A$ & 98.32 & 98.22 & 98.37 & 98.35 & 98.26 & 98.27 & \textbf{98.32} \\
+FGIB $A{=}I$ & 98.26 & 98.20 & 98.30 & 98.32 & 98.21 & 98.21 & \textbf{98.26} \\
+FGIB cosine & 97.94 & 98.21 & 98.32 & 98.30 & 98.34 & 98.30 & \textbf{98.34} \\
+VIB cosine & 97.93 & 98.10 & 98.12 & 96.56 & 51.85 & 11.42 & \textbf{98.10} \\
+CEB cosine & 97.99 & 98.35 & 98.25 & 41.63 & 10.79 & 10.31 & \textbf{98.35} \\
+\end{tabular}\end{center}\end{table}

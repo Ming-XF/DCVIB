@@ -3,7 +3,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..mlp.utils import reparameterize
+from ..mlp.utils import reparameterize, CosineClassifier
 from .utils import build_gcn_encoder, graph_readout, kl_divergence_masked
 
 
@@ -32,6 +32,7 @@ class CEB(nn.Module):
         dropout: float = 0.2,
         continuous_y: bool = False,
         pooling: str = "mean",
+        cosine_classifier: bool = False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -45,7 +46,11 @@ class CEB(nn.Module):
         # （continuous_y 时输入为 1 维连续标签，否则为 num_classes 维 one-hot）
         prior_in = 1 if continuous_y else num_classes
         self.prior_net = nn.Linear(prior_in, 2 * z_dim)
-        self.classifier = nn.Linear(z_dim, num_classes)
+        # --cosine-classifier 时用固定温度 cosine 分类器（理论验证实验）
+        if cosine_classifier:
+            self.classifier = CosineClassifier(z_dim, num_classes)
+        else:
+            self.classifier = nn.Linear(z_dim, num_classes)
 
         # 置零初始化：训练开始时 sigma = sigma_p = 1、mu_p = 0，KL 接近 0
         nn.init.zeros_(self.logvar_head.weight)

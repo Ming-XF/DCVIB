@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 
-from ..mlp.utils import kl_divergence, reparameterize
+from ..mlp.utils import kl_divergence, reparameterize, CosineClassifier
 from .utils import build_rnn_encoder
 
 
@@ -26,6 +26,7 @@ class VIB(nn.Module):
         input_dim: int | None = None,
         pretrained_emb: torch.Tensor | None = None,
         pooling: str = "last",
+        cosine_classifier: bool = False,
     ):
         super().__init__()
 
@@ -34,7 +35,11 @@ class VIB(nn.Module):
         )
         self.mu_head = nn.Linear(hidden_dims[-1], z_dim)
         self.logvar_head = nn.Linear(hidden_dims[-1], z_dim)
-        self.classifier = nn.Linear(z_dim, num_classes)
+        # --cosine-classifier 时用固定温度 cosine 分类器（理论验证实验）
+        if cosine_classifier:
+            self.classifier = CosineClassifier(z_dim, num_classes)
+        else:
+            self.classifier = nn.Linear(z_dim, num_classes)
 
         # 置零初始化：训练开始时 sigma = 1，KL 接近 0
         nn.init.zeros_(self.logvar_head.weight)

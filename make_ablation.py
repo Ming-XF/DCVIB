@@ -15,6 +15,7 @@
 import glob
 import os
 import re
+import statistics
 
 import make_tables as mt
 
@@ -185,5 +186,80 @@ def extract_diags(path):
     return diags
 
 
+def centfgib_all_table():
+    """CentFGIB 全 12 设定对照（tune_results_ablation/centfgib_all/，a=16、6 点 β 网格）。
+
+    每设定报告 Det / FGIB(a=16) / CentFGIB(a=16) 的验证集选模测试分，并把
+    CentFGIB 与主实验七目标 + fgib16 放在一起算 mean rank（9 个条目）。
+    生成 tables/tab_centfgib.tex 并打印 rank 汇总。
+    """
+    import make_stats as ms
+
+    lines = [
+        "\\begin{table}[t]",
+        "\\caption{CentFGIB across all 12 settings: does the geometry alone --- the same "
+        "orthonormal anchors as FGIB but with the KL replaced by a plain "
+        "$\\tfrac12\\|\\mu - a v_y\\|^2$ center loss --- reproduce FGIB's behavior beyond "
+        "MNIST? Validation-selected configuration at $a=16$ (the same 6-point $\\beta$ "
+        "grid and budget as the FGIB equal-budget control of Table~\\ref{tab:main-std}), "
+        "5 seeds, protocol identical to the main sweep. Units as in Table~\\ref{tab:main}.}",
+        "\\label{tab:centfgib}",
+        "\\begin{center}\\small",
+        "\\begin{tabular}{llccc}",
+        "Task & Backbone & Det. & FGIB ($a{=}16$) & CentFGIB ($a{=}16$) \\\\ \\hline \\\\[-1.8ex]",
+    ]
+
+    recs = mt.load("tune_results")
+    by_setting, selected, baseline = mt.build_index(recs)
+    fgib16 = mt.build_fixed_anchor_index(by_setting)
+
+    rows = {}
+    for setting in mt.CLS + mt.REG:
+        key = mt.metric_key(setting)
+        b = baseline[setting]
+        det = ms.per_run_metrics(ms.find_log("tune_results", setting, b["model"], b["beta"], b["anchor"]))
+        det_val = statistics.mean(r[key] for r in det)
+        f16 = fgib16[setting]
+        # CentFGIB：a=16、6 个 beta，验证集选模
+        recs_c = {}
+        for beta in BETAS:
+            path = os.path.join("tune_results_ablation", "centfgib_all",
+                                f"{setting}_centfgib_beta_{beta:g}_anchor_16", "train.log")
+            recs_c[beta] = parse_log(path)
+        bsel = val_select(recs_c)
+        rows[setting] = {
+            "det": det_val,
+            "fgib16": f16["test"][key][0],
+            "cent": recs_c[bsel]["test"][key][0],
+            "cent_beta": bsel,
+        }
+        lines.append(
+            f"{mt.NAMES[setting][0]} & {mt.NAMES[setting][1]} & "
+            f"{100 * det_val:.2f} & {100 * f16['test'][key][0]:.2f} & "
+            f"\\textbf{{{100 * recs_c[bsel]['test'][key][0]:.2f}}} \\\\"
+        )
+    lines.append("\\end{tabular}\\end{center}\\end{table}")
+    open(os.path.join("tables", "tab_centfgib.tex"), "w").write("\n".join(lines) + "\n")
+    print("已生成 tables/tab_centfgib.tex")
+
+    # 9 条目 rank（det + 6 瓶颈 + fgib 全网格 + fgib16 + centfgib16）
+    vals = {m: [selected[s][m]["test"][mt.metric_key(s)][0] for s in mt.CLS + mt.REG]
+            for m in mt.BOTTLENECKS}
+    vals["det"] = [baseline[s]["test"][mt.metric_key(s)][0] for s in mt.CLS + mt.REG]
+    vals["fgib16"] = [fgib16[s]["test"][mt.metric_key(s)][0] for s in mt.CLS + mt.REG]
+    vals["centfgib16"] = [rows[s]["cent"] for s in mt.CLS + mt.REG]
+    mr, wins = mt.rank_stats(vals)
+    for name in vals:
+        print(f"[9 条目 rank] {name:12s} mean rank = {mr[name]:.2f}, best-or-tied = {wins[name]}/12")
+
+
 if __name__ == "__main__":
     main()
+    # CentFGIB 全设定表：仅在 12 设定 × 6 β 全部完成后生成
+    expected = len(mt.CLS + mt.REG) * len(BETAS)
+    n_done = len(glob.glob(os.path.join("tune_results_ablation", "centfgib_all",
+                                        "*_centfgib_beta_*_anchor_16", "train.log")))
+    if n_done >= expected:
+        centfgib_all_table()
+    else:
+        print(f"centfgib_all 未完成（{n_done}/{expected} 个配置），跳过全设定表")

@@ -121,13 +121,30 @@ def main():
     p16 = stats.wilcoxon(d16).pvalue if not np.allclose(d16, 0) else 1.0
     print(f"fgib16  mean={d16.mean():+.2f} median={np.median(d16):+.2f} p={p16:.4f}")
 
-    print("== FGIB 与其他方法的逐对 Wilcoxon（12 设定配对均值差，百分点）==")
+    print("== FGIB 与其他方法的逐对 Wilcoxon（12 设定配对均值差，百分点）+ Holm 校正 ==")
+    pairwise = {}
     for m in mt.BOTTLENECKS:
         if m == "fgib":
             continue
         ds = np.array([100 * (diffs["fgib"][s][0] - diffs[m][s][0]) for s in settings])
         p = stats.wilcoxon(ds).pvalue if not np.allclose(ds, 0) else 1.0
-        print(f"fgib vs {m:7s} mean={ds.mean():+.2f} p={p:.4f}")
+        pairwise[m] = p
+    sorted_ps = sorted(pairwise.items(), key=lambda kv: kv[1])
+    for rank, (m, p) in enumerate(sorted_ps, 1):
+        holm = min(1.0, p * (len(sorted_ps) - rank + 1))
+        print(f"  fgib vs {m:7s} p={p:.4f} Holm 校正后={holm:.4f}")
+
+    # 审稿人要求的敏感性：排除 AgeDB 两行（图像级划分身份泄漏）后重算
+    print("== 敏感性：排除 AgeDB 两行（10 设定）==")
+    settings_no_age = [s for s in settings if not s.startswith("agedb")]
+    d_no = {m: np.array([100 * diffs[m][s][0] for s in settings_no_age]) for m in mt.BOTTLENECKS}
+    for m in mt.BOTTLENECKS:
+        p = stats.wilcoxon(d_no[m]).pvalue if not np.allclose(d_no[m], 0) else 1.0
+        print(f"{m:7s} mean={d_no[m].mean():+.2f} median={np.median(d_no[m]):+.2f} p={p:.4f}")
+    vals_no = {m: [selected[s][m]["test"][mt.metric_key(s)][0] for s in settings_no_age] for m in mt.BOTTLENECKS}
+    vals_no["det"] = [baseline[s]["test"][mt.metric_key(s)][0] for s in settings_no_age]
+    mr_no, wins_no = mt.rank_stats(vals_no)
+    print(f"10 设定 mean rank: fgib={mr_no['fgib']:.2f} wins={wins_no['fgib']}/10")
 
     # LaTeX 表：每设定一行，各瓶颈 vs 基线的配对均值差 [95% CI]
     lines = [

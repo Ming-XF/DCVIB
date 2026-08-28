@@ -1,0 +1,17 @@
+/root/miniconda3/bin/python /root/autodl-tmp/FGIB/train.py --backbone cnn --task agedb --model centfgib --beta 10.0 --anchor-scale 16.0 --no-save --log-path /root/autodl-tmp/FGIB/tune_results_ablation/centfgib_all/agedb_cnn_centfgib_beta_10_anchor_16/train.log
+
+
+2026-08-29 02:04:16 | Device: cuda
+2026-08-29 02:04:16 | Args: {'model': 'centfgib', 'backbone': 'cnn', 'task': 'agedb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 16.0, 'max_len': 250, 'random_labels': False, 'beta': 10.0, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/agedb_cnn_centfgib/agedb_cnn_centfgib.pt', 'log_path': '/root/autodl-tmp/FGIB/tune_results_ablation/centfgib_all/agedb_cnn_centfgib_beta_10_anchor_16/train.log', 'no_save': True, 'freeze_a': False, 'a_identity': False, 'cosine_classifier': False, 'log_variance_stats': False, 'subject_disjoint': False}
+2026-08-29 02:04:16 | AgeDB 图像：16488 张，年龄 1~101 岁
+2026-08-29 02:04:16 | AgeDB 划分（图像级 60/20/20）：train 9892 / val 3298 / test 3298（共 16488 张）
+2026-08-29 02:04:16 | AgeDB 预解码缓存命中：./data/agedb/agedb_64x64_uint8.npy
+2026-08-29 02:04:16 | AgeDB 加载完成：9892/3298/3298（batch 512，RGB 64x64，ImageNet 归一化），年龄 MinMax 归一化到 [0,1]（1~101 岁）
+2026-08-29 02:04:16 | ===== Run 1/5 (seed 0) =====
+Traceback (most recent call last):
+  File "/root/autodl-tmp/FGIB/train.py", line 966, in <module>
+    main()
+  File "/root/autodl-tmp/FGIB/train.py", line 807, in main
+    model = model_cls(**model_kwargs).to(device)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: FGIB.__init__() got an unexpected keyword argument 'cosine_classifier'

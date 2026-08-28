@@ -220,7 +220,8 @@ def equal_budget_fgib_summary(by_setting, selected, baseline, out):
     with open(out, "w", encoding="utf-8") as f:
         f.write(
             "\\emph{Equal-budget control.} Selected over the same 6-point $\\beta$ grid as "
-            "every other bottleneck at a single anchor scale $a=16$ fixed a priori, FGIB's "
+            "every other bottleneck at a single globally fixed anchor scale $a=16$ (a post-hoc "
+            "sensitivity control), FGIB's "
             f"mean rank is {mr_eq['fgib']:.2f} of 7 (vs.\\ {mr_full['fgib']:.2f} over the full "
             f"$6\\times9$ grid) and it is best or tied-best on {wins_eq['fgib']} of 12 settings "
             f"(vs.\\ {wins_full['fgib']}).\n"
@@ -312,7 +313,7 @@ def table_robust(by_setting, selected, fgib16, baseline, out):
         "score any $\\beta$ produces, as a deficit (in points) against the deterministic backbone of "
         "the same row; negative means the objective never falls below its backbone. Units as in "
         "Table~\\ref{tab:main}. FGIB is shown twice: at the anchor scale selected on validation in "
-        "Table~\\ref{tab:main}, and at a fixed $a=16$ chosen a priori. Lower is better; best per row "
+        "Table~\\ref{tab:main}, and at a single globally fixed anchor scale $a=16$ (a post-hoc sensitivity control, not selected a priori). Lower is better; best per row"
         "in bold. The summary rows take medians over the 12 settings and count settings where the "
         "worst case falls more than 5 points below the backbone. The ``best $\\beta$'' gain row is "
         "the maximum over the grid of the \\emph{test} score --- an exploratory upper bound, not a "
@@ -393,8 +394,9 @@ def table_main_std(selected, fgib16, baseline, out):
         "the validation-selected hyperparameters underneath each cell ($\\beta$, and $\\beta,a$ for "
         "FGIB; \\texttt{--} for the deterministic backbone, which has neither). The last column is "
         "the equal-budget control: FGIB selected over the same 6-point $\\beta$ grid as every other "
-        "bottleneck at a fixed $a=16$, so its search budget matches the comparison (see "
-        "Section~\\ref{sec:exp}). Units as in Table~\\ref{tab:main}.}",
+        "bottleneck at a single globally fixed anchor scale $a=16$ (a post-hoc sensitivity "
+        "control), so its search budget matches the comparison (see Section~\\ref{sec:exp}). "
+        "Units as in Table~\\ref{tab:main}.}",
         "\\label{tab:main-std}",
         "\\begin{center}\\scriptsize",
         "\\begin{tabular}{llcccccccc}",
