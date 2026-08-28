@@ -1,0 +1,28 @@
+\begin{table}[t]
+\caption{Robustness of the compression knob. For each objective we sweep $\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ and report the \emph{worst} test score any $\beta$ produces, as a deficit (in points) against the deterministic backbone of the same row; negative means the objective never falls below its backbone. Units as in Table~\ref{tab:main}. FGIB is shown twice: at the anchor scale selected on validation in Table~\ref{tab:main}, and at a fixed $a=16$ chosen a priori. Lower is better; best per row in bold. The summary rows take medians over the 12 settings and count settings where the worst case falls more than 5 points below the backbone.}
+\label{tab:robust}
+\begin{center}\small
+\begin{tabular}{llccccc|cc}
+& & \multicolumn{5}{c|}{} & \multicolumn{2}{c}{\textbf{FGIB}} \\
+Task & Backbone & VIB & SVIB & NIB & CEB & DVCCA & val-sel.\ $a$ & $a{=}16$ \\ \hline \\[-1.8ex]
+\multicolumn{9}{l}{\emph{Classification (Acc \%)}} \\[0.3ex]
+MNIST & MLP & 86.98 & 79.15 & 0.18 & 87.69 & 86.98 & \textbf{0.02} & \textbf{0.02} \\
+MNIST & CNN & 87.78 & 66.25 & 0.00 & 87.78 & 87.78 & \textbf{-0.02} & \textbf{-0.02} \\
+ImageNet-100 & MLP & 82.09 & 82.09 & 0.86 & 82.09 & 82.09 & 0.40 & \textbf{0.17} \\
+ImageNet-100 & CNN & 82.32 & 23.34 & 0.85 & 82.37 & 82.37 & \textbf{0.18} & 0.41 \\
+Cora & GCN & 57.46 & 57.42 & 1.33 & 64.80 & 66.50 & 61.11 & \textbf{0.52} \\
+IMDb & LSTM & 34.85 & 0.36 & \textbf{-0.92} & 34.85 & 34.76 & -0.08 & -0.45 \\
+AG News & LSTM & 67.63 & 0.41 & \textbf{0.22} & 67.33 & 67.94 & 0.23 & 0.29 \\
+\\[-1.5ex]
+\multicolumn{9}{l}{\emph{Regression ($R^2\times100$)}} \\[0.3ex]
+Cal.\ Housing & MLP & 76.20 & 76.15 & \textbf{-2.12} & 76.21 & 76.20 & -1.99 & -1.78 \\
+STS-B & LSTM & 185.34 & 119.84 & \textbf{6.86} & 30.13 & 185.91 & 13.21 & 13.21 \\
+ZINC-12k & GCN & 63.48 & 63.39 & \textbf{2.04} & 58.59 & 334.43 & 3.27 & 4.54 \\
+AgeDB & MLP & 21.88 & 21.91 & \textbf{-4.72} & 21.93 & 21.88 & 21.87 & 24.04 \\
+AgeDB & CNN & 60.18 & 70.86 & \textbf{5.78} & 39.23 & 59.71 & 15.92 & 15.57 \\
+\\[-1.5ex]
+\hline \\[-1.8ex]
+\multicolumn{2}{l}{Median deficit} & 71.91 & 64.82 & 0.53 & 66.06 & 79.14 & 0.31 & 0.35 \\
+\multicolumn{2}{l}{Settings destroyed (of 12)} & 12 & 10 & 2 & 12 & 12 & 4 & 3 \\
+\multicolumn{2}{l}{Median gain at best $\beta$} & -0.15 & -0.14 & -0.27 & -0.22 & -0.15 & 0.39 & 0.27 \\
+\end{tabular}\end{center}\end{table}
