@@ -122,7 +122,7 @@ def fig2():
     # (a) FGIB κ(AᵀA) 轨迹（各 beta，第一个 run）
     ax = axes[0]
     for slot, b in enumerate(["0.0001", "0.001", "0.01", "0.1", "1", "10"], start=1):
-        path = glob.glob(f"tune_results_ablation/p3_diag/mnist_mlp_fgib_beta_{b}_anchor_16/train.log")
+        path = glob.glob(f"tune_results_ablation/p3_diag_full/mnist_mlp_fgib_beta_{b}_anchor_16/train.log")
         if not path:
             continue
         traj = []
@@ -158,7 +158,7 @@ def fig2():
     def diag_stat(model, field):
         out = []
         for b in ["0.0001", "0.001", "0.01", "0.1", "1", "10"]:
-            path = glob.glob(f"tune_results_ablation/p3_diag/mnist_mlp_{model}_beta_{b}/train.log")
+            path = glob.glob(f"tune_results_ablation/p3_diag_full/mnist_mlp_{model}_beta_{b}/train.log")
             if not path:
                 continue
             diags = []
@@ -196,7 +196,60 @@ def fig2():
     print("已生成 figures/diagnostics.pdf")
 
 
+def fig3():
+    """图 3：CEB/FGIB 400-epoch 长训练轨迹（P3 是否早停伪影；FGIB 固定点可视化）。
+
+    数据来自 tables/longtrain_traj.json（make_ablation.longtrain_summary 导出，
+    run 1 逐 epoch 的 mean log σ²）。CEB β=1/10 的后验（与 β=1 先验）是否在
+    长时程下向 clamp 移动；FGIB 的 ℓ_q≡0 固定点（Proposition varfreeze 的
+    直接可视化）画为恒零线。
+    """
+    import json
+    traj_path = os.path.join("tables", "longtrain_traj.json")
+    if not os.path.isfile(traj_path):
+        print("tables/longtrain_traj.json 不存在，跳过 fig3（先跑 make_ablation.py）")
+        return
+    with open(traj_path) as f:
+        data = json.load(f)
+    fig, ax = plt.subplots(1, 1, figsize=(6.0, 3.2), dpi=200)
+    fig.patch.set_facecolor(SURFACE)
+    ax.set_facecolor(SURFACE)
+    ax.axhline(0, color=DET_GRAY, lw=1.2, ls=(0, (5, 3)), zorder=1)
+    ax.annotate("init. ($\\log\\sigma^2{=}0$)", xy=(400, 0), xytext=(6, 0),
+                textcoords="offset points", fontsize=8, color=INK, va="center")
+    curves = [
+        ("CEB $\\beta{=}1$ posterior", "ceb_beta_1", SLOT[1], 0),
+        ("CEB $\\beta{=}10$ posterior", "ceb_beta_10", SLOT[2], 0),
+        ("CEB $\\beta{=}1$ prior", "ceb_beta_1", SLOT[3], 1),
+        ("FGIB $\\beta{=}1$ posterior", "fgib_beta_1", SLOT[6], 0),
+    ]
+    for label, key, color, idx in curves:
+        if key not in data:
+            continue
+        traj = data[key]
+        ys = [t[idx + 1] for t in traj if t[idx + 1] is not None]
+        xs = [t[0] for t in traj if t[idx + 1] is not None]
+        if not xs:
+            continue
+        ax.plot(xs, ys, color=color, lw=2.2 if key == "fgib_beta_1" else 2.0,
+                label=label)
+        ax.annotate(label, xy=(xs[-1], ys[-1]), xytext=(6, 0),
+                    textcoords="offset points", fontsize=8, color=INK, va="center")
+    ax.grid(True, color="#d9d8d3", linewidth=0.6, alpha=0.7)
+    ax.tick_params(colors=INK2, labelsize=9)
+    for spine in ax.spines.values():
+        spine.set_color("#b5b4ae")
+    ax.set_xlim(0, 400)
+    ax.set_xlabel("Epoch", color=INK2, fontsize=10)
+    ax.set_ylabel(r"mean $\log\sigma^2$ (full validation set)", color=INK2, fontsize=10)
+    ax.set_title("Long-horizon variance trajectories (400 epochs, run 1)", color=INK, fontsize=10)
+    fig.tight_layout()
+    fig.savefig("figures/longtrain.pdf", facecolor=SURFACE)
+    print("已生成 figures/longtrain.pdf")
+
+
 if __name__ == "__main__":
     os.makedirs("figures", exist_ok=True)
     fig1()
     fig2()
+    fig3()

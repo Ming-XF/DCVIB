@@ -1,0 +1,15 @@
+\begin{table}[t]
+\caption{The fixed-orthogonal side head across settings. FGIB, CentFGIB and FGIB-H differ only in the side-path regularizer --- trainable side head + KL, trainable side head + plain center loss, and fixed side head $A{=}I$ (equivalently the anchor matching applied directly to the deployed representation $h$, Result~\ref{res:orth}) --- each selected over the same 6-point $\beta$ budget at a single fixed anchor scale, on validation. $a{=}16$ is the scale inherited from the $z$-space sweep; $a{=}4$ is a re-tuned scale for $h$-space (the fixed head's adaptive rescaling is gone, so its optimal scale shifts). Units as in Table~\ref{tab:main}. At the inherited scale the fixed head trails by $\approx 0.5$ points per setting; at the re-tuned scale it recovers most of the gap and ties or beats the backbone on every row --- the price of the $\kappa{=}1$ closure is small, and both configurations ship in the released code.}
+\label{tab:hanchor}
+\begin{center}\small
+\begin{tabular}{llccccc}
+Task & Backbone & Det. & FGIB ($a{=}16$) & CentFGIB ($a{=}16$) & FGIB-H ($A{=}I$, $a{=}16$) & FGIB-H ($A{=}I$, $a{=}4$) \\ \hline \\[-1.8ex]
+MNIST & MLP & 98.33 & \textbf{98.49} & \textbf{98.49} & 98.26 & -- \\
+MNIST & CNN & 99.13 & 99.27 & 99.26 & 99.24 & \textbf{99.29} \\
+ImageNet-100 & MLP & 83.12 & \textbf{84.09} & \textbf{84.09} & 83.52 & 83.45 \\
+Cal.\ Housing & MLP & 76.18 & \textbf{79.21} & \textbf{79.21} & 78.08 & 78.78 \\
+Cora & GCN & \textbf{87.68} & \textbf{87.68} & \textbf{87.68} & 86.68 & \textbf{87.68} \\
+\hline \\[-1.8ex]
+\multicolumn{2}{l}{Mean rank (of 5)} & 3.80 & 1.20 & 1.40 & 4.00 & 2.25 \\
+\multicolumn{2}{l}{Best or tied-best (of 5)} & 1 & 4 & 4 & 0 & 2 \\
+\end{tabular}\end{center}\end{table}

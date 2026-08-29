@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccccc}
+Method & Fixed geometry & Zero-penalty set & Variational bound & Regularizer on deployed repr. \\
+\hline
+VIB \citep{alemi2017vib} & --- & collapse (origin) & marginal KL on sampled $z$ & no (evaluates $\mu$) \\
+CEB \citep{fischer2020ceb} & --- & underdetermined family & conditional KL on sampled $z$ & no (evaluates $\mu$) \\
+center loss \citep{wen2016center} & learned centers & no bottleneck reading & --- & yes (same object) \\
+HPN \citep{mettes2019hpn} & hypersphere (a priori) & --- & --- & yes (same object) \\
+fixed classifier \citep{hoffer2018fix,zhu2021geometric,pernici2019regular} & simplex/ETF rows & --- & --- & yes (classifier, not regularizer) \\
+FGIB (ours) & orthonormal anchors (a priori) & prescribed class codes & side-path conditional KL & side path only (bound read on $h$) \\
+\end{tabular}
+\caption{FGIB against the closest fixed-geometry and prototype regularizers. ``Zero-penalty
+set'' is the set of representations where the regularizer vanishes. ``Variational bound''
+asks whether the regularizer carries a KL/information interpretation. ``Regularizer on
+deployed repr.'' asks whether the regularized object is the representation inference
+consumes.}
+\label{tab:related}
+\end{table}

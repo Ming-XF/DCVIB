@@ -146,6 +146,18 @@ def main():
     mr_no, wins_no = mt.rank_stats(vals_no)
     print(f"10 设定 mean rank: fgib={mr_no['fgib']:.2f} wins={wins_no['fgib']}/10")
 
+    # 审稿人第 4 条：分类 / 回归分别做 Wilcoxon（混合口径的设定级检验仅探索性）
+    print("== 分类-only（7 设定）Wilcoxon vs 基线 ==")
+    d_cls = {m: np.array([100 * diffs[m][s][0] for s in mt.CLS]) for m in mt.BOTTLENECKS}
+    for m in mt.BOTTLENECKS:
+        p = stats.wilcoxon(d_cls[m]).pvalue if not np.allclose(d_cls[m], 0) else 1.0
+        print(f"{m:7s} mean={d_cls[m].mean():+.2f} median={np.median(d_cls[m]):+.2f} p={p:.4f}")
+    print("== 回归-only（5 设定）Wilcoxon vs 基线 ==")
+    d_reg = {m: np.array([100 * diffs[m][s][0] for s in mt.REG]) for m in mt.BOTTLENECKS}
+    for m in mt.BOTTLENECKS:
+        p = stats.wilcoxon(d_reg[m]).pvalue if not np.allclose(d_reg[m], 0) else 1.0
+        print(f"{m:7s} mean={d_reg[m].mean():+.2f} median={np.median(d_reg[m]):+.2f} p={p:.4f}")
+
     # LaTeX 表：每设定一行，各瓶颈 vs 基线的配对均值差 [95% CI]
     lines = [
         "\\begin{table}[t]",
@@ -155,7 +167,12 @@ def main():
         "percentage points (accuracy for classification, $R^2\\times100$ for regression); "
         "positive means the objective beats the backbone at that setting. The last column is the "
         "equal-budget FGIB control of Table~\\ref{tab:main-std}. Wilcoxon signed-rank tests over "
-        "the 12 setting-level paired means against zero are reported in the text.}",
+        "the 12 setting-level paired means against zero are reported in the text as an "
+        "\\emph{exploratory} summary: the 12 settings mix classification and regression metrics, "
+        "are not independent (shared backbones and protocols), and the 5 seeds describe "
+        "training noise, not split uncertainty (a single fixed split per dataset); the "
+        "classification-only (7 settings) and regression-only (5 settings) tests are reported "
+        "alongside.}",
         "\\label{tab:paired}",
         "\\begin{center}\\small",
         "\\begin{tabular}{llccccccc}",

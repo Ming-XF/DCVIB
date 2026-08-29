@@ -63,47 +63,59 @@ distance: at fixed classifier scale, on the class-symmetric aligned family, ever
 $\beta$ selects a distinct interior optimum whose fully compressed corner is the
 class-separated anchor configuration, with cross-entropy
 $\ln(1 + (K{-}1)e^{-ca})$ rather than the chance-level $\ln K$ of a marginal prior.
+Two further properties follow by construction, and we prove them rather than leave them
+to observation. First, a deterministic main path \emph{freezes the variance}: the KL's
+gradient in the log-variance vanishes exactly at $\sigma^2=\tau^2$, so the zero-initialized
+variance head never moves and the regularizer is \emph{identically} the fixed-variance
+displacement term $\tfrac{1}{2\tau^2}\|\mu-a v_y\|^2$ at every training step --- releasing
+the variance is precisely what makes VIB and CEB race to the clamp, and FGIB eliminates
+the race by design. Second, in its canonical configuration the side head is a
+\emph{fixed orthogonal} map ($\mu = h$ up to an isometry): the anchor matching then acts
+directly on the deployed representation with $\kappa(A^{\top}A)=1$ and unit-covariance
+pull-back noise, closing the conditioning channel a trainable head leaves open.
 Across 9 datasets, 4 backbones and 5{,}100 training runs, under our grid and protocol
-FGIB attains the best mean rank among seven objectives --- first also under the
-equal-budget control (mean rank $2.33$, a single globally fixed anchor scale) --- and
+FGIB attains the best mean rank among seven objectives --- mean rank $1.86$ on the seven
+classification settings ($1.70$ excluding AgeDB, best or tied-best on $6$ of those
+$10$), $1.60$ on the five regression settings, and first also under the
+equal-budget control (mean rank $2.33$ over all 12, a single globally fixed anchor
+scale) --- and
 its $\beta$ knob can be swept over a six-point grid spanning five orders of magnitude
 without destroying the model on classification, where VIB, CEB and DVCCA fall to the
-trivial predictor. Ablations pin the mechanism to the endpoint geometry rather than the
-KL: at equal budget, a plain center loss with the same anchors reproduces FGIB's
-behavior on all 12 settings (within $0.43$ points everywhere, within $0.01$ on 10), so
-the KL's role is an exact variational upper-bound interpretation for the auxiliary
-noisy code, not a certificate of the deployed representation's compression. The guarantee
+trivial predictor. A 400-epoch control finds CEB's variance drifting exactly in the
+race's predicted direction while FGIB's stays pinned at $\tau^2$; a subject-disjoint
+AgeDB split preserves the regression ordering; and the fixed-orthogonal head carries a
+small measured price across settings, which we quantify rather than hide. The KL's role
+is an exact variational upper-bound
+interpretation for the auxiliary noisy code, not a certificate of the deployed
+representation's compression. The guarantee
 weakens on regression, where the continuous-anchor construction is an exploratory
-transfer rather than a proof, and the side head remains a second trainable party inside
-the KL: we keep an explicit ledger of what is proved and what is open.
+transfer rather than a proof: we keep an explicit ledger of what is proved and what is open.
 \end{abstract}
 
 \section{Introduction}
 
 An information bottleneck asks a representation $Z$ of an input $X$ to be maximally
 informative about a target $Y$ and minimally informative about everything else
-\citep{tishby1999ib}. The deep variational instantiation of that idea
-\citep{alemi2017vib} makes it trainable: replace the intractable $I(X;Z)$ with a
-variational upper bound $\mathbb{E}\,\KLd(q(z|x)\,\|\,m(z))$ and minimize
-$\CE + \beta\,\KLd$. The Conditional Entropy Bottleneck \citep{fischer2020ceb}
-sharpens the target from $I(X;Z)$ to the \emph{residual} $I(X;Z|Y)$ by replacing the
-marginal prior $m(z)$ with a learned backward encoder $b(z|y)$, whose bound is tighter
-than VIB's by exactly the retained label information. The programme has an appealing
+\citep{tishby1999ib}. The deep variational instantiation
+\citep{alemi2017vib} replaces the intractable $I(X;Z)$ with
+$\mathbb{E}\,\KLd(q(z|x)\,\|\,m(z))$ and minimizes $\CE + \beta\,\KLd$; the Conditional
+Entropy Bottleneck \citep{fischer2020ceb} sharpens the target to the \emph{residual}
+$I(X;Z|Y)$ with a learned backward encoder $b(z|y)$. The programme has an appealing
 shape: a single knob $\beta$ should trace a trade-off curve, and the value of the KL
 should serve as a meter reporting how much unnecessary information the model still
 carries.
 
 Two properties of that construction are usually left implicit, and they interact badly.
-First, \emph{where the zero-penalty set lives}. The KL vanishes exactly on the prior, so
-the prior chooses the set of representations the regularizer will never penalize. A
-marginal prior places that set at a single uninformative point --- collapse --- while a
-learned conditional prior makes it an underdetermined family, leaving the final label
-geometry to the optimizer. Second, \emph{the object being regularized is not the object
-being deployed}. The classifier is trained on a sampled code $z \sim q(z|x)$ and
-evaluated on the posterior mean $\mu(x)$ \citep[App.~A.1]{fischer2020ceb}, so the bound
-constrains a noisy variable that inference never sees.
+First, \emph{where the zero-penalty set lives}: the KL vanishes exactly on the prior, so
+the prior chooses the set of representations the regularizer never penalizes --- a
+marginal prior places it at collapse, a learned conditional prior leaves it an
+underdetermined family, and the optimizer, not the objective, selects the final label
+geometry. Second, \emph{the object being regularized is not the object being deployed}:
+the classifier is trained on a sampled code $z \sim q(z|x)$ and evaluated on the
+posterior mean $\mu(x)$ \citep[App.~A.1]{fischer2020ceb}, so the bound constrains a
+noisy variable that inference never sees.
 
-This paper starts from a diagnosis of what those two properties cost, and then asks what
+This paper starts from a diagnosis of what those two properties cost, and asks what
 changes if the prior's geometry is fixed by design rather than left to move or to vanish.
 
 \paragraph{The diagnosis.}
@@ -112,75 +124,60 @@ mismatch; all are stated and proved in Appendix~\ref{app:theory}, and
 Section~\ref{sec:prelim} summarizes them. The first two are properties of the objective,
 not of who is trainable: they hold at the level of the information plane before any
 optimizer runs.
-\emph{(P1) The knob is dead.} When $Y = f(X)$ --- the case of essentially every
-classification benchmark --- CEB's objective is algebraically an IB Lagrangian with
-$\beta_{\mathrm{IB}} = 1 + \gamma > 1$, and every $\gamma > 0$ has the \emph{same} exact
-minimizer: the copy corner $\langle H(Y), H(Y)\rangle$. This is the degeneracy of
-\citet{kolchinsky2019caveats}, inherited by CEB over its entire parameter range
-(Proposition~\ref{prop:dead}). It is not a defect of CEB's target --- that corner is
-CEB's declared Minimum Necessary Information point --- but it does mean the knob cannot
-be reading off a position on the IB curve (Remark~\ref{rem:mni}).
-\emph{(P2) The certificate is blind on the axis that matters.} On the manifold
-$T_\alpha$ of \citet{kolchinsky2019caveats}, the residual certificate $\ReX$ is
-identically $0$ from total collapse to full copy, so its tightness is compatible with
-retaining all, part or none of the label; and the objective trades one nat of label
-information for $1/\beta$ nats of certified compression
-(Proposition~\ref{prop:flat}).
-\emph{(P3) The variances race --- in the gradient, though not in our runs.} With both
-$q(z|x) = \Ncal(m(x), \sigma^2 I)$ and $b(z|y) = \Ncal(g(y), \tau^2 I)$ trainable and a
-linear classifier, the KL is stationary in $\sigma^2$ at $\sigma^2 = \tau^2$ while the
-cross-entropy term pushes $\sigma^2$ down without opposition once the means match; the
-predicted equilibrium sits at the numerical clamp, where the certificate has degenerated
-into a mean-matching force of weight $e^{10}$ between two trainable maps
-(Proposition~\ref{prop:variance}). The proposition is a direction-of-force argument, not
-a convergence theorem, and the prediction is directly testable. We ran the test: on
-MNIST, across all six $\beta$ settings and 5 seeds, CEB's trained posterior and prior
-variances remain at their initialization $\sigma^2 = \tau^2$ with zero clamp fraction
-(Section~\ref{sec:ablation}) --- at the early-stopping time scale of our protocol the
-race does not materialize, and we report the measurement rather than the prediction as
-the finding.
-\emph{(P4) The certified object is the wrong one --- a structural mismatch, not a
-trainability channel.} By the data-processing inequality,
-$I(X;Z|Y) \le I(X;\mu(X)|Y)$, and the right-hand side is $+\infty$ for any continuous
-non-class-constant $\mu$ \citep{amjad2020learning,kolchinsky2019nib}: no finite
-certificate --- CEB's or ours --- bounds the residual of a deployed deterministic
-representation (Proposition~\ref{prop:object}).
+\emph{(P1) The knob is dead:} in the deterministic scenario every $\gamma>0$ of CEB has
+the \emph{same} exact minimizer, the copy corner (Proposition~\ref{prop:dead}), so the
+knob cannot be reading off a position on the IB curve. \emph{(P2) The certificate is
+blind on the necessity axis:} the residual certificate $\ReX$ is identically $0$ on the
+collapse-to-copy manifold, and the objective trades one nat of label information for
+$1/\beta$ nats of certified compression (Proposition~\ref{prop:flat}). \emph{(P3) The
+variances race --- in the gradient, and slowly in our longest run:} with trainable
+variances
+the KL is stationary at $\sigma^2=\tau^2$ while the cross-entropy pushes $\sigma^2$ down
+without opposition once the means match, so the predicted equilibrium sits at the clamp
+(Proposition~\ref{prop:variance}); the prediction is directly testable and we ran the
+test --- on the full validation set of every epoch, out to a 400-epoch control. Under
+the 100-epoch protocol the race is invisible; at 400 epochs CEB's variance drifts
+monotonically in exactly the predicted direction ($-2.3$ nats at $\beta=1$), still far
+from the clamp --- real but slow (Section~\ref{sec:ablation}). For FGIB
+the question is not empirical at all: a deterministic main path makes the KL's
+log-variance gradient vanish exactly at $\sigma^2=\tau^2$, pinning the variance there
+for the whole run, so the regularizer is \emph{identically} the fixed-variance
+displacement term $\tfrac{1}{2\tau^2}\|\mu-a v_y\|^2$ --- the race is eliminated by
+design (Proposition~\ref{prop:varfreeze}), and its only re-entry point, a trainable
+prior variance, is the one FGIB-family variant that collapses
+(Corollary~\ref{cor:family}).
+\emph{(P4) The certified object is the wrong one:} no finite certificate bounds the
+residual of a deployed deterministic representation --- CEB's or ours
+(Proposition~\ref{prop:object}).
 
 \paragraph{The method.}
-FGIB (Section~\ref{sec:method}) makes three changes, all of which follow from taking the
-diagnosis seriously.
-(i) The inference path is deterministic: the classifier consumes the encoder output $h$
-at training \emph{and} at evaluation, so there is no sampled-code/evaluation-mean split.
-(ii) The stochastic bottleneck moves to a \emph{side path} --- a head $\mu(x) = Ah(x)$
-and a log-variance head parameterizing $q(z|x)$ --- which no inference path ever reads;
-this keeps the variational bound finite (a purely deterministic bottleneck admits none)
-without putting noise in front of the classifier.
-(iii) The label-conditional prior is \emph{fixed by design}: $r(z|y) = \Ncal(a v_y, \tau^2 I)$
-with $\{v_y\}$ an orthonormal frame stored as a non-trainable buffer, scaled by an
-\emph{anchor scale} $a$ --- the zero-penalty set is thereby the prescribed,
-class-separated anchor configuration rather than collapse or an underdetermined family.
-For regression the per-class table is replaced by fixed
-random-Fourier anchors on a sphere of radius $a$.
+FGIB (Section~\ref{sec:method}) makes three changes that follow from the diagnosis:
+(i) the inference path is deterministic --- the classifier consumes the encoder output
+$h$ at training \emph{and} at evaluation; (ii) the stochastic bottleneck moves to a
+\emph{side path} ($\mu(x) = Ah(x)$ plus a log-variance head) that no inference path ever
+reads, keeping the variational bound finite without putting noise in front of the
+classifier; (iii) the label-conditional prior is \emph{fixed by design},
+$r(z|y) = \Ncal(a v_y, \tau^2 I)$ with an orthonormal anchor frame, so the zero-penalty
+set is the prescribed class-separated configuration rather than collapse or an
+underdetermined family (regression: fixed random-Fourier anchors on a sphere of radius
+$a$).
 
 Freezing the reference is what buys the theory. Against a fixed $\mu_p$, the KL's
-displacement term is $\tfrac{1}{2\tau^2}\|\mu - \mu_p\|^2$ --- \emph{quadratic}, hence
-strictly convex, in the alignment scalar. Entropy-based compression terms are
-self-referential and enter linearly; a fixed anchor supplies an absolute reference frame
-and turns compression into a squared distance. The convexification that squared-IB
-\citep{kolchinsky2019caveats} installs by squaring the compression term is thereby built
-into FGIB's KL, and at fixed classifier scale every $\beta$ has a unique interior
-optimum on a strictly concave trade-off curve (Propositions~\ref{prop:sweep}
-and~\ref{prop:curve}). Equally important, the point at which the KL vanishes is no
-longer the origin: with per-class anchors it is the class-separated configuration
-$\mu_y = a v_y$, whose cross-entropy is $\ln(1 + (K{-}1)e^{-ca})$ and tends to $0$ as $a$
-grows, where a marginal $\Ncal(0,I)$ prior places $\KLd = 0$ at $\mu \equiv 0$ with
-cross-entropy $\ln K$ --- chance (Remark~\ref{rem:endpoint}). \emph{The degenerate corner
+displacement term $\tfrac{1}{2\tau^2}\|\mu - \mu_p\|^2$ is \emph{quadratic} in the
+alignment scalar --- the convexification squared-IB
+\citep{kolchinsky2019caveats} installs by hand is built in --- and at fixed classifier
+scale every $\beta$ has a unique interior optimum on a strictly concave trade-off curve
+(Propositions~\ref{prop:sweep} and~\ref{prop:curve}). Equally important, the KL now
+vanishes at the class-separated configuration $\mu_y = a v_y$, with cross-entropy
+$\ln(1 + (K{-}1)e^{-ca}) \to 0$ as $a$ grows, where a marginal $\Ncal(0,I)$ prior
+places $\KLd = 0$ at $\mu \equiv 0$ with cross-entropy $\ln K$ --- chance
+(Remark~\ref{rem:endpoint}). \emph{The degenerate corner
 is excluded by geometry rather than by the optimizer's good behavior.}
 
 \paragraph{The evidence.}
-We evaluate on 9 datasets spanning images, graphs, molecules, text and tabular
-regression, across MLP, CNN, GCN and LSTM backbones (12 task$\times$backbone settings),
-against six objectives: the deterministic backbone, VIB \citep{alemi2017vib}, squared-IB
+We evaluate on 9 datasets over MLP, CNN, GCN and LSTM backbones (12
+task$\times$backbone settings) against six objectives: the deterministic backbone, VIB
+\citep{alemi2017vib}, squared-IB
 \citep{kolchinsky2019caveats}, nonlinear IB \citep{kolchinsky2019nib}, CEB
 \citep{fischer2020ceb} and supervised $\beta$-DVCCA \citep{abdelaleem2025dvmib}. The
 sweep is $1{,}020$ configurations $\times$ 5 seeds $=5{,}100$ training runs, with every
@@ -188,13 +185,16 @@ hyperparameter selected on validation. Three findings, in Section~\ref{sec:exp}:
 \begin{itemize}
 \item FGIB attains the best mean rank ($1.75$ of $7$) and is best or tied-best on $7$ of
 $12$ settings; the next best entry is the deterministic backbone at $3.42$, and all five
-prior bottlenecks fall between $3.75$ and $5.08$ (Table~\ref{tab:main}). Outside the two
+prior bottlenecks fall between $3.75$ and $5.08$ (Table~\ref{tab:main}). The rank
+decomposes as $1.86$ on the seven classification settings, $1.60$ on the five
+regression settings, and $1.70$ (best or tied-best on $6$ of $10$) excluding the two
+AgeDB rows, whose image-level split leaks identity across the boundary
+(Appendix~\ref{app:data}). Outside the two
 settings with a weak backbone, no bottleneck --- FGIB included --- improves accuracy by
 more than about a point: the headline number is a rank, not a margin.
 \item Sweeping $\beta$ over a six-point grid spanning five orders of magnitude leaves FGIB within $0.52$ accuracy points of its
 backbone on \emph{every} classification setting, at a single globally fixed anchor scale,
-while VIB, CEB and DVCCA fall to the trivial predictor on all seven and SVIB loses more
-than 20 points on five (Table~\ref{tab:robust}). NIB is equally stable but largely inert:
+while VIB, CEB and DVCCA fall to the trivial predictor on all seven (Table~\ref{tab:robust}). NIB is equally stable but largely inert:
 its median gain at its \emph{best} $\beta$ is $-0.27$ points, so at the median its knob
 buys nothing. FGIB is the only objective in the study with both a non-destructive and a
 positive-median-gain knob --- the former robust, the latter task-set-sensitive
@@ -209,114 +209,58 @@ largest anchor, as the $(K{-}1)$ factor in the corner value predicts.
 
 \paragraph{What we do not claim.}
 Three of the failure channels are addressed by FGIB's construction; the object mismatch
-is not, and one of the closures is conditional. The side head $A$ is a second trainable, inference-unused
-party inside the KL, structurally in the same position as CEB's backward encoder
-(Remark~\ref{rem:A-channel}; its conditioning cost is measured in
-Section~\ref{sec:ablation}); the one-to-one sweep requires a bounded classifier scale
+is not, and one of the closures is conditional. In its \emph{canonical} configuration the
+side head is a fixed orthogonal map, anchoring the deployed representation directly
+with $\kappa(A^{\top}A)=1$ (Proposition~\ref{prop:orth}); a trainable side head is an
+\emph{optional} variant (Remark~\ref{rem:A-channel}; its conditioning cost is measured in
+Section~\ref{sec:ablation}, and its price for the closure is quantified in
+Table~\ref{tab:hanchor}) --- only the fixed-orthogonal configuration is covered by the
+closure claim. The one-to-one sweep
+requires a bounded classifier scale
 that the present implementation does not enforce (Remark~\ref{rem:c-scale}; enforced
-variants are tested in Section~\ref{sec:ablation}); and no
+variants are tested in Section~\ref{sec:ablation}); no
 finite certificate bounds the deployed deterministic residual, ours included
-(Proposition~\ref{prop:object}). The sweep result is a statement about a KL--CE surrogate
+(Proposition~\ref{prop:object}); and the sweep is a statement about a KL--CE surrogate
 curve on a class-symmetric family, not a recovered IB curve
 (Remark~\ref{rem:surrogate}). The robustness of the regularizer is carried by
 the anchor geometry rather than by the KL machinery or the frozenness of the anchor
-means --- on MNIST, and, at equal budget, on all 12 settings
-(Section~\ref{sec:ablation}); what the KL adds is the residual-information
-reading for the auxiliary code and the sweep theory, not a measured accuracy margin.
-Section~\ref{sec:limits-main} and
-Appendix~\ref{app:theory} keep a complete ledger of what is proved and what is open.
+means (Section~\ref{sec:ablation}); what the KL adds is the residual-information
+reading for the auxiliary code and the sweep theory, not a measured accuracy margin,
+and its realized objective is exactly a fixed-anchor center loss --- an identity, not an
+approximation (Proposition~\ref{prop:varfreeze}).
+Appendix~\ref{app:theory} keeps a complete ledger of what is proved and what is open.
 
 \section{Preliminaries: three failure channels and an object mismatch}
 \label{sec:prelim}
 
-\paragraph{Setup and notation.}
 $X$ is the input, $Y$ the label with $K$ classes, and an encoder induces the Markov chain
-$Y - X - Z$. We call $Y = f(X)$ (equivalently $H(Y|X)=0$) the \emph{deterministic
-scenario}. Following \citet{fischer2020ceb}, the CEB objective is
-$\min_Z I(X;Z|Y) - \gamma I(Y;Z)$ and the IB objective
-$\min_Z I(X;Z) - \beta_{\mathrm{IB}} I(Y;Z)$; the chain rule
-$I(X;Z|Y) = I(X;Z) - I(Y;Z)$ relates them. Throughout we use the loss convention
-$\CE + \beta\,\KLd$, in which $\beta = 1/\gamma$ and
-$\beta_{\mathrm{IB}} = 1 + 1/\beta$. The variational objects are
-\begin{align}
-R &= \mathbb{E}\big[\KLd(q(z|x)\,\|\,m(z))\big] \ \ge\ I(X;Z)
-&&\text{(VIB rate, marginal prior $m$)} \label{eq:rate}\\
-\ReX &= \mathbb{E}\big[\KLd(q(z|x)\,\|\,b_\theta(z|y))\big] \ \ge\ I(X;Z|Y)
-&&\text{(CEB residual, \emph{trainable} $b_\theta$)} \label{eq:rex}\\
-\ReX_F &= \mathbb{E}\big[\KLd(q(z|x)\,\|\,r(z|y))\big] \ \ge\ I(X;Z|Y)
-&&\text{(FGIB, \emph{fixed} anchor $r$).} \label{eq:rexf}
-\end{align}
-All three are instances of the gap identity
-$\mathbb{E}[\KLd(q(z|x)\|r(z|y))] = I(X;Z|Y) + \mathbb{E}_y[\KLd(q(z|y)\|r(z|y))]$
-(Lemma~\ref{lem:gap}): a bound plus a slack that measures how far the reference is from
-the true class-conditional marginal. Everything below turns on \emph{who is allowed to
-move that slack to zero}. For CEB the slack is a function of the backward encoder alone,
-so $b_\theta \to q(z|y)$ eliminates it with the encoder held fixed: the bound can become
-tight while the representation is entirely uncompressed. Several statements below assume
-the standard continuous setting ($X\,|\,Y$ non-atomic, and the induced representation
-non-atomic); no such conclusion is claimed for the finite empirical distribution.
-
-\paragraph{P1 --- the knob is dead in the deterministic scenario.}
-By the chain rule, CEB's objective is $I(X;Z) - (1+\gamma)I(Y;Z)$, and the
-data-processing inequality gives
-$L_\gamma(Z) \ge -\gamma I(Y;Z) \ge -\gamma H(Y)$ with equality iff
-$I(X;Z) = I(Y;Z)$ and $I(Y;Z) = H(Y)$. Every $\gamma > 0$ therefore has the same exact
-optimum --- the corner --- so
-$\gamma \mapsto (I(X;Z^*|Y), I(Y;Z^*))$ is constant and no interior point of the IB curve
-is ever a Lagrangian minimizer (Proposition~\ref{prop:dead}). Since
-$\beta_{\mathrm{IB}} = 1+\gamma > 1$ always, CEB sits in the regime that
-\citet{kolchinsky2019caveats} show to be degenerate over its \emph{entire} parameter
-range. \citet{kolchinsky2019caveats} themselves note that if one's goal \emph{is} the
-corner, this reads as $\beta$-robustness rather than failure. Remark~\ref{rem:mni}
-explains why that does not close the matter: the corner is one point in the information
-plane but an entire equivalence class of representations, and adversarial robustness,
-calibration and OoD detection --- the properties CEB is argued for --- are properties of
-the \emph{geometry} of $Z$, on which the objective is exactly constant. Which member of
-the class is reached is settled by the optimizer, i.e.\ by channels P3 and P4.
-
-\paragraph{P2 --- a certificate that is blind, and a $1{:}\beta$ exchange rate.}
-On the manifold $T_\alpha = B_\alpha \cdot Y$ of \citet{kolchinsky2019caveats}, $T_\alpha$
-is a function of $Y$ alone, so $I(X;T_\alpha|Y) = 0$ and, at the optimal backward encoder,
-$\ReX(T_\alpha) = 0$ for every $\alpha$ --- from total collapse ($\alpha = 0$, no label
-information) to full copy ($\alpha = 1$). Reading $\ReX$ as a meter of distance to the MNI
-point is therefore valid only along the $I(X;Z|Y)$ axis; on the necessity axis the meter
-reads $0$ at chance level. With the optimal classifier the objective is
-$\delta + \beta\,\ReX$ where $\delta = H(Y) - I(Y;T_\alpha)$, so it is indifferent between
-giving up $\delta$ nats of label information and saving $\delta/\beta$ nats of certified
-residual: in the heavy-regularization regime the whole label axis is purchasable for
-$H(Y)/\beta$ nats of certified compression (Proposition~\ref{prop:flat}).
-
-\paragraph{P3 --- the variance race.}
-For the diagonal Gaussian family the KL is stationary in the posterior variance at
-$\sigma^2 = \tau^2$, with residual value $\|m-g\|^2/(2\tau^2)$ --- pure mean matching. The
-cross-entropy term, however, is convex in $z$ for a linear classifier (the log-sum-exp of
-an affine function of $z$), so by Jensen
-$\mathbb{E}_z[\CE(c(z),y)] \ge \CE(c(m),y)$ and it strictly prefers $\sigma^2 \to 0$.
-Along the matched line the KL \emph{resists} shrinking $\tau^2$ only while the means are
-unmatched ($\partial_{\tau^2}\KLd = -\|m-g\|^2/(2\tau^4) < 0$); once $\|m-g\| \to 0$ the
-race is unopposed and runs to the implementation clamp $s = e^{-10}$, at which the
-certificate has become a mean-matching force of weight
-$1/s \approx 2.2\times 10^{4}$ between two trainable maps
-(Proposition~\ref{prop:variance}). Parts (ii)--(iii) of that proposition are a
-direction-of-force argument, not a convergence proof. We ran the falsification test it
-invites, by logging the trained log-variances (Section~\ref{sec:ablation}): at the
-early-stopping time scale of our protocol the race does not materialize --- CEB's
-variances remain at their initialization $\sigma^2 = \tau^2$ with zero clamp fraction on
-every $\beta$ --- so the convergence prediction of part~(iii) is empirically void under
-this protocol, exactly as Remark~\ref{rem:p3-status} allows.
-
-\paragraph{P4 --- the certified object is not the deployed object.}
-At the variance optimum the posterior standard deviation is class-constant, so
-$Z = \mu(X) + \sqrt{S(Y)}\,\varepsilon$ is a noisy function of $\mu(X)$ given $Y$ and the
-data-processing inequality gives $I(X;Z|Y) \le I(X;\mu(X)|Y)$. The gap is not a small
-correction: whenever $\mu$ is continuous and not class-constant the right-hand side is
-$+\infty$ \citep{amjad2020learning,kolchinsky2019nib}, so no finite quantity bounds the
-deployed residual. This applies to FGIB as well (Proposition~\ref{prop:object}); what
-differs is structural, not a tightness ordering. In CEB the perturbation is \emph{inside}
-the inference path and is driven by the prediction term, so removing it changes the
-model; in FGIB it lives on a side path that inference never reads and is controlled by
-side-path parameters alone. That is a cleaner separation of regularizer from model, and
-we claim nothing more for it.
+$Y - X - Z$; throughout we use the loss convention $\CE + \beta\,\KLd$ ($\beta = 1/\gamma$,
+$\beta_{\mathrm{IB}} = 1 + 1/\beta$). The variational objects
+$R = \mathbb{E}[\KLd(q(z|x)\|m(z))] \ge I(X;Z)$ (VIB's rate),
+$\ReX = \mathbb{E}[\KLd(q(z|x)\|b_\theta(z|y))] \ge I(X;Z|Y)$ (CEB's residual, trainable
+$b_\theta$), and $\ReX_F$ with a \emph{fixed} anchor $r$ are instances of the gap
+identity $\mathbb{E}[\KLd(q(z|x)\|r(z|y))] = I(X;Z|Y)
++ \mathbb{E}_y[\KLd(q(z|y)\|r(z|y))]$ (Lemma~\ref{lem:gap}): a bound plus a slack, and
+everything below turns on \emph{who is allowed to move that slack to zero} --- CEB's
+backward encoder can do it with the encoder held fixed, so its bound can be tight while
+the representation is entirely uncompressed. Four channels follow (proved in
+Appendix~\ref{app:theory}, stated in detail in Appendix~\ref{app:prelim-detail}):
+\emph{(P1) The knob is dead:} in the deterministic scenario every $\gamma>0$ of CEB has
+the same exact minimizer, the copy corner, so the Lagrangian never sweeps the IB curve
+(Proposition~\ref{prop:dead}). \emph{(P2) The certificate is blind on the necessity
+axis:} $\ReX$ is identically $0$ on the collapse-to-copy manifold $T_\alpha$ from total
+collapse to full copy, and the objective trades one nat of label information for
+$1/\beta$ nats of certified compression (Proposition~\ref{prop:flat}). \emph{(P3) The
+variances race:} the KL is stationary in $\sigma^2$ at $\sigma^2=\tau^2$ while the
+cross-entropy strictly prefers $\sigma^2 \to 0$, so once the means match the race runs
+to the clamp unopposed, degenerating the certificate into a mean-matching force of
+weight $e^{10}$ (Proposition~\ref{prop:variance}); the prediction is a
+direction-of-force argument. Measured on the full validation set, the race is invisible
+under the 100-epoch protocol but its direction shows up clearly by 400 epochs
+(Section~\ref{sec:ablation}, Remark~\ref{rem:p3-status}). \emph{(P4) The certified
+object is not the deployed object:} $I(X;Z|Y) \le I(X;\mu(X)|Y) = +\infty$ for any
+continuous non-class-constant $\mu$, so no finite certificate bounds the deployed
+deterministic residual --- CEB's or FGIB's (Proposition~\ref{prop:object}).
 
 \section{Method: the Fixed-Geometry Information Bottleneck}
 \label{sec:method}
@@ -333,7 +277,7 @@ q(z|x) = \Ncal\big(\mu(x),\,\Sigma(x)\big),
 \Sigma(x) = \mathrm{diag}\,\exp\!\big(\ell(h(x))\big),
 \label{eq:side}
 \end{equation}
-with a linear mean head $A$ and a log-variance head $\ell$. Neither head is evaluated at
+with a linear mean head $A$ and a log-variance head $\ell$, neither evaluated at
 inference. The label-conditional prior is a set of frozen buffers,
 \begin{equation}
 r(z|y) = \Ncal\big(a\,v_y,\ \tau^2 I\big),
@@ -341,46 +285,50 @@ r(z|y) = \Ncal\big(a\,v_y,\ \tau^2 I\big),
 V = [v_1,\dots,v_K] \ \text{orthonormal},\ \ V^{\top}V = I_K ,
 \label{eq:anchor}
 \end{equation}
-where $V$ is the orthonormal factor of the QR decomposition of a random matrix (requiring
-$K \le \dim z$), $a > 0$ is the \emph{anchor scale} and $\tau^2$ the \emph{anchor
-variance} (default $1$). The training objective is
+where $V$ is the orthonormal factor of the QR decomposition of a random matrix, $a > 0$
+the \emph{anchor scale} and $\tau^2$ the \emph{anchor variance} (default $1$). The
+training objective is
 \begin{equation}
 L_{\mathrm{FGIB}}
 = \mathbb{E}\big[\CE\big(c(h), y\big)\big]
 + \beta\,\mathbb{E}\big[\KLd\big(q(z|x)\,\|\,r(z|y)\big)\big] .
 \label{eq:loss}
 \end{equation}
-Gradients from the second term reach the main path only through the shared encoder; the
-cross-entropy gradient never enters the side heads. The log-variance head is
-zero-initialized, so training starts at $\sigma^2 = \tau^2$ and
-$\KLd \approx a^2/(2\tau^2)$: the anchor scale sets the initial regularization pressure.
+Gradients from the second term reach the main path only through the shared encoder. The
+log-variance head is zero-initialized, so training starts at $\sigma^2 = \tau^2$ and
+$\KLd \approx a^2/(2\tau^2)$ --- and it does not merely \emph{start} there:
+Result~\ref{res:varfreeze} below proves the variance stays pinned at $\tau^2$ for the
+entire run, so the realized regularizer is exactly
+$\tfrac{1}{2\tau^2}\|\mu - \mu_p\|^2$ at every step. The canonical
+configuration fixes the side head to an \emph{orthogonal} map --- with $\dim z = \dim h$
+one may take $A = I$ without loss (Result~\ref{res:orth}) --- so the anchor matching acts
+directly on the deployed representation; the trainable head of Eq.~\eqref{eq:side} is
+then an optional ablation, and we call the canonical form \emph{FGIB-H} ($A = I$).
 For regression the per-class table is replaced by fixed random-Fourier anchors
 \citep{rahimi2008random},
 $\mu_p(y) = a\sqrt{2/\dim z}\,\cos(2\pi\omega y + b)$ with $\omega \sim \Ncal(0,4)$ and
-$b \sim U[0,2\pi)$ frozen at initialization, so that $\|\mu_p(y)\| \approx a$ and the
-anchors lie near a sphere of radius $a$ --- the same geometric meaning $a$ carries in the
-classification case. Setting $a = 0$ recovers a shared $\Ncal(0,\tau^2 I)$ prior for every
-label, i.e.\ a VIB-style marginal (Remark~\ref{rem:a0}).
-
-Three design decisions distinguish this from CEB, and each targets one of P1--P4:
-the classifier consumes $h$ rather than $z$ (P3, P4); the two loss terms act on disjoint
-parameter sets (P3); and the reference is a buffer rather than a network (P1, P2).
+$b \sim U[0,2\pi)$ frozen at initialization, so that $\|\mu_p(y)\| \approx a$; setting
+$a = 0$ recovers a shared $\Ncal(0,\tau^2 I)$ prior, i.e.\ a VIB-style marginal
+(Remark~\ref{rem:a0}). Three design decisions distinguish this from CEB, each targeting
+one of P1--P4: the classifier consumes $h$ rather than $z$ (P3, P4); the two loss terms
+act on disjoint parameter sets (P3); the reference is a buffer rather than a network
+(P1, P2).
 
 \paragraph{Theory--implementation layering.}
-The analysis below idealizes the side head as a \emph{linear} invertible map
-$T(h) = Ah$ with $\dim z = \dim h$. The default configuration satisfies the dimension
-condition ($\dim z = 256$ equals the last hidden width), and a randomly initialized $A$ is
-almost surely invertible; but the implementation uses an \texttt{nn.Linear} \emph{with
-bias}, and imposes no orthogonality, invertibility or conditioning constraint on $A$ at
-any point during training. Results~\ref{res:equiv}--\ref{res:endpoint} are properties of
-the idealized model that the implementation approximates; they do not transfer
-automatically, and Section~\ref{sec:limits-main}(a) states the specific way in which the
-gap can widen. A second layering gap concerns the variational family: the exact KL
-invariance of Result~\ref{res:equiv} holds at the level of the underlying Gaussians, but
-the diagonal family the code parameterizes is not closed under $A^{-1}$, so within that
-family the identity is exact distributionally and approximate as a variational identity
-(Remark~\ref{rem:closure}). We state the theory for the idealized model and flag the gap
-rather than papering over it.
+The analysis idealizes the side head as a linear invertible map with
+$\dim z = \dim h$; the implementation uses an \texttt{nn.Linear} \emph{with bias} and no
+orthogonality, invertibility or conditioning constraint --- and that freedom is precisely
+what lets the trainable head absorb the anchor fit without moving $h$
+(Section~\ref{sec:limits-main}(a), measured in Section~\ref{sec:ablation}). The
+canonical FGIB-H configuration removes the gap rather than flagging it: $A = I$ is
+orthogonal and invertible by construction, so the idealizations below --- invertibility,
+conditioning, the pull-back reference of Result~\ref{res:equiv} --- hold exactly in the
+implementation; for the trainable head they hold as approximations, and
+Section~\ref{sec:limits-main}(a) states how the gap can widen when $A$ is freed. A
+second layering gap concerns the variational family: the exact KL invariance of
+Result~\ref{res:equiv} holds for the underlying Gaussians, but the diagonal family is
+not closed under $A^{-1}$, so within it the identity is exact distributionally and
+approximate as a variational identity (Remark~\ref{rem:closure}).
 
 \subsection{What the frozen reference buys}
 
@@ -399,13 +347,50 @@ perturbation is $\tau\,(A^{\top}A)^{-1/2}\varepsilon$: \emph{known, side-path-on
 whose covariance is a model parameter (Proposition~\ref{prop:inverse}).
 \end{result}
 
-This is what licenses calling the construction a bottleneck at all: the regularizer
+This licenses calling the construction a bottleneck at all: the regularizer
 carries a residual-information bound read in coordinates centered on the deployed
-representation --- an interpretation a bare prototype loss lacks, even though
-behaviorally the two coincide on MNIST (Section~\ref{sec:ablation}). The identity holds
+representation --- an interpretation a bare prototype loss lacks. The identity holds
 pointwise at each value of
-$A$; because $A$ moves during training, the pulled-back reference moves with it, which is
-the one channel FGIB leaves open (Section~\ref{sec:limits-main}).
+$A$; because a trainable $A$ moves, the pulled-back reference moves with it --- the one
+channel the trainable-head configuration leaves open, closed by the canonical
+configuration (Result~\ref{res:orth}).
+
+\begin{result}[A deterministic main path freezes the variance: the realized KL is a fixed-anchor center loss]
+\label{res:varfreeze}
+With the classifier consuming $h$ (never $z$), a zero-initialized log-variance head, a
+frozen prior log-variance $\ell_p = \ln\tau^2 = 0$, and a first-order optimizer without
+weight decay, the posterior log-variance is \emph{identically} $\ell_q \equiv \ell_p$ at
+every training step, and the regularizer is exactly
+$\KLd(q\,\|\,r) = \tfrac{1}{2\tau^2}\|\mu - \mu_p\|^2$ --- the KL of
+Result~\ref{res:sweep} evaluated permanently at the variance optimum, not merely in the
+limit. More generally, the per-coordinate gap $u = \ell_q - \ell_p$ obeys
+$\partial_u \KLd = \tfrac12(e^{u}-1)$, which carries the sign of $u$, so $u = 0$ is the
+unique attractor of any first-order descent: releasing the variance is exactly what makes
+VIB and CEB race to the clamp (Channel~P3), and the deterministic main path eliminates
+the race by design (Proposition~\ref{prop:varfreeze}). The same argument pins the
+posterior variance in every FGIB-family ablation, so FGIB, TAFGIB and CentFGIB are
+\emph{exactly} the same loss up to the trainability of the anchor means --- the
+ablation table's number-coincidence is an identity --- and the one variant that escapes
+the family, DCEB's trainable prior variance, is the one that collapses, at
+$\beta = 10$: the race re-enters through the prior
+(Corollary~\ref{cor:family}).
+\end{result}
+
+\begin{result}[A fixed orthogonal side head anchors the deployed representation]
+\label{res:orth}
+Let the side head be a fixed orthogonal map ($\dim z = \dim h$). Then
+$\|A h - a v_y\| = \|h - a\,A^{\top}v_y\|$, the rotated frame $\{A^{\top}v_y\}$ is
+orthonormal, and the regularizer is a fixed-anchor center loss on the deployed
+representation $h$ itself. The induced metric of Result~\ref{res:equiv} is
+$A^{\top}A = I$ with $\kappa = 1$ at every step: the pulled-back reference is orthonormal
+at scale $a$, the perturbation is exactly $\tau\,\varepsilon$ with unit covariance, and
+the conditioning counterexample of Proposition~\ref{prop:conditioning}(iii) is excluded
+by construction. For Haar-distributed random orthogonal $A$ the rotated frame is
+identically distributed to $\{v_y\}$ across seeds, so $A = I$ is a representative
+canonical choice (Proposition~\ref{prop:orth}). We call the canonical form
+\emph{FGIB-H} and measure its small price across settings
+(Section~\ref{sec:ablation}, Table~\ref{tab:hanchor}).
+\end{result}
 
 \begin{result}[Every $\beta$ selects a distinct interior optimum]
 \label{res:sweep}
@@ -430,16 +415,14 @@ onto the entire curve, which is strictly concave
 (Propositions~\ref{prop:sweep},~\ref{prop:curve}).
 \end{result}
 
-The mechanism deserves a sentence, because it is the whole point of freezing the
-reference. Compare the three objectives as functions of a single compression scalar.
-Deterministic-IB on hard clusterings gives $L^{\mathrm{dIB}}_\beta = (1-\beta)H(T)$ ---
-compression and prediction are the \emph{same} scalar, so the objective is monotone in it
-and every $\beta < 1$ picks the endpoint. Standard IB in the deterministic scenario has a
-piecewise-linear curve, $F'(r) \equiv 1$, so every point shares one supporting slope. Both
-are repaired in \citet{kolchinsky2019caveats} by \emph{squaring} the compression term,
-which makes $F'(r)/(2r)$ strictly decreasing by hand. FGIB needs no such surgery:
-$\KLd(\Ncal(\mu,\cdot)\|\Ncal(\mu_p,\cdot)) = \tfrac{1}{2\tau^2}\|\mu-\mu_p\|^2 +
-\text{(variance terms)}$ is quadratic in the displacement \emph{whenever $\mu_p$ does not
+The mechanism is the whole point of freezing the
+reference. Deterministic-IB on hard clusterings has compression and prediction as the
+\emph{same} scalar, so the objective is monotone in it; standard IB in the deterministic
+scenario has a piecewise-linear curve with a single supporting slope. Both are repaired
+in \citet{kolchinsky2019caveats} by \emph{squaring} the compression term by hand. FGIB
+needs no surgery:
+$\KLd = \tfrac{1}{2\tau^2}\|\mu-\mu_p\|^2 + \text{(variance terms)}$ is quadratic in the
+displacement \emph{whenever $\mu_p$ does not
 move}. Entropy-based compression is self-referential --- it depends only on the
 representation's own distribution; a fixed anchor supplies an absolute frame and turns
 compression into a squared distance. The convexification is inherited, not installed.
@@ -471,57 +454,21 @@ Tables~\ref{tab:robust} and~\ref{tab:anchor}.
 \label{sec:limits-main}
 
 We state the open items here rather than in a closing paragraph, because two of them bear
-on how the experiments should be read.
-
-\emph{(a) The side head is a second trainable party.} The equivalence of
-Result~\ref{res:equiv} holds \emph{at each fixed} $A$, and $A$ is trainable and unused at
-inference --- structurally the same position CEB's backward encoder occupies on the other
-side of the KL. Since $h$ is linearly separable by the jointly trained classifier, much of
-the anchor fit can be absorbed by $A$ alone, and nothing in the objective resists $A$
-drifting toward a projector onto the $K$-dimensional between-class subspace. Full collapse
-is blocked (with $A$ invertible, $\KLd = 0$ forces $h$ itself to be class-constant), but
-the approach to the rank-$K$ regime is not, and that is exactly where the conditioning of
-$A^{\top}A$ --- which governs the size of the side-path perturbation in
-Result~\ref{res:equiv} --- degrades without bound (Remark~\ref{rem:A-channel},
-Proposition~\ref{prop:conditioning}(iii)). This channel is \emph{not} closed. The
-measurement of Section~\ref{sec:ablation} quantifies how badly it degrades on MNIST:
-$\kappa(A^{\top}A)$ rises to $10^{5.8}$--$10^{6.8}$, i.e.\ severely ill-conditioned,
-with predictive accuracy unaffected.
-
-\emph{(b) The sweep needs a bounded classifier scale.} If $c$ is free, then
-$(s,c) = (a,\infty)$ sends $\KLd \to 0$ and $\CE \to 0$ simultaneously, so the infimum of
-$L_\beta$ is $0$ for every $\beta$ and Result~\ref{res:sweep} has no global counterpart
---- the FGIB analogue of the dead knob, reached by growing the margin rather than by the
-linearity of the IB curve. Our classifier is an unconstrained \texttt{nn.Linear} trained
-by Adam without weight decay, so the proposition is conditional as implemented. A
-fixed-temperature cosine classifier satisfies the assumption by construction; weight decay
-only mitigates the divergence (Remark~\ref{rem:c-scale}). One consequence matters for
-Section~\ref{sec:exp}: since $s^*$ drifts toward $a$ as $c$ grows, part of any observed
-$\beta$-effect under early stopping is plausibly an early-stopping effect, and we have not
-separated the two.
-
-\emph{(c) The certificate still does not bound the deployed residual.} P4 applies to FGIB
-unchanged (Proposition~\ref{prop:object}(b)). What FGIB buys is that the perturbation is
-side-path-only and its covariance is a known model parameter --- a cleaner separation of
-regularizer from model, not a tighter or more valid bound (Remark~\ref{rem:senses}).
-
-\emph{(d) The compressed endpoint is designed, not certified.} Caveat~2 of
-\citet{kolchinsky2019caveats} identifies as uninteresting those variables that compress by
-mixing a constant map with a copy of $Y$; FGIB's compressed corner $\mu_y = a v_y$ is a
-deterministic function of $Y$ alone, i.e.\ a label code of exactly that kind. The
-orthonormal frame is in fact \emph{opposed} to the semantic compression Caveat~2 holds up
-as interesting: it places every pair of classes at the same distance and can never express
-``merge these two classes, keep both far from that one''. What the anchors do is choose
-\emph{one specific} label-code geometry --- a neural-collapse-like configuration
-\citep{papyan2020prevalence} --- instead of leaving it to the optimizer, and refuse the
-chance-level corner. Any claim that FGIB compresses \emph{input} semantics at that
-endpoint is the claim Caveat~2 rules out (Remark~\ref{rem:endpoint}).
-
-\emph{(e) The sweep is over a surrogate.} Result~\ref{res:sweep} concerns the
-$(\KLd_{\mathrm{anchor}}, \CE)$ plane on the aligned family, not the information plane
-$(I(X;T), I(Y;T))$. On that family the posterior is class-constant, so $I(X;Z|Y) = 0$ for
-every $s$; what varies along the sweep is anchor mismatch and classifier margin, not a
-proved compression of mutual information (Remark~\ref{rem:surrogate}).
+on how the experiments should be read. \emph{(a) A trainable side head is a second
+trainable party in the KL} --- structurally CEB's backward encoder --- and it can absorb
+the anchor fit without moving $h$; the canonical fixed-orthogonal head closes this
+channel by construction, and the measurement of Section~\ref{sec:ablation} shows the
+trainable variant's $\kappa(A^{\top}A)$ degrades to $10^{5.8}$--$10^{6.8}$ while
+accuracy is unaffected, so the freedom buys nothing (Appendix~\ref{app:limits}). \emph{(b)
+The sweep needs a bounded classifier scale} $c$; the implementation leaves it free, so
+Result~\ref{res:sweep} is conditional as implemented, and enforced-scale variants are
+tested on MNIST (Section~\ref{sec:ablation}). \emph{(c) The certificate still does not
+bound the deployed residual} (P4 applies unchanged). \emph{(d) The compressed endpoint is
+designed, not certified:} the anchor corner is a label code, not semantic compression
+(Remark~\ref{rem:endpoint}). \emph{(e) The sweep is over a surrogate:} the
+$(\KLd_{\mathrm{anchor}},\CE)$ plane on the aligned family, not the information plane
+(Remark~\ref{rem:surrogate}). The full statement of each item is in
+Appendix~\ref{app:limits}.
 
 \section{Experiments}
 \label{sec:exp}
@@ -529,65 +476,51 @@ proved compression of mutual information (Remark~\ref{rem:surrogate}).
 \subsection{Setup}
 
 \paragraph{Tasks and backbones.}
-We use 9 datasets over 4 backbones, giving 12 task$\times$backbone settings.
-\emph{Classification:} MNIST \citep{lecun1998mnist} with MLP and CNN backbones;
-ImageNet-100 \citep{deng2009imagenet} as frozen ResNet-50 \citep{he2016resnet} layer-3
-features pooled to $1024\times4\times4$, with MLP and CNN backbones; Cora
-\citep{sen2008collective} transductive node classification with a GCN
-\citep{kipf2017gcn}; IMDb \citep{maas2011imdb} and AG News \citep{zhang2015character}
-(frozen BERT \citep{devlin2019bert} token features, PCA to 50 dimensions) with LSTM
-\citep{hochreiter1997lstm} encoders. \emph{Regression:} California Housing
-\citep{pace1997sparse} with an MLP; STS-B \citep{cer2017semeval,wang2019glue} with a
-GloVe-initialized \citep{pennington2014glove} LSTM; ZINC-12k
-\citep{dwivedi2023benchmarking} graph-level regression with a GCN; AgeDB
-\citep{moschoglou2017agedb} face-age regression at $64\times64$ RGB with MLP and CNN
-backbones. Splits are $60/20/20$ (seed 42) except ZINC, which uses the official
-$10{,}000/1{,}000/1{,}000$ split; several of these are custom rather than official
-splits (IMDb, STS-B, Cora, AgeDB), so absolute numbers are not comparable with published
-benchmark values --- every comparison in this paper is internal to the same split.
-AgeDB carries a further caveat: the split is image-level, under which $562$ of $567$
-subjects appear on both sides of the train/test boundary (a subject-disjoint split is
-implemented in the released code). Appendix~\ref{app:data} gives the full preprocessing.
+We use 9 datasets over 4 backbones, giving 12 task$\times$backbone settings: MNIST
+\citep{lecun1998mnist} (MLP/CNN), ImageNet-100 \citep{deng2009imagenet} frozen ResNet-50
+\citep{he2016resnet} layer-3 features pooled to $1024\times4\times4$ (MLP/CNN), Cora
+\citep{sen2008collective} transductive node classification (GCN \citep{kipf2017gcn}),
+IMDb \citep{maas2011imdb} and AG News \citep{zhang2015character} (frozen BERT
+\citep{devlin2019bert} token features, PCA-50) with LSTM \citep{hochreiter1997lstm}
+encoders; and the regressions California Housing \citep{pace1997sparse} (MLP), STS-B
+\citep{cer2017semeval,wang2019glue} (GloVe \citep{pennington2014glove} LSTM), ZINC-12k
+\citep{dwivedi2023benchmarking} graph-level regression (GCN), and AgeDB
+\citep{moschoglou2017agedb} face-age regression at $64\times64$ RGB (MLP/CNN). Splits
+are $60/20/20$ (seed 42) except ZINC (official $10{,}000/1{,}000/1{,}000$); several
+splits are custom, so every comparison in this paper is internal to the same split.
+AgeDB's image-level split leaks identity across the boundary ($562$ of $567$ subjects);
+a subject-disjoint control, run here, preserves the objective ordering
+(Table~\ref{tab:agedb-disjoint}), so the leak inflates magnitudes but does not create
+the pattern. Appendix~\ref{app:data} gives the preprocessing.
 
 \paragraph{Objectives.}
-Each backbone carries the same seven heads: the deterministic backbone (task loss only),
-VIB \citep{alemi2017vib}, squared-IB \citep[SVIB, penalty $\beta\KLd^2$]{kolchinsky2019caveats},
+Each backbone carries the same seven heads: the deterministic backbone, VIB
+\citep{alemi2017vib}, squared-IB \citep[SVIB, penalty $\beta\KLd^2$]{kolchinsky2019caveats},
 nonlinear IB \citep[NIB, non-parametric pairwise bound, learned noise
 variance]{kolchinsky2019nib}, CEB \citep[diagonal-Gaussian backward
 encoder]{fischer2020ceb}, supervised $\beta$-DVCCA
 \citep[VIB plus an input-reconstruction decoder]{abdelaleem2025dvmib}, and FGIB. For
 regression, CEB and FGIB condition their priors on the min-max-scaled continuous target.
-Every variant shares the encoder architecture, the bottleneck dimension
-($\dim z = 256$) and the optimizer, so differences are attributable to the objective.
-One caveat on $\beta$ comparability: the objectives' compression terms are not
-dimensionally identical --- NIB's pairwise bound is computed in nats (the original
-paper's bits differ by $\ln 2$), and DVCCA's $\beta$ weights a reconstruction term
-alongside the KL. Equal $\beta$ values therefore do not imply equal regularization
-strength, and the protocol treats $\beta$ as a per-objective knob swept independently and
-selected on validation, never as a shared axis of equal compression.
+Every variant shares the encoder, the bottleneck dimension ($\dim z = 256$) and the
+optimizer. The objectives' compression terms are not dimensionally identical (NIB's
+bound is in nats; DVCCA's $\beta$ also weights reconstruction), so $\beta$ is treated as
+a per-objective knob swept independently and selected on validation, never as a shared
+axis of equal compression.
 
 \paragraph{Protocol.}
 Adam \citep{kingma2015adam} at $10^{-3}$ ($10^{-2}$ for Cora), batch size 512 (128 for
 ZINC), at most 100 epochs, early stopping with patience 10 on validation macro-AUC
-(classification) or validation $R^2$ (regression); the best-validation checkpoint is
-evaluated on test. Each configuration is run 5 times with seeds $0..4$ and we report the
-mean over runs. The grid is $\beta \in \{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ for every
-bottleneck, and additionally $a \in \{1,2,4,6,8,10,12,14,16\}$ for FGIB: $85$
-configurations per setting, $1{,}020$ in total, $5{,}100$ training runs.
-\textbf{Hyperparameters are selected on validation, never on test}: for each cell we take
-the configuration with the highest mean best-epoch validation score and report \emph{its}
-test score. Because validation AUC saturates on the easier classification tasks and is
-logged to four decimals, exact ties occur (in 9 of the 72 bottleneck cells); we break them
-with a second validation quantity --- the validation accuracy (regression: MAE) at the
-same best epoch --- and, in the event that both tie, by fixed grid order (smallest
-$\beta$, then smallest $a$), so that no step of selection ever consults the test set.
-FGIB is thus selected over a $6\times9$ grid
-where the other bottlenecks are
-selected over a 6-point grid --- a search-budget advantage we return to below, together
-with an equal-budget control. Standard
-deviations over the 5 runs and the hyperparameter selected in each cell are reported in
-Appendix~\ref{app:tables}. The confound ablations and diagnostics of
-Section~\ref{sec:ablation} use the identical protocol on MNIST/MLP.
+(classification) or validation $R^2$ (regression); each configuration is run 5 times
+with seeds $0..4$ and we report the mean over runs. The grid is
+$\beta \in \{10^{-4},\dots,10\}$ for every bottleneck plus
+$a \in \{1,\dots,16\}$ for FGIB: $1{,}020$ configurations, $5{,}100$ runs.
+\textbf{Hyperparameters are selected on validation, never on test}: each cell reports
+the test score of its best mean-validation configuration, with exact ties broken by a
+second validation quantity and then fixed grid order, so no selection step consults the
+test set. FGIB is thus selected over a $6\times9$ grid where the others use 6 points ---
+a search-budget advantage we return to with an equal-budget control. Per-run standard
+deviations and selected hyperparameters are in Appendix~\ref{app:tables}; the ablations
+of Section~\ref{sec:ablation} use the identical protocol on MNIST/MLP.
 
 \input{tables/tab_main.tex}
 
@@ -596,44 +529,38 @@ Section~\ref{sec:ablation} use the identical protocol on MNIST/MLP.
 Table~\ref{tab:main} reports the validation-selected configuration of each objective.
 FGIB attains the best mean rank, $1.75$ of $7$, and is best or tied-best on 7 of the 12
 settings; the runner-up is the deterministic backbone at $3.42$, and the five prior
-bottlenecks occupy $3.75$ (VIB) to $5.08$ (NIB). The seven wins span every modality and
-backbone in the study --- both ImageNet-100 backbones, MNIST/MLP, Cora (tied with the
-GCN), California Housing ($79.85$ vs.\ $79.01$ for the best prior bottleneck), STS-B
-($29.35$, the only objective to beat its backbone there) and AgeDB/CNN --- and where FGIB
-does not win it is close: within $0.07$ points of the winner on MNIST/CNN ($99.27$ vs.\
-$99.28$), IMDb ($86.04$ vs.\ $86.11$) and ZINC ($63.42$ vs.\ $63.48$). The two settings
-where it is clearly beaten are AG News ($92.71$ vs.\ $92.94$ for the plain LSTM) and
-AgeDB/MLP ($32.71$ vs.\ $33.85$ for SVIB).
+bottlenecks occupy $3.75$ (VIB) to $5.08$ (NIB). The wins span every modality and
+backbone, and where FGIB does not win it is close (within $0.07$ points on MNIST/CNN,
+IMDb and ZINC); it is clearly beaten only on AG News ($92.71$ vs.\ $92.94$) and
+AgeDB/MLP ($32.71$ vs.\ $33.85$).
 
 Three qualifications are essential. First, \emph{the margins are small}. Excluding the two
-settings where every bottleneck helps a weak backbone (California Housing, $+2.4$ to
-$+3.7$ points over the MLP; AgeDB/MLP, $+5.3$ to $+12.1$), no objective \emph{improves}
+settings where every bottleneck helps a weak backbone, no objective \emph{improves}
 on its backbone by more than about one point, and on 3 of 12 settings the deterministic
-backbone is still best or tied-best. Losses, by contrast, can be large even at the
-validation-selected optimum: SVIB gives up $10.1$ points on Cora and NIB $4.8$ on STS-B.
-Anyone reading Table~\ref{tab:main} as evidence that information bottlenecks substantially
-improve in-distribution accuracy is reading it wrong; what it shows is that FGIB is the
+backbone is still best or tied-best; losses can be large even at the
+validation-selected optimum (SVIB gives up $10.1$ points on Cora). Reading
+Table~\ref{tab:main} as evidence that bottlenecks substantially
+improve in-distribution accuracy is reading it wrong; it shows that FGIB is the
 only one that is reliably not \emph{worse}. Second,
 \emph{FGIB's selection grid is $9\times$ larger}. The equal-budget control --- the last
-column of Table~\ref{tab:main-std} --- selects FGIB over the same 6-point $\beta$ grid at
-$a=16$ as a post-hoc sensitivity control (one globally fixed anchor scale): its mean rank falls from $1.75$ to $2.33$ and its best-or-tied
-count from $7$ to $6$ of $12$, still ahead of the deterministic backbone ($3.42$) and of
-every prior bottleneck ($3.75$--$5.08$). Part of the rank advantage is therefore search
-budget; the ordering of methods is not. Third, \emph{the rank gaps are backed by paired
-statistics, and we report their sensitivity}. Table~\ref{tab:paired} reports per-seed
-paired differences against the backbone with bootstrap $95\%$ confidence intervals
-(over the 5 paired seeds --- these intervals describe training randomness, not split
-uncertainty, since all runs share one split). A Wilcoxon signed-rank test over the $12$
-setting-level paired means finds FGIB the only objective whose gain over its own
-backbone is significantly positive ($p=0.014$; at the equal-budget $a=16$ control,
-$p=0.12$), and FGIB beats each of the five prior bottlenecks pairwise ($p \le 0.016$ in
-every case, all five remaining significant at the $0.05$ level under Holm correction).
-The gain result is, however, task-set-sensitive, and we say so plainly: excluding the
-two AgeDB rows --- whose image-level split leaks identity across the boundary
-(Appendix~\ref{app:data}) and whose gains are correspondingly inflated --- the mean
-paired gain of FGIB falls from $+1.46$ to $+0.62$ points (median $+0.16$) and the
-Wilcoxon $p$-value from $0.014$ to $0.055$, while the mean rank ($1.70$ of 7,
-best-or-tied on $6$ of $10$ settings) and the stability results are unchanged. We
+column of Table~\ref{tab:main-std}, the same 6-point $\beta$ grid at a fixed $a=16$
+(post-hoc) --- has mean rank $2.33$ and best-or-tied $6$ of $12$, still ahead of the
+backbone ($3.42$) and every prior bottleneck ($3.75$--$5.08$): part of the rank
+advantage is search budget; the ordering of methods is not
+(Table~\ref{tab:anchor-ranks} shows the fixed-anchor rank ranges from $2.00$ at $a=14$
+to $3.17$ at $a=1$). Third, \emph{the rank gaps are backed by paired statistics, and we
+report their sensitivity}. Table~\ref{tab:paired} reports per-seed paired differences
+against the backbone with bootstrap $95\%$ CIs (over the 5 paired seeds; the intervals
+describe training randomness, not split uncertainty). A Wilcoxon test over the 12
+setting-level paired means finds FGIB the only objective whose gain over its backbone
+is significantly positive ($p=0.014$; $p=0.12$ at the equal-budget control), and FGIB
+beats each prior bottleneck pairwise ($p \le 0.016$, all significant under Holm). The
+gain result is task-set-sensitive, and we say so plainly: excluding the two AgeDB rows
+the mean paired gain falls from $+1.46$ to $+0.62$ points and the Wilcoxon $p$-value
+from $0.014$ to $0.055$, while the mean rank ($1.70$, best-or-tied on $6$ of $10$
+settings) and the stability results are unchanged; a subject-disjoint AgeDB split
+preserves the objective ordering (Table~\ref{tab:agedb-disjoint}), so the leak inflates
+magnitudes without creating the pattern. We
 therefore take the \emph{rank and the non-destructiveness of the knob} as the primary
 statistical claims, treat the gain-over-backbone as marginal and sensitive, and exclude
 AgeDB from the core statistical statements of this section.
@@ -643,52 +570,44 @@ AgeDB from the core statistical statements of this section.
 \subsection{The knob: FGIB is the only objective whose $\beta$ is both safe and useful}
 \label{sec:knob}
 
-The prediction of Result~\ref{res:endpoint} is not about the tuned optimum; it is about
-what happens at the \emph{other} end of the sweep. A marginal-prior bottleneck places its
-$\KLd = 0$ point at $\mu \equiv 0$, so raising $\beta$ far enough must drive it to the
-trivial predictor; FGIB's $\KLd = 0$ point is class-separated, so raising $\beta$ should
-not. Table~\ref{tab:robust} measures exactly this: for each objective we take the
-\emph{worst} test score produced by any $\beta$ in the grid, and report the deficit
-against the deterministic backbone of the same row.
+Result~\ref{res:endpoint} predicts what happens at the \emph{other} end of the sweep: a
+marginal-prior bottleneck has its $\KLd = 0$ point at $\mu \equiv 0$, so raising $\beta$
+far enough must drive it to the trivial predictor; FGIB's $\KLd = 0$ point is
+class-separated. Table~\ref{tab:robust} measures exactly this: for each objective we
+take the \emph{worst} test score produced by any $\beta$ in the grid, and report the
+deficit against the deterministic backbone of the same row.
 
 The separation is stark. VIB, CEB and DVCCA are driven below the trivial predictor on all
-7 classification settings and on most regression settings; their median worst-case
-deficits are $71.9$, $66.1$ and $79.1$ points. SVIB is only marginally better ($64.8$
-median, destroyed in 10 of 12 settings), which is what Remark~\ref{rem:endpoint}
-predicts: squaring the KL does not move the corner, because $\KLd^2$ is stationary where
-$\KLd$ vanishes. FGIB's median worst-case deficit is $0.31$ points at the
-validation-selected anchor and $0.35$ at a fixed $a=16$. On classification with $a=16$ the
-worst case over a six-point grid spanning five orders of magnitude of $\beta$ is within $0.52$ points of the backbone on
-\emph{every} one of the seven settings (MNIST/MLP $0.02$, MNIST/CNN $-0.02$,
-ImageNet-100/MLP $0.17$, ImageNet-100/CNN $0.41$, Cora $0.52$, IMDb $-0.45$, AG News
-$0.29$) --- against deficits of $34$--$88$ points for VIB, CEB and DVCCA on the same rows.
+7 classification settings (median worst-case deficits $71.9$, $66.1$, $79.1$ points);
+SVIB is only marginally better ($64.8$), as Remark~\ref{rem:endpoint} predicts: squaring
+the KL does not move the corner. FGIB's median worst-case deficit is $0.31$ points at the
+validation-selected anchor and $0.35$ at fixed $a=16$; on classification the worst case
+over the six-point, five-order-of-magnitude $\beta$ grid is within $0.52$ points of the
+backbone on \emph{every} one of the seven settings (per-setting values in
+Table~\ref{tab:robust}) --- against deficits of $34$--$88$ points for VIB, CEB and DVCCA
+on the same rows.
 
-NIB is the interesting control. It is as stable as FGIB (median deficit $0.53$, destroyed
-in only 2 settings), but for a different reason and at a different price: its
-non-parametric bound saturates at $\ln N$ with exponentially vanishing gradient once the
-noise is small relative to the cluster spread \citep[\S IV A]{kolchinsky2019nib}, so it is
-stable largely because the knob barely acts --- on MNIST/MLP, for instance, its accuracy
-moves from $98.15$ to $98.27$ across the entire six-decade sweep. Table~\ref{tab:robust}
-reports two gain summaries, and the distinction matters. The first row, ``median gain at
-best $\beta$'', takes the maximum over the grid of the \emph{test} score: it is an
-exploratory upper bound, not a model-selection result, and we label it as such. On it NIB
-scores $-0.27$ points --- it beats its own backbone on only 4 of the 12 settings (by
-$+5.3$ on AgeDB/MLP, $+2.4$ on California Housing, $+1.3$ on IMDb and $+0.1$ on MNIST/CNN)
-and loses on the other 8, so even with test-selected optimism the knob is not worth
-turning. VIB ($-0.15$), SVIB ($-0.14$), CEB ($-0.22$) and DVCCA ($-0.15$) are likewise
-negative; only FGIB is positive ($+0.39$, or $+0.27$ at fixed $a=16$). The second row
-is the protocol-clean quantity: the median gain at the \emph{validation-selected}
-configuration of Table~\ref{tab:main}. It moves FGIB to $+0.26$ points ($+0.20$ at
-$a=16$) and the five prior bottlenecks to $-0.21$, $-0.23$, $-0.37$, $-0.30$ and $-0.24$:
-the conclusion --- FGIB alone has a knob worth turning --- survives the
-protocol correction. \emph{Among the six bottlenecks, FGIB is the only one whose
-compression knob is both non-destructive --- uniformly so on classification, at the
-median overall --- and, at the median, worth turning.}
+NIB is the interesting control. It is as stable as FGIB (median deficit $0.53$), but for
+a different reason and at a different price: its non-parametric bound saturates at
+$\ln N$ with exponentially vanishing gradient once the noise is small relative to the
+cluster spread \citep[\S IV A]{kolchinsky2019nib}, so it is stable largely because the
+knob barely acts --- on MNIST/MLP its accuracy moves from $98.15$ to $98.27$ across the
+entire sweep. Table~\ref{tab:robust} reports two gain summaries, and the distinction
+matters. ``Median gain at best $\beta$'' takes the maximum over the grid of the
+\emph{test} score --- an exploratory upper bound, not a model-selection result --- and on
+it NIB scores $-0.27$ points: even with test-selected optimism the knob is not worth
+turning, and VIB, SVIB, CEB, DVCCA ($-0.15$, $-0.14$, $-0.22$, $-0.15$) are likewise
+negative; only FGIB is positive ($+0.39$; $+0.27$ at $a=16$). The protocol-clean row is
+the median gain at the \emph{validation-selected} configuration of Table~\ref{tab:main}:
+FGIB $+0.26$ ($+0.20$ at $a=16$), the five prior bottlenecks $-0.21$ to $-0.37$ --- the
+conclusion survives the protocol correction. \emph{Among the six bottlenecks, FGIB is
+the only one whose compression knob is both non-destructive and, at the median, worth
+turning.}
 
 The exceptions are informative and we do not hide them. FGIB is destroyed --- worst case
 worse than the backbone by more than 5 points --- in 3 of 12 settings at $a=16$, and all
-three are regression: STS-B ($13.2$ points of $R^2$), AgeDB ($15.6$ CNN, $24.0$ MLP), with
-ZINC just below threshold at $4.5$. We therefore report the regression results as
+three are regression: STS-B ($13.2$ points of $R^2$), AgeDB ($15.6$ CNN, $24.0$ MLP),
+with ZINC just below threshold at $4.5$. We therefore report the regression results as
 \emph{exploratory} and keep the core claims on classification. The theory anticipates
 this asymmetry: the
 random-Fourier anchor construction for continuous targets is a transfer argument, not a
@@ -696,40 +615,28 @@ proof, and it inherits both the fixed-scale and the conditioning caveats
 (Remark~\ref{rem:caveats}). Whatever protects the compressed corner in the orthonormal
 per-class case does not transfer intact to the RFF case.
 
-\input{tables/tab_anchor.tex}
-
 \subsection{The anchor scale is the dial the theory says it is}
 
-Result~\ref{res:endpoint} makes a sharper claim than ``FGIB is robust'': it says
-\emph{why}, and therefore says when robustness should fail. The compressed corner costs
-$\CE = \ln(1+(K{-}1)e^{-ca})$, which is small only when $ca$ is large relative to
-$\ln(K{-}1)$; and at $a \to 0$ the anchors merge onto a single origin and FGIB degenerates
-to a VIB-style marginal prior (Remark~\ref{rem:a0}), whose corner is chance.
-Table~\ref{tab:anchor} holds $\beta$ at the largest value in the grid --- maximum
-compression pressure, where the corner dominates --- and varies $a$.
+Result~\ref{res:endpoint} says \emph{why} FGIB is robust, and therefore when robustness
+should fail: the compressed corner costs $\CE = \ln(1+(K{-}1)e^{-ca})$, small only when
+$ca$ is large relative to $\ln(K{-}1)$; at $a \to 0$ the anchors merge onto a single
+origin and FGIB degenerates to a VIB-style marginal prior (Remark~\ref{rem:a0}).
+Table~\ref{tab:anchor} holds $\beta$ at the largest grid value --- maximum compression
+pressure --- and varies $a$.
 
-The prediction holds. At $a=1$, FGIB behaves like the marginal-prior bottlenecks it is
-supposed to differ from: $1.0\%$ on ImageNet-100/MLP (chance for 100 classes), $26.6\%$ on
-Cora (below the $30\%$ majority class), $R^2 = -0.001$ on AgeDB/MLP (the mean predictor).
-Growing $a$ recovers the backbone. On ImageNet-100/MLP the recovery is strictly monotone
---- $1.0 \to 2.0 \to 35.8 \to 66.0 \to 77.8 \to 81.7 \to 82.5 \to 82.7 \to 83.0$, ending
-$0.2$ points below its deterministic backbone --- and it is the only row that is. Eight
-further rows recover with local dips: Cora rises to $86.8$ at $a{=}8$, falls to $85.2$,
-and ends at $87.2\%$, $0.5$ points below its GCN; AgeDB/MLP dips from $24.9$ at $a{=}6$ to
-$12.9$ at $a{=}8$ before reaching $R^2 = 0.293$, which is $7.5$ points \emph{above} its
-backbone. The trend, not the monotonicity, is what the theory predicts, and it holds on 10
-of the 12 rows.
-
-The two rows with no upward trend are the two the theory says should not have one. IMDb is
-binary, so the corner value $\ln(1 + (K{-}1)e^{-ca})$ is already negligible at $a=1$: there
-is nothing for a larger anchor to rescue, and indeed the whole row sits between $85.3$ and
-$86.3$, above its backbone at every $a$. ZINC is a regression row, where the
-random-Fourier anchors carry no corresponding guarantee (Remark~\ref{rem:caveats}); it
-drifts from $60.2$ down to $58.9$ and stays $4$--$6$ points below its GCN throughout ---
-the same failure already recorded in Table~\ref{tab:robust}. Consistent with
-the $(K{-}1)$ factor, the 100-class task needs by far the largest anchor:
-MNIST/MLP ($K{=}10$) is already within $0.3$ points of its backbone at $a=1$, whereas
-ImageNet-100/MLP is at chance there and needs $a \ge 10$ to come within $1.5$ points.
+The prediction holds. At $a=1$, FGIB behaves like the marginal-prior bottlenecks: $1.0\%$
+on ImageNet-100/MLP (chance for 100 classes), $26.6\%$ on Cora (below the majority
+class), $R^2 = -0.001$ on AgeDB/MLP (the mean predictor). Growing $a$ recovers the
+backbone --- monotonically on ImageNet-100/MLP ($1.0 \to \dots \to 83.0$, $0.2$ below its
+backbone), with local dips elsewhere (Cora ends $87.2\%$, AgeDB/MLP $R^2 = 0.293$, $7.5$
+points \emph{above} its backbone). The trend, not the monotonicity, is what the theory
+predicts, and it holds on 10 of the 12 rows. The two rows with no upward trend are the
+two the theory says should not have one: IMDb is binary, so the corner value is already
+negligible at $a=1$ (the whole row sits above its backbone at every $a$); ZINC is a
+regression row, where the random-Fourier anchors carry no corresponding guarantee
+(Remark~\ref{rem:caveats}) and it stays $4$--$6$ points below its GCN throughout.
+Consistent with the $(K{-}1)$ factor, the 100-class task needs by far the largest anchor
+(MNIST/MLP, $K{=}10$, is within $0.3$ points at $a=1$; ImageNet-100/MLP needs $a \ge 10$).
 
 The formula does not predict the transition threshold, and we should not pretend it does.
 Cora ($K{=}7$) collapses at $a \le 2$ where MNIST ($K{=}10$) does not, so $K$ is not the
@@ -744,173 +651,101 @@ monotonicity.
 \label{sec:ablation}
 
 Section~\ref{sec:limits-main} identifies the channels FGIB leaves open; this section
-reports the supplementary experiments that test whether they bite, and that separate
-FGIB's two design changes from each other. All runs use the identical protocol as the
-main sweep (100 epochs, patience 10, 5 seeds): 78 MNIST/MLP configurations (390 runs)
-for the ablations and diagnostics, plus a 12-setting CentFGIB sweep at equal budget
-(72 configurations, 360 runs) for the cross-dataset test --- all written to a separate
-results directory;
+reports the supplementary experiments that test whether they bite, that separate
+FGIB's two design changes from each other, and that verify the two closure results of
+Section~\ref{sec:method}. All runs use the identical protocol as the
+main sweep (100 epochs, patience 10, 5 seeds), except the long-horizon control noted
+below; the additional experiments total 360 runs across a 12-setting CentFGIB sweep at
+equal budget, a 4-setting FGIB-H ($A{=}I$) sweep, a full-batch diagnostic rerun, a
+400-epoch long-horizon control, a frozen-ETF baseline, and a subject-disjoint AgeDB
+sweep.
 Figure~\ref{fig:betaacc} plots the full $\beta$ sweeps and Table~\ref{tab:ablation} the
 numbers.
 
-\paragraph{What FGIB's robustness is made of.}
+\paragraph{What the ablations show.}
 FGIB differs from the comparison in two coupled ways: its classifier consumes the
 deterministic $h$ at training and evaluation (P3, P4), and its prior is frozen (P1, P2).
 Table~\ref{tab:ablation} separates the contributions. VIB and CEB fall to chance at
-$\beta=1$ ($15.3\%$ and $26.8\%$) and stay there; \emph{DCEB} --- the deterministic path
-of FGIB with the trainable backward encoder of CEB as its prior --- holds at $\approx 98$
-through $\beta=1$ and falls to $11.4\%$ only at $\beta=10$: the deterministic classifier
-path \emph{delays} the collapse by an order of magnitude in $\beta$ but does not remove
-it, because a trainable backward encoder recreates the CEB corner whatever path feeds it.
-By contrast, every variant that \emph{starts} from the orthonormal anchor table stays at
-$\approx 98.3$ across the entire grid: \emph{TAFGIB} (the anchor means made trainable),
-\emph{CentFGIB} (the KL replaced by a plain $\tfrac12\|\mu - a v_y\|^2$ center loss ---
-whose numbers coincide with FGIB's to the reported precision, because FGIB's trained
-posterior variance stays at $\tau^2$, leaving only the displacement term), FGIB with $A$
-frozen after random initialization, and FGIB with $A{=}I$. The trainable anchors of
-TAFGIB do move, and we measured how much: final column norms shrink from $16$ to
-$5.7$--$10$ (monotone in $\beta$), pairwise correlations reach $0.78$ at the smallest
-$\beta$ (min pairwise angle $0.63$ rad), yet the accuracy curve is untouched --- so the
-protective property is the anchor-table \emph{initialization} geometry at scale $a$,
-not the orthonormality of the trained table. Two conclusions follow. First,
-the load-bearing ingredient on MNIST is that initialization geometry ---
-orthonormal per-class directions at scale $a$ --- not the frozenness of its means, and
-not the Gaussian KL machinery: a center loss with the same geometry reproduces FGIB's
-curve, which we report rather than hide. Second, freezing the means and keeping the KL
-is what the \emph{theory} buys --- the persistent force of Remark~\ref{rem:force}, the
-quadratic displacement and strict convexity of Proposition~\ref{prop:sweep}, the
-residual-information reading of Result~\ref{res:equiv} --- so FGIB retains an exact
-variational upper-bound interpretation for the auxiliary noisy code; its predictive
-robustness and endpoint behavior outside the analyzed family remain empirical. Where
-that interpretation is not needed, the
-geometry alone suffices. Constraining the side head changes nothing in the
-$\beta$-profile ($98.2$--$98.4$ across the grid for frozen $A$ and $A{=}I$), consistent
-with the conditioning measurement above: the $A$-channel degrades $\kappa(A^{\top}A)$
-but does not carry the robustness.
+$\beta=1$ ($15.3\%$ and $26.8\%$); \emph{DCEB} --- the deterministic path
+of FGIB with CEB's trainable backward encoder as its prior --- holds at $\approx 98$
+through $\beta=1$ and falls to $11.4\%$ only at $\beta=10$. Corollary~\ref{cor:family}
+explains \emph{why} DCEB is the odd one out: its trainable prior \emph{variance} has a
+negative gradient in the mean gap, so the race of Channel~P3 re-enters through the
+prior --- the only FGIB-family variant that escapes the exact center-loss family is the
+only one that collapses. By contrast, every variant that \emph{starts} from the
+orthonormal anchor table stays at $\approx 98.3$ across the entire grid (TAFGIB,
+CentFGIB, frozen $A$, FGIB-H) --- and by Result~\ref{res:varfreeze} that equivalence is
+an identity, not a coincidence: the zero-initialized variance head receives zero
+gradient at every step, so FGIB's KL \emph{is} the center loss exactly, and CentFGIB,
+TAFGIB and FGIB-H are the same objective up to the trainability of the anchor means.
+The trainable anchors of TAFGIB do move (final column norms shrink from $16$ to
+$5.7$--$10$), yet the accuracy curve is untouched --- the
+load-bearing ingredient is the anchor-table \emph{initialization} geometry at scale
+$a$, not the frozenness of its means and not any Gaussian variance machinery, which is
+provably inert here (Result~\ref{res:varfreeze}). What freezing the means and keeping
+the KL buys is the \emph{theory}: the persistent force of Remark~\ref{rem:force}, the
+convexified sweep of Proposition~\ref{prop:sweep}, and the residual-information reading
+of Result~\ref{res:equiv} --- FGIB retains an exact variational upper-bound
+interpretation for the auxiliary noisy code; its predictive robustness outside the
+analyzed family remains empirical. Constraining the side head changes nothing in the
+$\beta$-profile on MNIST ($98.2$--$98.4$ across the grid for frozen $A$ and $A{=}I$),
+and the fixed classifier scale test agrees: enforcing the cosine condition leaves
+FGIB's sweep unchanged ($97.9$--$98.3$) while VIB and CEB still collapse, so the anchor
+geometry, not the free classifier scale, keeps the corner non-degenerate.
 
-\paragraph{The variance race does not materialize.}
-We ran the falsification test that Proposition~\ref{prop:variance} invites, by logging
-the mean posterior log-variance, the fraction of units at the numerical clamp
-$e^{-10}$, and (for CEB) the prior log-variance at every epoch of every run. At the
-final epoch, averaged over the 5 seeds: CEB's posterior log-variance sits at
+\paragraph{The variance race is real but slow.}
+Logging the mean posterior log-variance, the clamp fraction ($e^{-10}$), and (for CEB)
+the prior log-variance at every epoch of every run, aggregated over the \emph{entire}
+validation set, CEB's final posterior log-variance sits at
 $+0.37, +0.27, +0.13, +0.08, -0.05, -0.01$ (nats) for
-$\beta = 10^{-4}, \dots, 10$ --- a mild, monotone downward drift with $\beta$, but
-nowhere near the clamp --- and the clamp fraction is $0.0$ at \emph{every} epoch of
-every run. CEB's prior tracks its posterior (mean log-variance within $0.74$ of zero,
-at the smallest $\beta$);
-VIB's posterior is likewise within $0.37$ of zero. The trajectory (Figure~\ref{fig:diag}(b))
-shows the variances near their initialization $\sigma^2 = \tau^2$ for the entire
-run. At the early-stopping time scale of this protocol, the race predicted by
-Proposition~\ref{prop:variance}(iii) therefore does not occur: that part of the
-proposition is empirically void here, and the measurement --- not the prediction --- is
-the finding (Remark~\ref{rem:p3-status}). The proposition's force analysis (i)--(ii)
-remains consistent with the observed direction of drift.
+$\beta = 10^{-4}, \dots, 10$ --- near initialization, nowhere near the clamp, clamp
+fraction $0.0$ at every epoch (Figure~\ref{fig:diag}(b)). A 400-epoch control at
+$\beta\in\{1,10\}$ (early stopping disabled) shows the race's \emph{direction}:
+the posterior log-variance ends at $-2.27$ nats ($\beta{=}1$) and $-1.20$
+($\beta{=}10$), passing $-0.92$ at epoch 100, the prior tracking --- monotone, exactly
+as Proposition~\ref{prop:variance}(i)--(ii) predicts, but still far from the $e^{-10}$
+terminal state (Figure~\ref{fig:longtrain}). The race is therefore real but slow:
+invisible at the protocol horizon, directionally confirmed at four times it, its
+convergence time-scale beyond the tested 400 epochs --- the conditional status
+Remark~\ref{rem:p3-status} assigns to part~(iii). For FGIB the question is settled
+analytically: the flat zero line of Figure~\ref{fig:longtrain} is the fixed point of
+Result~\ref{res:varfreeze}, held for 400 epochs, with the trainable prior variance of
+DCEB the only re-entry point (Corollary~\ref{cor:family}).
 
-\paragraph{The side-head conditioning channel.}
-Section~\ref{sec:limits-main}(a) identifies the trainable side head $A$ as the channel
-FGIB does not close, and predicts that the approach to a rank-$K$ projector would show
-up as diverging $\kappa(A^{\top}A)$. Figure~\ref{fig:diag}(a) plots
-$\log_{10}\kappa(A^{\top}A)$ over training, at $a=16$, for every $\beta$: from its
-initialization near $10^{3.9}$ the condition number rises to $10^{5.8}$--$10^{6.8}$ at
-the final epoch, with transient peaks to $10^{8.3}$ --- $A^{\top}A$ becomes
-\emph{severely ill-conditioned} ($\approx 1000\times$ degradation, no monotone
-dependence on $\beta$). Predictive accuracy nevertheless remains stable, so the
-conclusion is narrow: the ill-conditioning does not hurt MNIST predictions in this
-experiment, but it means the pulled-back reference of Result~\ref{res:equiv} is not
-close to a well-conditioned frame, and the KL's correspondence with $h$ is not
-guaranteed by anything we measured. The $A{=}I$ and frozen-$A$ rows of
-Table~\ref{tab:ablation} show what the degradation costs in accuracy (little on
-MNIST).
-
-\paragraph{Fixed classifier scale.}
-Proposition~\ref{prop:sweep} requires a fixed classifier scale $c$, which the default
-\texttt{nn.Linear} does not enforce. The cosine rows of Table~\ref{tab:ablation}
-enforce it by construction (normalized features, normalized weight rows, fixed
-temperature). We treat these rows as a sanity check under the theorem's scale condition,
-not as a full verification of Proposition~\ref{prop:sweep} (early stopping remains, and
-the setting is MNIST/MLP only). Under the enforced condition, FGIB's sweep is unchanged:
-$97.9$--$98.3$ across all six $\beta$ values.
-VIB and CEB are not rescued by fixed $c$: they still fall to chance (VIB $51.9\%$ at
-$\beta=1$ and $11.4\%$ at $\beta=10$; CEB collapses even \emph{earlier}, $41.6\%$ at
-$\beta=0.1$, because the bounded logit scale weakens the prediction term relative to
-the KL at equal $\beta$, exactly as Remark~\ref{rem:c-scale} predicts). Fixed $c$
-therefore does not repair the trainable-prior corners; it confirms that the anchor
-geometry --- not the free classifier scale --- is what keeps FGIB's corner
-non-degenerate. The residual caveat: these runs still use early stopping, so the
-fixed-$c$ verification is conditional on training length
-(Remark~\ref{rem:c-scale}(b), Section~\ref{sec:notyet}).
-
-\paragraph{Does the geometry alone generalize?}
-The MNIST ablations show that the KL machinery and the frozenness of the anchor means
-are not load-bearing there. Table~\ref{tab:centfgib} asks the cross-dataset version of
-the same question: CentFGIB --- FGIB's geometry with the KL replaced by a plain
-$\tfrac12\|\mu - a v_y\|^2$ center loss --- run on all 12 settings under the
-equal-budget protocol ($a=16$, 6-point $\beta$ grid, 5 seeds, 72 configurations). The
-geometry alone generalizes: at the validation-selected configuration, CentFGIB matches
-FGIB($a{=}16$) to within $0.01$ points on 10 of 12 settings and to within $0.43$ on
-the remaining two (AgeDB/CNN $35.50$ vs.\ $35.93$; MNIST/CNN $99.26$ vs.\ $99.27$),
-including all four regression settings with RFF anchors. In a nine-entry ranking over
-the 12 settings (the seven objectives of Table~\ref{tab:main} plus the two equal-budget
-variants), the FGIB family occupies the top three slots: full-grid FGIB $2.25$, FGIB at
-$a{=}16$ $2.83$, CentFGIB at $a{=}16$ $3.00$, ahead of the deterministic backbone at
-$4.75$. The empirical engine of the method is therefore the fixed anchor geometry
-itself; the KL contributes the bound reading and the sweep theory --- exactly the
-division of labor Section~\ref{sec:limits-main} draws. Whether the trained CentFGIB
-anchors stay orthonormal across settings is not measured here (on MNIST they drift,
-Section~\ref{sec:ablation}); the stability of the result to that drift is the point.
-
-\input{tables/tab_centfgib.tex}
-
-\input{tables/tab_ablation.tex}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/beta_accuracy.pdf}
-\caption{Test accuracy against $\beta$ (logarithmic axis) on MNIST/MLP. (a) The seven
-objectives; (b) the confound ablations of Section~\ref{sec:ablation} at $a=16$. Lines
-are means over 5 seeds; every series is labeled at its right end.}
-\label{fig:betaacc}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/diagnostics.pdf}
-\caption{Diagnostics on MNIST/MLP. (a) $\log_{10}\kappa(A^{\top}A)$ of the FGIB side
-head over training, one seed per $\beta$. (b) The P3 variance-race measurement: mean
-log-variance at the final epoch against $\beta$ for CEB's posterior and prior and VIB's
-posterior; the dashed line is the initialization $\log\sigma^2 = 0$.}
-\label{fig:diag}
-\end{figure}
+\paragraph{The side head: measured conditioning, quantified closure.}
+The trainable head's $\log_{10}\kappa(A^{\top}A)$ rises from $10^{3.9}$ at
+initialization to $10^{5.8}$--$10^{6.8}$ (transient peaks $10^{8.3}$;
+Figure~\ref{fig:diag}(a)), while accuracy is unaffected on MNIST. The canonical
+FGIB-H ($A{=}I$) closes the channel by construction (Result~\ref{res:orth}), and
+Table~\ref{tab:hanchor} quantifies the price across five settings:
+at the inherited scale $a=16$ FGIB-H stays ahead of the backbone on 4 of 5 settings but
+trails the trainable head by
+$\approx 0.5$ points per setting; at the re-tuned scale $a=4$ it recovers most of the
+gap (mean rank $2.25$ vs.\ $1.20$) and ties or beats the backbone on every row --- the
+trade-off
+is accuracy-versus-certification, small in both directions, and both configurations ship
+in the released code.
+The cross-dataset reach of the geometry itself is measured separately: CentFGIB matches
+FGIB($a{=}16$) to within $0.01$ points on 10 of 12 settings at equal budget
+(Table~\ref{tab:centfgib}), a frozen ETF classifier alone reproduces the backbone but
+buys no knob ($98.32\%$ vs.\ $98.33\%$), and a subject-disjoint AgeDB split preserves
+the objective ordering (Table~\ref{tab:agedb-disjoint}). The full details of this
+section --- per-variant grid tables, the TAFGIB geometry measurements, the fixed-scale
+rows, and the anchor-scale sensitivity of the equal-budget rank --- are in
+Appendix~\ref{app:ablation-detail}. The full per-setting anchor dial
+(Table~\ref{tab:anchor}) and the $\beta$-sweep curves
+(Figure~\ref{fig:betaacc}) are likewise in Appendix~\ref{app:tables}.
 
 \subsection{What we have not measured}
 \label{sec:notyet}
 
-Two of the three experiments this paper's own theory originally asked for are now in it
-(Section~\ref{sec:ablation}): the variance-race measurement, and the
-$\kappa(A^{\top}A)$ conditioning measurement over training. What remains open is on the
-record here rather than in a reader's inference.
-\emph{(i) Separating the
-$\beta$-effect from the early-stopping effect.} Remark~\ref{rem:c-scale}(b) predicts that
-the $\beta$-dependence of the equilibrium decays with training length; our runs use
-patience 10, so training well past saturation and comparing converged KL across $\beta$
-would test it. The cosine-classifier runs of Section~\ref{sec:ablation} enforce the
-fixed-$c$ assumption of Proposition~\ref{prop:sweep} but do not remove early stopping.
-\emph{(ii) Equal budget for the other methods.} The $a=16$ column of
-Table~\ref{tab:main-std} gives FGIB the same 6-point budget as the comparison; the
-converse --- giving VIB/CEB/DVCCA an extra temperature or variance hyperparameter
-dimension --- is not run, so the comparison's rank ordering is only shown to survive
-budget restriction for FGIB, not budget expansion for the others. \emph{(iii) The
-remaining protocol asks.} All results come from one fixed $60/20/20$ split per dataset
-(seed 42), so split-sensitivity is unmeasured; the AgeDB numbers use the image-level
-split, under which $562$ of $567$ identities appear on both sides of the train/test
-boundary (a subject-disjoint split is implemented in the released code and flagged in
-Appendix~\ref{app:data}, but not run here). Beyond the theory's own asks, the robustness
-properties that motivate
-conditional bottlenecks in the first place --- adversarial robustness, OoD detection,
-calibration, and resistance to memorizing random labels \citep{fischer2020ceb,
-fischer2020cebrobust} --- are not evaluated here; the label-free anchor-distance score
-$\min_y \KLd(q(z|x)\|\Ncal(a v_y, \tau^2 I))$ that FGIB's geometry makes available at
-inference (Remark~\ref{rem:training-role}) is a hypothesis, not a result.
+The experiments this paper's own theory originally asked for are now in it
+(Section~\ref{sec:ablation}): the variance-race measurement (on the full validation
+set, out to 400 epochs), the
+$\kappa(A^{\top}A)$ conditioning measurement, the fixed-orthogonal closure
+(Table~\ref{tab:hanchor}), and a subject-disjoint AgeDB control
+(Table~\ref{tab:agedb-disjoint}). What remains open is on the record in
+Appendix~\ref{app:notyet}.
 
 \section{Related work}
 
@@ -922,102 +757,93 @@ residual-level object and replaces the learned backward encoder with a frozen ge
 one; Proposition~\ref{prop:ordering} shows the resulting bound is looser in value by the
 anchor gap, and Remark~\ref{rem:force} argues that this is what makes its force
 persistent. DVCCA \citep{abdelaleem2025dvmib} sits in the same variational family with an
-added reconstruction term, and inherits the marginal-prior corner (Table~\ref{tab:robust}
-confirms this empirically).
+added reconstruction term, and inherits the marginal-prior corner.
 
 \paragraph{Degeneracies of the IB Lagrangian.}
 \citet{kolchinsky2019caveats} prove that in the deterministic scenario the IB curve is
 piecewise linear, so the Lagrangian cannot sweep it, and repair this by squaring the
 compression term. Our Proposition~\ref{prop:dead} shows CEB inherits the degeneracy over
 its entire range, and Result~\ref{res:sweep} shows that a fixed reference supplies the
-same strict convexity \emph{without} squaring --- while Table~\ref{tab:robust} shows that
-squaring alone (SVIB) does not fix the collapse, since it leaves the corner where it was.
-\citet{kolchinsky2019nib} avoid the parametric prior entirely with a non-parametric
-pairwise bound; the two bounds are complementary, and our experiments locate the price of
+same strict convexity \emph{without} squaring --- while squaring alone (SVIB) does not
+fix the collapse (Table~\ref{tab:robust}). \citet{kolchinsky2019nib} avoid the parametric
+prior entirely with a non-parametric pairwise bound; our experiments locate the price of
 that route in an inert knob.
 
 \paragraph{Deterministic representations and infinite information.}
 \citet{amjad2020learning} and \citet{kolchinsky2019nib} observe that $I(X;Z)$ is infinite
 or ill-defined for deterministic continuous encoders, and \citet{saxe2018information}
-question the empirical IB narrative on related grounds. Formal limits on measuring mutual
-information from samples \citep{mcallester2020formal,tschannen2020mutual} apply to any
+question the empirical IB narrative on related grounds; sample-based limits on measuring
+mutual information \citep{mcallester2020formal,tschannen2020mutual} apply to any
 bound-as-meter reading, ours included. FGIB's response is architectural: keep the
 inference path deterministic and confine the noise --- and thus the finite bound --- to a
 side path that inference never reads.
 
 \paragraph{Fixed geometric targets.}
-Fixed geometric targets have a long history. Center loss pulls features toward learned
-per-class centers \citep{wen2016center}; hyperspherical prototype networks place class
-prototypes on a hypersphere a priori \citep{mettes2019hpn}; the final classifier itself
-can be fixed with little accuracy loss \citep{hoffer2018fix}, in particular to the
-vertices of a simplex equiangular tight frame \citep{zhu2021geometric,pernici2019regular};
-and neural-collapse analyses show such configurations arise spontaneously in the
-terminal phase of training \citep{papyan2020prevalence}. FGIB's compressed corner is a
-neural-collapse-like geometry --- orthonormal class codes rather than the centered
-simplex/ETF configuration of full neural collapse --- but the construction differs from
-each of these in the role the geometry plays: it enters as the \emph{reference of a
-variational bound}, i.e.\ as the design of the bottleneck's zero-penalty set, which is
-what makes the compression term quadratic (Result~\ref{res:sweep}), the force persistent
-(Result~\ref{res:endpoint}), and the regularizer carry a residual-information reading
-for the auxiliary code (Result~\ref{res:equiv}) --- rather than as an auxiliary
-classification loss. Table~\ref{tab:related} spells out the distinctions. We also report
-the boundary of that claim honestly: on MNIST, replacing the KL by a plain center loss
-with the same anchors reproduces FGIB's behavior (Section~\ref{sec:ablation}), so the
-\emph{empirical} robustness is shared with fixed-prototype regularization, while the
-bound reading and the sweep theory are specific to the variational form.
-
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{lccccc}
-Method & Fixed geometry & Zero-penalty set & Variational bound & Regularizer on deployed repr. \\
-\hline
-VIB \citep{alemi2017vib} & --- & collapse (origin) & marginal KL on sampled $z$ & no (evaluates $\mu$) \\
-CEB \citep{fischer2020ceb} & --- & underdetermined family & conditional KL on sampled $z$ & no (evaluates $\mu$) \\
-center loss \citep{wen2016center} & learned centers & no bottleneck reading & --- & yes (same object) \\
-HPN \citep{mettes2019hpn} & hypersphere (a priori) & --- & --- & yes (same object) \\
-fixed classifier \citep{hoffer2018fix,zhu2021geometric,pernici2019regular} & simplex/ETF rows & --- & --- & yes (classifier, not regularizer) \\
-FGIB (ours) & orthonormal anchors (a priori) & prescribed class codes & side-path conditional KL & side path only (bound read on $h$) \\
-\end{tabular}
-\caption{FGIB against the closest fixed-geometry and prototype regularizers. ``Zero-penalty
-set'' is the set of representations where the regularizer vanishes. ``Variational bound''
-asks whether the regularizer carries a KL/information interpretation. ``Regularizer on
-deployed repr.'' asks whether the regularized object is the representation inference
-consumes.}
-\label{tab:related}
-\end{table}
+Center loss pulls features toward learned per-class centers \citep{wen2016center};
+hyperspherical prototype networks place prototypes on a hypersphere a priori
+\citep{mettes2019hpn}; the final classifier itself can be fixed with little accuracy
+loss \citep{hoffer2018fix}, in particular to a simplex equiangular tight frame
+\citep{zhu2021geometric,pernici2019regular}; and neural-collapse analyses show such
+configurations arise spontaneously \citep{papyan2020prevalence}. FGIB's compressed
+corner is a neural-collapse-like geometry --- orthonormal class codes rather than the
+centered simplex/ETF configuration --- but the construction differs in the role the
+geometry plays: it enters as the \emph{reference of a variational bound}, i.e.\ as the
+design of the bottleneck's zero-penalty set, which makes the compression term
+quadratic (Result~\ref{res:sweep}) and gives the regularizer a residual-information
+reading for the auxiliary code (Result~\ref{res:equiv}) rather than serving as an
+auxiliary classification loss (Table~\ref{tab:related}, Appendix~\ref{app:tables}). The
+boundary of that claim is a theorem rather than an admission: in the released
+implementation the KL \emph{is} the fixed-anchor center loss (Result~\ref{res:varfreeze}),
+and the canonical fixed-orthogonal
+head moves the matching onto the deployed representation itself
+(Result~\ref{res:orth}) --- the
+\emph{empirical} robustness is shared with fixed-prototype regularization by
+construction, while the bound reading and the sweep theory are specific to the
+variational form. The natural baselines from this literature are tested
+directly: a frozen ETF classifier alone reproduces the backbone but buys no knob, and
+trainable-center and fixed-center losses are the
+TAFGIB and CentFGIB rows of the ablation (Section~\ref{sec:ablation}).
 
 \section{Conclusion}
 
 The high-regularization behavior of a variational bottleneck is decided by its
-zero-penalty set, and the standard choices are poorly designed: the fixed marginal prior
-of VIB places that set at collapse, the learned backward encoder of CEB leaves it
-underdetermined so the optimizer --- not the objective --- selects the final label
-geometry, and in both cases the bound certifies the noisy training code rather than the
-deterministic representation inference deploys (a gradient-level variance race, in
-contrast, fails to materialize in our measured runs). Designing the set directly --- an
-orthonormal anchor frame fixed by construction, reached through a side head inference
-never reads --- makes the compression term quadratic and hence the sweep well-posed at
-fixed classifier scale, and turns the fully compressed corner into the prescribed
-class-separated anchor configuration. Empirically, across 12 task$\times$backbone
+zero-penalty set, and the standard choices are poorly designed: VIB's marginal prior
+places that set at collapse, CEB's learned backward encoder leaves it underdetermined,
+and both certify the noisy training code rather than the deterministic representation
+inference deploys (a gradient-level variance race, in
+contrast, is invisible at the protocol horizon and only drifts into view at 400
+epochs). Designing the set directly --- an orthonormal anchor frame fixed by
+construction --- makes the compression term quadratic, well-poses the sweep at fixed
+classifier scale, and turns the fully compressed corner into the prescribed
+class-separated anchor configuration. Two properties of the construction are provable
+rather than merely observed: the deterministic main path pins the variance at
+$\tau^2$ for the entire run, so the realized regularizer is \emph{exactly} the
+fixed-anchor center loss $\tfrac{1}{2\tau^2}\|\mu-a v_y\|^2$ --- releasing the variance
+is what makes the alternatives race to the clamp, and FGIB eliminates the race by
+design; and the canonical fixed-orthogonal side head anchors the deployed representation
+directly with $\kappa=1$, closing the conditioning channel a trainable head leaves
+open, at a measured price of $\approx 0.5$ points per setting that re-tuning the anchor
+scale largely recovers. Empirically, across 12
+task$\times$backbone
 settings and $5{,}100$ runs, that is worth a first-place mean rank under the
-equal-budget configuration ($2.33$; $1.75$ over the full grid) and, more distinctively, a
+equal-budget configuration ($2.33$ over all 12; $1.75$ over the full grid; $1.86$
+classification-only; $1.70$ excluding AgeDB) and, more distinctively, a
 compression knob that can be swept over a six-point grid spanning five orders of
 magnitude without destroying the model on classification --- something no other objective
-in the comparison manages. The ablations pin down what carries that robustness: on MNIST
-it is the endpoint geometry, not the KL machinery, not the frozenness of the anchor
-means, and not the deterministic path alone --- a plain center loss with the same
-orthonormal anchors reproduces FGIB's curve. The KL's role is interpretive: an exact
+in the comparison manages. The ablations pin down what carries that robustness: the
+endpoint geometry, not any Gaussian variance machinery --- which is provably
+inert here --- not the frozenness of the anchor
+means, and not the deterministic path alone; the one variant that re-opens the variance,
+DCEB, is the one that collapses. The KL's role is interpretive: an exact
 variational upper bound on the residual information of the auxiliary noisy code, the
-persistent force and convexified sweep of the theory; whether that interpretation tracks
-the deployed representation beyond the aligned family remains open. The cross-dataset
-reach of the geometry-only mechanism, in contrast, is now measured --- CentFGIB matches
-FGIB at equal budget on all 12 settings (Section~\ref{sec:ablation}). The side
-head is a second trainable party inside the KL, and we measured its cost:
-$\kappa(A^{\top}A)$ becomes severely ill-conditioned ($10^{5.8}$--$10^{6.8}$ at the
-final epoch, transient peaks to $10^{8.3}$), though predictive accuracy is unaffected on
-MNIST --- so constraining $A$ by default, and the subject-disjoint and split-sensitivity
-controls, are the natural next steps.
+persistent force and convexified sweep of the theory. The cross-dataset
+reach of the geometry-only mechanism is measured --- CentFGIB matches
+FGIB at equal budget on all 12 settings, FGIB-H quantifies the fixed head's price
+across five
+(Section~\ref{sec:ablation}) --- and a subject-disjoint AgeDB control preserves the
+regression ordering. What remains on the ledger: split-sensitivity beyond AgeDB,
+budget expansion for the comparison methods, and the downstream robustness properties
+that motivate bottlenecks in the first place.
 
 \subsection*{AI use statement}
 
@@ -1251,15 +1077,159 @@ Zhihui Zhu, Tianyu Ding, Jinxin Zhou, Xiao Li, Chong You, Jeremias Sulam, and Qi
 \section{Complete theory: proofs of the failure channels and of the FGIB mechanism}
 \label{app:theory}
 
-The remainder of this appendix is the full development: Part~I proves the four failure
-channels of Section~\ref{sec:prelim}, Part~II proves the FGIB results of
+The remainder of this appendix is the full development: Part~I proves the three failure
+channels and the object mismatch of Section~\ref{sec:prelim}, Part~II proves the FGIB results of
 Section~\ref{sec:method}, and its final subsection (Section~\ref{sec:limits}) is a
 complete ledger separating what is proved from what is open or conditional.
 
 \input{fgib_theory.tex}
 
+\section{Failure channels in detail}
+\label{app:prelim-detail}
+
+This section states the four channels of Section~\ref{sec:prelim} with the precision
+the main text omits; the propositions themselves are proved in
+Appendix~\ref{app:theory} (Part~I).
+
+\paragraph{P1 --- the knob is dead in the deterministic scenario.}
+By the chain rule, CEB's objective is $I(X;Z) - (1+\gamma)I(Y;Z)$, and the
+data-processing inequality gives
+$L_\gamma(Z) \ge -\gamma I(Y;Z) \ge -\gamma H(Y)$ with equality iff
+$I(X;Z) = I(Y;Z)$ and $I(Y;Z) = H(Y)$. Every $\gamma > 0$ therefore has the same exact
+optimum --- the corner --- so
+$\gamma \mapsto (I(X;Z^*|Y), I(Y;Z^*))$ is constant and no interior point of the IB curve
+is ever a Lagrangian minimizer (Proposition~\ref{prop:dead}). Since
+$\beta_{\mathrm{IB}} = 1+\gamma > 1$ always, CEB sits in the regime that
+\citet{kolchinsky2019caveats} show to be degenerate over its \emph{entire} parameter
+range. \citet{kolchinsky2019caveats} themselves note that if one's goal \emph{is} the
+corner, this reads as $\beta$-robustness rather than failure. Remark~\ref{rem:mni}
+explains why that does not close the matter: the corner is one point in the information
+plane but an entire equivalence class of representations, and adversarial robustness,
+calibration and OoD detection --- the properties CEB is argued for --- are properties of
+the \emph{geometry} of $Z$, on which the objective is exactly constant. Which member of
+the class is reached is settled by the optimizer, i.e.\ by channels P3 and P4.
+
+\paragraph{P2 --- a certificate that is blind, and a $1{:}\beta$ exchange rate.}
+On the manifold $T_\alpha = B_\alpha \cdot Y$ of \citet{kolchinsky2019caveats}, $T_\alpha$
+is a function of $Y$ alone, so $I(X;T_\alpha|Y) = 0$ and, at the optimal backward encoder,
+$\ReX(T_\alpha) = 0$ for every $\alpha$ --- from total collapse ($\alpha = 0$, no label
+information) to full copy ($\alpha = 1$). Reading $\ReX$ as a meter of distance to the MNI
+point is therefore valid only along the $I(X;Z|Y)$ axis; on the necessity axis the meter
+reads $0$ at chance level. With the optimal classifier the objective is
+$\delta + \beta\,\ReX$ where $\delta = H(Y) - I(Y;T_\alpha)$, so it is indifferent between
+giving up $\delta$ nats of label information and saving $\delta/\beta$ nats of certified
+residual: in the heavy-regularization regime the whole label axis is purchasable for
+$H(Y)/\beta$ nats of certified compression (Proposition~\ref{prop:flat}).
+
+\paragraph{P3 --- the variance race.}
+For the diagonal Gaussian family the KL is stationary in the posterior variance at
+$\sigma^2 = \tau^2$, with residual value $\|m-g\|^2/(2\tau^2)$ --- pure mean matching. The
+cross-entropy term, however, is convex in $z$ for a linear classifier (the log-sum-exp of
+an affine function of $z$), so by Jensen
+$\mathbb{E}_z[\CE(c(z),y)] \ge \CE(c(m),y)$ and it strictly prefers $\sigma^2 \to 0$.
+Along the matched line the KL \emph{resists} shrinking $\tau^2$ only while the means are
+unmatched ($\partial_{\tau^2}\KLd = -\|m-g\|^2/(2\tau^4) < 0$); once $\|m-g\| \to 0$ the
+race is unopposed and runs to the implementation clamp $s = e^{-10}$, at which the
+certificate has become a mean-matching force of weight
+$1/s \approx 2.2\times 10^{4}$ between two trainable maps
+(Proposition~\ref{prop:variance}). Parts (ii)--(iii) of that proposition are a
+direction-of-force argument, not a convergence proof. We ran the falsification test it
+invites, by logging the trained log-variances (Section~\ref{sec:ablation}): at the
+early-stopping time scale of our protocol the race does not materialize --- CEB's
+variances remain at their initialization $\sigma^2 = \tau^2$ with zero clamp fraction on
+every $\beta$ --- so the convergence prediction of part~(iii) is empirically void under
+this protocol, exactly as Remark~\ref{rem:p3-status} allows.
+
+\paragraph{P4 --- the certified object is not the deployed object.}
+At the variance optimum the posterior standard deviation is class-constant, so
+$Z = \mu(X) + \sqrt{S(Y)}\,\varepsilon$ is a noisy function of $\mu(X)$ given $Y$ and the
+data-processing inequality gives $I(X;Z|Y) \le I(X;\mu(X)|Y)$. The gap is not a small
+correction: whenever $\mu$ is continuous and not class-constant the right-hand side is
+$+\infty$ \citep{amjad2020learning,kolchinsky2019nib}, so no finite quantity bounds the
+deployed residual. This applies to FGIB as well (Proposition~\ref{prop:object}); what
+differs is structural, not a tightness ordering. In CEB the perturbation is \emph{inside}
+the inference path and is driven by the prediction term, so removing it changes the
+model; in FGIB it lives on a side path that inference never reads and is controlled by
+side-path parameters alone. That is a cleaner separation of regularizer from model, and
+we claim nothing more for it.
+
+\section{What the frozen reference does not buy: full statement}
+\label{app:limits}
+
+\emph{(a) The side head is a second trainable party --- unless it is fixed.} The
+equivalence of
+Result~\ref{res:equiv} holds \emph{at each fixed} $A$, and a \emph{trainable} $A$, unused
+at
+inference --- structurally the same position CEB's backward encoder occupies on the other
+side of the KL. Since $h$ is linearly separable by the jointly trained classifier, much of
+the anchor fit can be absorbed by $A$ alone, and nothing in the objective resists $A$
+drifting toward a projector onto the $K$-dimensional between-class subspace. Full collapse
+is blocked (with $A$ invertible, $\KLd = 0$ forces $h$ itself to be class-constant), but
+the approach to the rank-$K$ regime is not, and that is exactly where the conditioning of
+$A^{\top}A$ --- which governs the size of the side-path perturbation in
+Result~\ref{res:equiv} --- degrades without bound (Remark~\ref{rem:A-channel},
+Proposition~\ref{prop:conditioning}(iii)). This channel is closed by the canonical
+configuration: a fixed orthogonal head has $\kappa(A^{\top}A) = 1$ by construction and
+anchors $h$ directly (Result~\ref{res:orth}). The
+measurement of Section~\ref{sec:ablation} quantifies how badly the \emph{optional
+trainable} variant degrades on MNIST:
+$\kappa(A^{\top}A)$ rises to $10^{5.8}$--$10^{6.8}$, i.e.\ severely ill-conditioned,
+with predictive accuracy unaffected --- so the freedom buys nothing on MNIST; across
+five settings the fixed head pays $\approx 0.5$ points per setting for the closure at
+the inherited scale, largely recovered by re-tuning the anchor scale
+(Table~\ref{tab:hanchor}) --- the accuracy-versus-certification trade-off made
+explicit. We therefore report the
+trainable head as the default of the released sweep but designate FGIB-H as the
+canonical, closed configuration.
+
+\emph{(b) The sweep needs a bounded classifier scale.} If $c$ is free, then
+$(s,c) = (a,\infty)$ sends $\KLd \to 0$ and $\CE \to 0$ simultaneously, so the infimum of
+$L_\beta$ is $0$ for every $\beta$ and Result~\ref{res:sweep} has no global counterpart
+--- the FGIB analogue of the dead knob, reached by growing the margin rather than by the
+linearity of the IB curve. Our classifier is an unconstrained \texttt{nn.Linear} trained
+by Adam without weight decay, so the proposition is conditional as implemented. A
+fixed-temperature cosine classifier satisfies the assumption by construction; weight decay
+only mitigates the divergence (Remark~\ref{rem:c-scale}). One consequence matters for
+Section~\ref{sec:exp}: since $s^*$ drifts toward $a$ as $c$ grows, part of any observed
+$\beta$-effect under early stopping is plausibly an early-stopping effect, and we have not
+separated the two.
+
+\emph{(c) The certificate still does not bound the deployed residual.} P4 applies to FGIB
+unchanged (Proposition~\ref{prop:object}(b)). What FGIB buys is that the perturbation is
+side-path-only and its covariance is a known model parameter --- a cleaner separation of
+regularizer from model, not a tighter or more valid bound (Remark~\ref{rem:senses}).
+
+\emph{(d) The compressed endpoint is designed, not certified.} Caveat~2 of
+\citet{kolchinsky2019caveats} identifies as uninteresting those variables that compress by
+mixing a constant map with a copy of $Y$; FGIB's compressed corner $\mu_y = a v_y$ is a
+deterministic function of $Y$ alone, i.e.\ a label code of exactly that kind. The
+orthonormal frame is in fact \emph{opposed} to the semantic compression Caveat~2 holds up
+as interesting: it places every pair of classes at the same distance and can never express
+``merge these two classes, keep both far from that one''. What the anchors do is choose
+\emph{one specific} label-code geometry --- a neural-collapse-like configuration
+\citep{papyan2020prevalence} --- instead of leaving it to the optimizer, and refuse the
+chance-level corner. Any claim that FGIB compresses \emph{input} semantics at that
+endpoint is the claim Caveat~2 rules out (Remark~\ref{rem:endpoint}).
+
+\emph{(e) The sweep is over a surrogate.} Result~\ref{res:sweep} concerns the
+$(\KLd_{\mathrm{anchor}}, \CE)$ plane on the aligned family, not the information plane
+$(I(X;T), I(Y;T))$. On that family the posterior is class-constant, so $I(X;Z|Y) = 0$ for
+every $s$; what varies along the sweep is anchor mismatch and classifier margin, not a
+proved compression of mutual information (Remark~\ref{rem:surrogate}).
+
 \section{Additional tables}
 \label{app:tables}
+
+\input{tables/tab_anchor.tex}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/beta_accuracy.pdf}
+\caption{Test accuracy against $\beta$ (logarithmic axis) on MNIST/MLP. (a) The seven
+objectives; (b) the confound ablations of Section~\ref{sec:ablation} at $a=16$. Lines
+are means over 5 seeds; every series is labeled at its right end.}
+\label{fig:betaacc}
+\end{figure}
 
 Table~\ref{tab:main-std} repeats every cell of Table~\ref{tab:main} with the standard
 deviation over the 5 runs, and records the hyperparameter that validation selected in each
@@ -1284,6 +1254,223 @@ confidence intervals over the 5 paired seeds. The per-setting means feed the Wil
 tests cited in Section~\ref{sec:exp}.
 
 \input{tables/stats.tex}
+
+Table~\ref{tab:anchor-ranks} reports the sensitivity of the equal-budget FGIB rank to
+the fixed anchor scale (Section~\ref{sec:exp}). The remaining tables and figures of
+Section~\ref{sec:ablation} follow.
+
+\input{tables/tab_anchor_ranks.tex}
+
+\input{tables/tab_centfgib.tex}
+
+\input{tables/tab_hanchor.tex}
+
+\input{tables/tab_agedb_disjoint.tex}
+
+\input{tables/tab_ablation.tex}
+
+\input{tables/tab_related.tex}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/diagnostics.pdf}
+\caption{Diagnostics on MNIST/MLP. (a) $\log_{10}\kappa(A^{\top}A)$ of the FGIB side
+head over training, one seed per $\beta$. (b) The P3 variance-race measurement: mean
+log-variance at the final epoch against $\beta$ for CEB's posterior and prior and VIB's
+posterior; the dashed line is the initialization $\log\sigma^2 = 0$.}
+\label{fig:diag}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\linewidth]{figures/longtrain.pdf}
+\caption{Long-horizon variance trajectories on MNIST/MLP (400 epochs, early stopping
+disabled, one seed, full validation set per epoch). CEB's posterior and prior
+log-variances at $\beta{=}1$ and $\beta{=}10$ stay near the initialization
+$\log\sigma^2=0$; FGIB's posterior is the flat zero line --- the fixed point of
+Result~\ref{res:varfreeze}, held exactly for the whole run.}
+\label{fig:longtrain}
+\end{figure}
+
+\section{Confound ablations: full detail}
+\label{app:ablation-detail}
+
+\paragraph{What FGIB's robustness is made of.}
+FGIB differs from the comparison in two coupled ways: its classifier consumes the
+deterministic $h$ at training and evaluation (P3, P4), and its prior is frozen (P1, P2).
+Table~\ref{tab:ablation} separates the contributions. VIB and CEB fall to chance at
+$\beta=1$ ($15.3\%$ and $26.8\%$); \emph{DCEB} --- the deterministic path
+of FGIB with CEB's trainable backward encoder as its prior --- holds at $\approx 98$
+through $\beta=1$ and falls to $11.4\%$ only at $\beta=10$. Corollary~\ref{cor:family}
+explains \emph{why} DCEB is the odd one out: its trainable prior \emph{variance} has a
+negative gradient in the mean gap, so the race of Channel~P3 re-enters through the
+prior and amplifies the mean-matching force --- the only FGIB-family variant that
+escapes the exact center-loss family is the only one that collapses. By contrast, every
+variant that \emph{starts} from the orthonormal anchor table stays at
+$\approx 98.3$ across the entire grid: \emph{TAFGIB} (trainable anchor means),
+\emph{CentFGIB} (KL replaced by the plain center loss $\tfrac12\|\mu - a v_y\|^2$),
+FGIB with $A$ frozen after random initialization, and \emph{FGIB-H} with $A{=}I$. The
+equivalence is not a numerical coincidence: by
+Result~\ref{res:varfreeze} the zero-initialized variance head receives zero gradient at
+every step, so FGIB's KL \emph{is} the center loss exactly, and CentFGIB, TAFGIB and
+FGIB-H are the same objective up to the trainability of the anchor means. The trainable
+anchors of TAFGIB do move (final column norms shrink from $16$ to
+$5.7$--$10$, pairwise correlations reach $0.78$ at the smallest
+$\beta$), yet the accuracy curve is untouched --- the
+protective property is the anchor-table \emph{initialization} geometry at scale $a$,
+not the orthonormality of the trained table. Two conclusions follow. First,
+the load-bearing ingredient on MNIST is that initialization geometry ---
+orthonormal per-class directions at scale $a$ --- not the frozenness of its means, and
+not any Gaussian variance machinery, which is provably inert here
+(Result~\ref{res:varfreeze}). Second, freezing the means and keeping the KL
+is what the \emph{theory} buys --- the persistent force of Remark~\ref{rem:force}, the
+convexified sweep of Proposition~\ref{prop:sweep}, the
+residual-information reading of Result~\ref{res:equiv} --- so FGIB retains an exact
+variational upper-bound interpretation for the auxiliary noisy code; its predictive
+robustness and endpoint behavior outside the analyzed family remain empirical.
+Constraining the side head changes nothing in the
+$\beta$-profile ($98.2$--$98.4$ across the grid for frozen $A$ and $A{=}I$): the
+$A$-channel degrades $\kappa(A^{\top}A)$ but does not carry the robustness.
+
+\paragraph{The variance race does not materialize.}
+We ran the falsification test that Proposition~\ref{prop:variance} invites, logging the
+mean posterior log-variance, the clamp fraction ($e^{-10}$), and (for CEB) the prior
+log-variance at every epoch of every run, aggregated over the \emph{entire} validation
+set, not a single batch. At the final epoch, averaged over the 5 seeds, CEB's posterior
+log-variance sits at $+0.37, +0.27, +0.13, +0.08, -0.05, -0.01$ (nats) for
+$\beta = 10^{-4}, \dots, 10$ --- a mild monotone drift with $\beta$, nowhere near the
+clamp --- and the clamp fraction is $0.0$ at \emph{every} epoch of
+every run; CEB's prior tracks its posterior, and VIB's posterior stays within $0.37$
+of zero (Figure~\ref{fig:diag}(b)). To probe whether the race is an early-stopping
+artifact, we retrained CEB at
+$\beta \in \{1, 10\}$ for 400 epochs with early stopping disabled. The answer is
+nuanced and we report it as measured: the variance \emph{does} drift, monotonically and
+in exactly the direction Proposition~\ref{prop:variance}(i)--(ii) predicts --- at
+$\beta=1$ the posterior log-variance ends at $-2.27$ nats ($-1.20$ at $\beta=10$; the
+prior tracks the posterior), passing $-0.92$ at epoch 100 --- but the clamp fraction is
+$0.0$ throughout, and $-2.3$ nats ($\sigma^2 \approx 0.10$) is still far from the
+$e^{-10}$ clamp the two-stage account predicts as the terminal state
+(Figure~\ref{fig:longtrain}). The race is therefore \emph{real but slow}: at the
+protocol horizon it is invisible, at four times the horizon its direction is
+unmistakable, and its convergence time-scale is beyond 400 epochs at these
+hyperparameters. That is precisely the conditional status
+Remark~\ref{rem:p3-status} assigns to Proposition~\ref{prop:variance}(iii): a
+direction-of-force statement whose terminal state our longest run has not reached. For
+FGIB the question is
+settled analytically: by Result~\ref{res:varfreeze} the
+posterior variance is pinned at $\tau^2$ at every step --- the flat zero line of
+Figure~\ref{fig:longtrain} is the fixed point itself, held for 400 epochs --- and
+Corollary~\ref{cor:family} identifies the trainable prior variance as the only re-entry
+point for the race.
+
+\paragraph{The side-head conditioning channel.}
+Section~\ref{sec:limits-main}(a) identifies the \emph{trainable} side head $A$ as the
+channel the optional variant leaves open, and predicts that the approach to a rank-$K$
+projector would show
+up as diverging $\kappa(A^{\top}A)$. Figure~\ref{fig:diag}(a) plots
+$\log_{10}\kappa(A^{\top}A)$ over training, at $a=16$, for every $\beta$: from its
+initialization near $10^{3.9}$ the condition number rises to $10^{5.8}$--$10^{6.8}$ at
+the final epoch, with transient peaks to $10^{8.3}$ --- $A^{\top}A$ becomes
+\emph{severely ill-conditioned} ($\approx 1000\times$ degradation, no monotone
+dependence on $\beta$). Predictive accuracy nevertheless remains stable, so the
+conclusion is narrow: the ill-conditioning does not hurt MNIST predictions in this
+experiment, but it means the pulled-back reference of Result~\ref{res:equiv} is not
+close to a well-conditioned frame, and the KL's correspondence with $h$ is not
+guaranteed by anything we measured for the trainable variant. The canonical
+configuration needs no such caveat: $A=I$ has $\kappa = 1$ at every step and anchors
+$h$ directly (Result~\ref{res:orth}). The $A{=}I$ and frozen-$A$ rows of
+Table~\ref{tab:ablation} show what the degradation costs in accuracy (little on
+MNIST), and Table~\ref{tab:hanchor} quantifies the fixed head's price across five
+settings: $\approx 0.5$ points per setting at the inherited anchor scale, largely
+recovered by re-tuning the scale --- a real but bounded margin.
+
+\paragraph{Fixed classifier scale.}
+Proposition~\ref{prop:sweep} requires a fixed classifier scale $c$, which the default
+\texttt{nn.Linear} does not enforce. The cosine rows of Table~\ref{tab:ablation}
+enforce it by construction: FGIB's sweep is unchanged ($97.9$--$98.3$ across all six
+$\beta$ values), while VIB and CEB are not rescued ($51.9\%$ at $\beta=1$ and $41.6\%$
+at $\beta=0.1$ respectively), exactly as Remark~\ref{rem:c-scale} predicts --- fixed
+$c$ does not repair the trainable-prior corners; the anchor geometry, not the free
+classifier scale, keeps FGIB's corner non-degenerate (Appendix~\ref{app:tables},
+cosine rows).
+
+\paragraph{Does the geometry alone generalize?}
+Result~\ref{res:varfreeze} proves the KL machinery is \emph{never} load-bearing in this
+architecture, on any dataset. Table~\ref{tab:centfgib} asks the cross-dataset version:
+CentFGIB run on all 12 settings under the
+equal-budget protocol ($a=16$, 6-point $\beta$ grid, 5 seeds). The
+geometry alone generalizes: at the validation-selected configuration, CentFGIB matches
+FGIB($a{=}16$) to within $0.01$ points on 10 of 12 settings and to within $0.43$ on
+the remaining two, including all four regression settings with RFF anchors; in a
+nine-entry ranking the FGIB family occupies the top three slots. The empirical engine
+of the method is the fixed anchor geometry
+itself; the KL contributes the bound reading and the sweep theory
+(Appendix~\ref{app:tables}).
+
+\paragraph{Does the side head need to exist at all?}
+The canonical configuration FGIB-H ($A{=}I$) removes the side head from the theory's
+concerns entirely: the anchor matching acts directly on the deployed representation
+(Result~\ref{res:orth}). Table~\ref{tab:hanchor} measures the price across five settings
+--- MNIST/MLP and /CNN, ImageNet-100 features, California Housing, Cora. At $a=16$, the
+scale inherited from the $z$-space sweep, the fixed head trails the trainable one by
+$\approx 0.5$ points per setting (mean rank $4.00$ of $5$; FGIB $1.20$, CentFGIB
+$1.40$) --- the trainable head is doing real adaptive work, and part of that work is
+rescaling the effective geometry. Re-tuning the anchor scale for $h$-space recovers most
+of the gap: at $a=4$, FGIB-H takes mean rank $2.25$ and ties or beats the backbone on
+every row (MNIST/CNN $99.29$, best of the table; Cora $87.68$, tied-best), so the price
+of the $\kappa=1$ closure is small and quantifiable --- an accuracy-versus-certification
+choice whose two sides both ship in the released code. We also test the other fixed
+geometry the class invites: a backbone with a
+\emph{frozen ETF classifier} (equiangular tight frame head, no regularizer) scores
+$98.32\%$ on MNIST/MLP against the backbone's $98.33\%$ --- a fixed classifier alone
+buys neither margin nor a knob, so the anchor regularization on the representation
+is the load-bearing ingredient (Table~\ref{tab:ablation}, ETF row).
+
+\paragraph{AgeDB without identity leakage.}
+The image-level AgeDB split of the main sweep leaks identity across the boundary. To
+check that the leak inflates magnitudes rather than creates the pattern, we reran
+AgeDB/CNN under a subject-disjoint split: the ordering is preserved --- the backbone
+scores $21.37$ against $35.10$ for FGIB and CentFGIB and $33.71$ for FGIB-H (all
+$R^2\times100$, validation-selected $\beta$) --- so the leakage does not manufacture
+the regression claim (Table~\ref{tab:agedb-disjoint},
+Appendix~\ref{app:tables}).
+
+\paragraph{Anchor-scale sensitivity of the equal-budget rank.}
+The $a{=}16$ equal-budget control is a post-hoc choice; Table~\ref{tab:anchor-ranks}
+reports the fixed-anchor rank for every $a$ in the grid: the mean rank over the 12
+settings ranges from $2.00$ ($a{=}14$, best or tied-best on $7$) to $3.17$ ($a{=}1$),
+with $a{=}16$ at $2.33$ --- the edge is not an artifact of the chosen anchor, and any
+$a \ge 8$ beats every bottleneck's rank. The remaining tables and diagnostic figures
+of this section are collected in Appendix~\ref{app:tables}.
+
+\section{What we have not measured: full statement}
+\label{app:notyet}
+
+\emph{(i) Separating the
+$\beta$-effect from the early-stopping effect.} Remark~\ref{rem:c-scale}(b) predicts that
+the $\beta$-dependence of the equilibrium decays with training length; our runs use
+patience 10, so training well past saturation and comparing converged KL across $\beta$
+would test it. The cosine-classifier runs of Section~\ref{sec:ablation} enforce the
+fixed-$c$ assumption of Proposition~\ref{prop:sweep} but do not remove early stopping,
+and the 400-epoch control of that section covers the variance trajectory, not the
+sweep itself.
+\emph{(ii) Equal budget for the other methods.} The $a=16$ column of
+Table~\ref{tab:main-std} gives FGIB the same 6-point budget as the comparison;
+Table~\ref{tab:anchor-ranks} shows the rank is stable across fixed anchor scales, not
+only at $a=16$. The
+converse --- giving VIB/CEB/DVCCA an extra temperature or variance hyperparameter
+dimension --- is not run, so the comparison's rank ordering is only shown to survive
+budget restriction for FGIB, not budget expansion for the others. \emph{(iii) The
+remaining protocol asks.} All results come from one fixed $60/20/20$ split per dataset
+(seed 42), so split-sensitivity is unmeasured --- the subject-disjoint AgeDB control
+measures leakage sensitivity for one dataset, not split noise in general. Beyond the
+theory's own asks, the robustness
+properties that motivate
+conditional bottlenecks in the first place --- adversarial robustness, OoD detection,
+calibration, and resistance to memorizing random labels \citep{fischer2020ceb,
+fischer2020cebrobust} --- are not evaluated here; the label-free anchor-distance score
+$\min_y \KLd(q(z|x)\|\Ncal(a v_y, \tau^2 I))$ that FGIB's geometry makes available at
+inference (Remark~\ref{rem:training-role}) is a hypothesis, not a result.
 
 \section{Datasets and preprocessing}
 \label{app:data}
@@ -1351,7 +1538,10 @@ ImageNet statistics; target age min-max scaled on the training split. \textbf{Sp
 caveat}: the default split is image-level $60/20/20$, under which $562$ of $567$ subjects
 have images on both sides of the train/test boundary --- identity-specific age cues can
 leak, and the AgeDB numbers should be read with that in mind. A subject-disjoint split
-(grouping all images of a subject into one partition) is implemented in the released
-code; it was not used for the runs in this paper.
+(grouping all images of a subject into one partition, then splitting subjects
+$60/20/20$ with seed 42) is implemented in the released code and \emph{is run} as a
+control in this paper: under it the objective ordering is preserved
+(Table~\ref{tab:agedb-disjoint}), so the leak inflates AgeDB's magnitudes but does not
+create the pattern.
 
 \end{document}

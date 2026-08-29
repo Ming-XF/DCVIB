@@ -47,6 +47,7 @@
 """
 
 import argparse
+import collections
 import logging
 import math
 import os
@@ -72,7 +73,7 @@ from datasets.datasets import (
 from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
-from model import CEB, DCEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, TAFGIB, VIB, CentFGIB
+from model import CEB, DCEB, CNN, DVCCA, ETF, FGIB, GCN, MLP, NIB, SVIB, TAFGIB, VIB, CentFGIB
 from model.cnn import CEB as CNNCEB, CentFGIB as CNNCentFGIB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import CEB as GNNCEB, CentFGIB as GNNCentFGIB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
@@ -199,8 +200,9 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
 def _diag_stats_line(model, val_loader, device):
     """P3 方差竞赛 / FGIB 旁路条件数诊断（--log-variance-stats）。
 
-    在验证集第一个 batch 上以 forward hook 捕获**原始**（未 clamp）的对数
-    方差头输出，返回 "Diag ..." 日志行；不适用于的模型返回 None。
+    在整个验证集上以 forward hook 捕获**原始**（未 clamp）的对数方差头输出
+    （逐 batch 拼接后聚合，此前只读第一个 batch 的旧版已修复），返回
+    "Diag ..." 日志行；不适用于的模型返回 None。
     - vib：后验 logvar 均值与处于 clamp 下限（≤ -9.9，对应 s=e^-10）的单元占比；
     - ceb/dceb：另加先验 logvar 均值与 clamp 占比（P3 测量核心）；
     - fgib/tafgib/dceb：另加 log10 κ(AᵀA)（旁路均值头条件数，A=I 时无）；
@@ -208,17 +210,12 @@ def _diag_stats_line(model, val_loader, device):
     """
     if not isinstance(model, (VIB, CEB, DCEB, FGIB, TAFGIB, CentFGIB)):
         return None
-    try:
-        x, y = next(iter(val_loader))
-    except StopIteration:
-        return None
-    x, y = x.to(device), y.to(device)
 
-    captured = {}
+    captured = collections.defaultdict(list)
 
     def hook(name):
         def f(_module, _inp, out):
-            captured[name] = out.detach()
+            captured[name].append(out.detach())
         return f
 
     handles = []
@@ -230,20 +227,28 @@ def _diag_stats_line(model, val_loader, device):
     was_training = model.training
     model.eval()
     with torch.no_grad():
-        model(x, y)
+        for x, y in val_loader:
+            x, y = x.to(device), y.to(device)
+            model(x, y)
     for h in handles:
         h.remove()
     if was_training:
         model.train()
 
+    def cat(name):
+        """拼接整个验证集捕获的张量，未捕获到则返回 None。"""
+        lst = captured.get(name)
+        return torch.cat(lst, dim=0) if lst else None
+
     parts = []
     if "logvar_q" in captured:
-        lv = captured["logvar_q"]
+        lv = cat("logvar_q")
         parts.append(f"logvar_q_mean={lv.mean().item():.4f}")
         parts.append(f"logvar_q_clamp={(lv <= -9.9).float().mean().item():.4f}")
     if "prior_out" in captured:
-        z_dim = captured["prior_out"].shape[1] // 2
-        lv_p = captured["prior_out"][:, z_dim:]
+        prior_out = cat("prior_out")
+        z_dim = prior_out.shape[1] // 2
+        lv_p = prior_out[:, z_dim:]
         parts.append(f"logvar_p_mean={lv_p.mean().item():.4f}")
         parts.append(f"logvar_p_clamp={(lv_p <= -9.9).float().mean().item():.4f}")
     if isinstance(model, (FGIB, TAFGIB, CentFGIB)) and isinstance(model.mu_head, nn.Linear):
@@ -409,6 +414,8 @@ MODEL_CLASSES = {
     ("centfgib", "cnn"): CNNCentFGIB,
     ("centfgib", "gnn"): GNNCentFGIB,
     ("centfgib", "rnn"): RNNCentFGIB,
+    # 审稿人补充基线：冻结 ETF 分类头（仅 MNIST/MLP）
+    ("etf", "mlp"): ETF,
 }
 
 
@@ -434,7 +441,7 @@ def build_parser():
         "--model",
         type=str,
         choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca",
-                 "dceb", "tafgib", "centfgib"],
+                 "dceb", "tafgib", "centfgib", "etf"],
         default="mlp",
         help="svib is Squared-IB (ICLR 2019 Caveats): a VIB subclass whose forward "
         "returns the squared KL (loss becomes CE + β·KL²), mainly for classification; "
@@ -615,6 +622,11 @@ def main():
             parser.error("dceb/tafgib 消融变体仅支持 MLP 骨干")
         if args.task != "mnist":
             parser.error("dceb/tafgib 消融变体仅支持 mnist 任务（审稿人消融实验）")
+    if args.model == "etf":
+        if args.backbone != "mlp":
+            parser.error("etf 基线仅支持 MLP 骨干")
+        if args.task != "mnist":
+            parser.error("etf 基线仅支持 mnist 任务（审稿人补充基线）")
 
     # 图批拼块对角后 512 批约 1.2 万节点、稠密邻接约 566MB；128 批约 3 千
     # 节点 / 36MB（benchmarking-gnns 的 ZINC 约定批大小），未显式设置时覆写

@@ -4,6 +4,7 @@ from .ceb import CEB
 from .centfgib import CentFGIB
 from .dceb import DCEB
 from .dvcca import DVCCA
+from .etf import ETF
 from .fgib import FGIB
 from .mlp import MLP
 from .nib import NIB

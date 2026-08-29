@@ -4,10 +4,14 @@
 - tune_results/（主实验：det / vib / ceb / fgib 各 beta，fgib a=16 对照）
 - tune_results_ablation/main/（dceb / tafgib / centfgib）
 - tune_results_ablation/freezea/、aid/、cosine/（fgib 的 A 约束消融与 cosine 分类器）
-- tune_results_ablation/p3_diag/（vib/ceb/fgib 的 --log-variance-stats 诊断）
+- tune_results_ablation/p3_diag_full/（vib/ceb/fgib/tafgib 的全验证集 batch 聚合
+  --log-variance-stats 诊断，修复旧版只读第一个 batch 的问题）
+- tune_results_ablation/longtrain/（CEB/FGIB 400 epochs 长训练，P3 早停伪影检验）
+- tune_results_ablation/agedb_disjoint/（AgeDB subject-disjoint 身份隔离对照）
 
-输出 tables/tab_ablation.tex（各变体在 6 个 beta 上的测试 Acc + 验证集选中列），
-并打印 P3 方差测量与 κ(AᵀA) 测量的汇总数字。
+输出 tables/tab_ablation.tex（各变体在 6 个 beta 上的测试 Acc + 验证集选中列）、
+tables/tab_agedb_disjoint.tex，并打印 P3 方差测量、长训练与 κ(AᵀA) 测量的
+汇总数字。
 
 用法：python make_ablation.py
 """
@@ -20,6 +24,9 @@ import statistics
 import make_tables as mt
 
 BETAS = mt.BETAS
+
+# 全验证集聚合的 P3 诊断目录（旧版 p3_diag/ 只读第一个 batch，仅留档）
+P3_DIR = "tune_results_ablation/p3_diag_full"
 
 # (行名, 结果目录, 模型, anchor) —— 缺 anchor 为 None
 ROWS = [
@@ -35,6 +42,7 @@ ROWS = [
     ("FGIB cosine", "tune_results_ablation/cosine", "fgib", 16.0, None),
     ("VIB cosine", "tune_results_ablation/cosine", "vib", None, None),
     ("CEB cosine", "tune_results_ablation/cosine", "ceb", None, None),
+    ("ETF (frozen classifier)", "tune_results_ablation/etf", "etf", None, None),
 ]
 
 AVG_RE = mt.AVG_RE
@@ -112,12 +120,19 @@ def main():
 
     print("== MNIST/MLP 消融：各变体在 beta 网格上的测试 Acc（val-sel 列 = 验证集选模）==")
     for name, resdir, model, anchor, _ in ROWS:
-        if model == "mlp":
-            rec = parse_log(os.path.join("tune_results", "mnist_mlp", "train.log"))
+        if model in ("mlp", "etf"):
+            # 基线无 beta 维度：mlp 在主目录，etf 在 ablation/etf（{ds}_{model} 命名）
+            base_name = "mnist_mlp" if model == "mlp" else "mnist_etf"
+            base_dir = "tune_results" if model == "mlp" else resdir
+            path = os.path.join(base_dir, base_name, "train.log")
+            if not os.path.isfile(path):
+                print(f"{name:28s} 未完成（{path}），跳过行")
+                continue
+            rec = parse_log(path)
             accs = None
             val_sel = rec["test"]["Acc"][0]
             cells = ["--"] * 6 + [f"{100 * val_sel:.2f}"]
-            print(f"{name:28s} det = {100 * val_sel:.2f}")
+            print(f"{name:28s} single = {100 * val_sel:.2f}")
         else:
             accs, recs = series_test_acc(resdir, model, anchor)
             bsel = val_select(recs)
@@ -131,12 +146,12 @@ def main():
     open(out, "w").write("\n".join(lines) + "\n")
     print(f"已生成 {out}")
 
-    # P3 方差测量（p3_diag）
-    print("\n== P3 方差测量（每 run 最终 epoch Diag 行，5 runs 平均）==")
+    # P3 方差测量（p3_diag_full：整个验证集聚合）
+    print("\n== P3 方差测量（全验证集聚合，每 run 最终 epoch Diag 行，5 runs 平均）==")
     for model in ["ceb", "vib"]:
         row = []
         for b in ["0.0001", "0.001", "0.01", "0.1", "1", "10"]:
-            path = glob.glob(f"tune_results_ablation/p3_diag/mnist_mlp_{model}_beta_{b}/train.log")
+            path = glob.glob(f"{P3_DIR}/mnist_mlp_{model}_beta_{b}/train.log")
             if not path:
                 continue
             diags = extract_diags(path[0])
@@ -147,10 +162,10 @@ def main():
                        + (f" p={stat('logvar_p_mean'):+.2f}" if model == "ceb" else ""))
         print(f"  {model}: " + " | ".join(row))
 
-    # κ(AᵀA) 测量（p3_diag 的 fgib a=16）
+    # κ(AᵀA) 测量（p3_diag_full 的 fgib a=16）
     print("\n== FGIB κ(AᵀA)（log10，每 run 最终 epoch，5 runs 平均）==")
     for b in ["0.0001", "0.001", "0.01", "0.1", "1", "10"]:
-        path = glob.glob(f"tune_results_ablation/p3_diag/mnist_mlp_fgib_beta_{b}_anchor_16/train.log")
+        path = glob.glob(f"{P3_DIR}/mnist_mlp_fgib_beta_{b}_anchor_16/train.log")
         if not path:
             continue
         diags = extract_diags(path[0])
@@ -253,6 +268,113 @@ def centfgib_all_table():
         print(f"[9 条目 rank] {name:12s} mean rank = {mr[name]:.2f}, best-or-tied = {wins[name]}/12")
 
 
+def agedb_disjoint_table():
+    """AgeDB subject-disjoint 对照（tune_results_ablation/agedb_disjoint/，审稿人第 4 条）。
+
+    身份隔离划分下比较 Det / FGIB(a=16) / CentFGIB(a=16) / FGIB-H(A=I, a=16)
+    的验证集选模测试 R²（6 点 β 网格，5 seeds，CNN 骨干）。
+    生成 tables/tab_agedb_disjoint.tex 并打印四条目 rank。
+    """
+    base = "tune_results_ablation/agedb_disjoint"
+    need = (["agedb_cnn"] + [f"agedb_cnn_{m}_beta_{b:g}_anchor_16"
+                             for m in ("fgib", "centfgib") for b in BETAS]
+            + [f"agedb_cnn_fgib_beta_{b:g}_anchor_16" for b in BETAS])
+    done = {os.path.basename(os.path.dirname(p)) for p in glob.glob(
+        os.path.join(base, "**", "train.log"), recursive=True)}
+    missing = [n for n in need if n not in done]
+    if missing:
+        print(f"agedb_disjoint 未完成（缺 {len(missing)} 个配置），跳过表格")
+        return
+    det = parse_log(os.path.join(base, "agedb_cnn", "train.log"))["test"]["R2"][0]
+    rows = {}
+
+    def select(dirname, prefix):
+        recs = {}
+        for b in BETAS:
+            path = os.path.join(dirname, f"{prefix}_beta_{b:g}_anchor_16", "train.log")
+            recs[b] = parse_log(path)
+        bsel = val_select(recs)
+        return recs[bsel]["test"]["R2"][0], bsel
+
+    f16, f16_b = select(base, "agedb_cnn_fgib")
+    cent, cent_b = select(base, "agedb_cnn_centfgib")
+    aid, aid_b = select(os.path.join(base, "aid"), "agedb_cnn_fgib")
+    vals = {"Det.": det, "FGIB ($a{=}16$)": f16, "CentFGIB ($a{=}16$)": cent,
+            "FGIB-H ($A{=}I$, $a{=}16$)": aid}
+    lines = [
+        "\\begin{table}[t]",
+        "\\caption{AgeDB under a subject-disjoint split. Identities are grouped so that no "
+        "subject appears on both sides of any split boundary (60/20/20, seed 42); this removes "
+        "the identity leakage of the image-level split used elsewhere in the paper, at the cost "
+        "of comparability with other AgeDB literature. Validation-selected $\\beta$ at a fixed "
+        "$a=16$ (6-point grid), 5 seeds, CNN backbone, $R^2\\times100$.}",
+        "\\label{tab:agedb-disjoint}",
+        "\\begin{center}\\small",
+        "\\begin{tabular}{lcccc}",
+        "AgeDB (subject-disjoint) & Det. & FGIB ($a{=}16$) & CentFGIB ($a{=}16$) & "
+        "FGIB-H ($A{=}I$, $a{=}16$) \\\\ \\hline \\\\[-1.8ex]",
+    ]
+    best = max(vals.values())
+    lines.append("$R^2\\times100$ (val-sel. $\\beta$) & "
+                 + " & ".join(("\\textbf{" + f"{100 * v:.2f}" + "}") if v >= best - mt.TIE_EPS
+                              else f"{100 * v:.2f}" for v in vals.values()) + " \\\\")
+    lines.append("selected $\\beta$ & -- & " + f"{f16_b:g} & {cent_b:g} & {aid_b:g} \\\\")
+    lines.append("\\end{tabular}\\end{center}\\end{table}")
+    open(os.path.join("tables", "tab_agedb_disjoint.tex"), "w").write("\n".join(lines) + "\n")
+    print("已生成 tables/tab_agedb_disjoint.tex | " +
+          " ".join(f"{k} = {100 * v:.2f}" for k, v in vals.items()))
+
+
+def longtrain_summary():
+    """CEB/FGIB 400-epoch 长训练汇总（tune_results_ablation/longtrain/，P3 早停伪影检验）。
+
+    打印每 run 最终 epoch 的后验（与 CEB 先验）logvar 均值与 clamp 占比，
+    并把 run 1 的逐 epoch 轨迹导出 tables/longtrain_traj.json 供
+    make_figures.py 画图（x=epoch，y=mean log σ²）。
+    """
+    import json
+    base = "tune_results_ablation/longtrain"
+    print("\n== CEB/FGIB 长训练（400 epochs，patience 400）最终 epoch logvar（5 runs 平均）==")
+    traj_out = {}
+    for name, sub in [("ceb_beta_1", "mnist_mlp_ceb_beta_1"),
+                      ("ceb_beta_10", "mnist_mlp_ceb_beta_10"),
+                      ("fgib_beta_1", "mnist_mlp_fgib_beta_1_anchor_16")]:
+        path = glob.glob(os.path.join(base, sub, "train.log"))
+        if not path:
+            print(f"  {name}: 未完成")
+            continue
+        diags = extract_diags(path[0])
+        def stat(field):
+            vals = [float(re.search(field + r"=([\d.\-]+)", d).group(1))
+                    for d in diags if field + "=" in d]
+            return sum(vals) / len(vals) if vals else float("nan")
+        print(f"  {name}: q={stat('logvar_q_mean'):+.4f} clamp={stat('logvar_q_clamp'):.4f}"
+              + (f" p={stat('logvar_p_mean'):+.4f}" if "ceb" in name else ""))
+        # run 1 逐 epoch 轨迹（epoch, logvar_q_mean[, logvar_p_mean]）
+        traj, run, last, cur = [], 0, 0, None
+        for line in open(path[0]).read().splitlines():
+            if "===== Run" in line:
+                run += 1
+                if run > 1:
+                    break
+            m = re.search(r"Epoch\s+(\d+)/", line)
+            if m:
+                last = int(m.group(1))
+            if "Diag " in line:
+                cur = line
+                q = re.search(r"logvar_q_mean=([\d.\-]+)", cur)
+                if q and (not traj or traj[-1][0] != last):
+                    p = re.search(r"logvar_p_mean=([\d.\-]+)", cur)
+                    traj.append((last, float(q.group(1)),
+                                 float(p.group(1)) if p else None))
+        traj_out[name] = traj
+        print(f"  {name} run1 轨迹端点: " + " ".join(
+            f"e{e}:{q:+.3f}" for e, q, _ in traj if e in (1, 25, 50, 100, 200, 300, 400)))
+    with open(os.path.join("tables", "longtrain_traj.json"), "w") as f:
+        json.dump(traj_out, f)
+    print("已导出 tables/longtrain_traj.json")
+
+
 if __name__ == "__main__":
     main()
     # CentFGIB 全设定表：仅在 12 设定 × 6 β 全部完成后生成
@@ -263,3 +385,5 @@ if __name__ == "__main__":
         centfgib_all_table()
     else:
         print(f"centfgib_all 未完成（{n_done}/{expected} 个配置），跳过全设定表")
+    agedb_disjoint_table()
+    longtrain_summary()

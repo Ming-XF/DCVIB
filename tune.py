@@ -40,7 +40,7 @@ TRAIN_PY = ROOT / "train.py"
 # 调参专属或由脚本接管路径的参数，重建 train.py 命令行时跳过
 SKIP_DESTS = {"model", "beta", "anchor_scale", "parallel", "results_dir", "save_path", "log_path", "no_save"}
 
-BASELINES = ("mlp", "cnn", "gcn", "rnn")
+BASELINES = ("mlp", "cnn", "gcn", "rnn", "etf")
 
 
 def replace_arg(parser, dest, option_strings, **kwargs):
@@ -59,7 +59,7 @@ def build_tune_parser():
     replace_arg(
         parser, "model", ["--model"],
         nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca",
-                            "dceb", "tafgib", "centfgib"],
+                            "dceb", "tafgib", "centfgib", "etf"],
         default=["mlp"],
         help="模型列表，调参网格的一维；基础模型无 beta/anchor 维度，"
         "vib/ceb/svib/nib/dvcca/dceb 仅 beta 维度，fgib/tafgib/centfgib 为 "

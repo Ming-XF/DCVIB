@@ -33,6 +33,8 @@ class FGIB(nn.Module):
         continuous_y: bool = False,
         input_size: int = 28,
         cosine_classifier: bool = False,
+        freeze_a: bool = False,
+        a_identity: bool = False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -50,7 +52,17 @@ class FGIB(nn.Module):
             self.classifier = nn.Linear(hidden_dim, num_classes)
 
         # 旁路：h -> (mu, logvar)，参数化 z ~ N(mu, sigma^2)
-        self.mu_head = nn.Linear(hidden_dim, z_dim)
+        # a_identity 消融：A 固定为恒等映射（mu = h，要求 z_dim == hidden_dim），
+        # 即固定正交侧头（FGIB-H）：部署表示 h 直接锚定、κ(AᵀA)=1；
+        # freeze_a 消融：A 随机初始化后冻结，检验"旁路头可训练"通道是否被利用
+        if a_identity:
+            assert z_dim == hidden_dim, "a_identity 要求 z_dim == hidden_dim"
+            self.mu_head = nn.Identity()
+        else:
+            self.mu_head = nn.Linear(hidden_dim, z_dim)
+            if freeze_a:
+                self.mu_head.weight.requires_grad_(False)
+                self.mu_head.bias.requires_grad_(False)
         self.logvar_head = nn.Linear(hidden_dim, z_dim)
 
         # 固定先验：分类为类条件锚点表，回归为固定 RFF 连续锚点，均不参与梯度

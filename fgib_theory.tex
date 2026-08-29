@@ -38,6 +38,7 @@
 
 \newtheorem{lemma}{Lemma}
 \newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
 \newtheorem{remark}{Remark}
 
 % =====================================================================
@@ -301,16 +302,28 @@ Parts~(ii) and~(iii) are a stationarity-and-direction-of-force argument, not a c
 proof: the ``two stages'' presume a time-scale separation (mean matching completes before
 the variance race) that is not established here. The account is directly falsifiable in
 this codebase: log the mean posterior log-variance and the fraction of units at the clamp
-$s = e^{-10}$ during CEB training. \emph{We ran the test.} On MNIST, across all six
-$\beta$ settings and 5 seeds (Section~\ref{sec:ablation} of the main paper), the trained
+$s = e^{-10}$ during CEB training. \emph{We ran the test, on the full validation set of
+every epoch} (aggregated over all batches; Section~\ref{sec:ablation} of the main
+paper). On MNIST, across all six
+$\beta$ settings and 5 seeds, the trained
 posterior and prior log-variances of CEB remain near their initialization ($\sigma^2 =
 \tau^2 = 1$, mean $\log\sigma^2$ within $0.74$ of zero, clamp fraction $0.0$ at every
-epoch of every run). At the early-stopping time scale of the experimental protocol, the
-variance race therefore does not materialize, and
-Proposition~\ref{prop:variance}(iii) is empirically void for those runs: Part~(iii)
-stands as a sharp hypothesis about what longer training or different schedules would
-produce, the force analysis of (i)--(ii) as the only proved content, and the
-measurement itself as the finding.
+epoch of every run). A 400-epoch control at $\beta\in\{1,10\}$ (no early stopping,
+Section~\ref{sec:ablation}) resolves the status more precisely: the variance \emph{does}
+drift, monotonically and in exactly the direction (i)--(ii) predict --- posterior
+$\log\sigma^2$ ends at $-2.27$ nats ($\beta=1$) and $-1.20$ ($\beta=10$), prior
+tracking --- but the clamp fraction remains $0.0$ and $-2.3$ nats is far from the
+$e^{-10}$ terminal state of part~(iii). The race is therefore real but slow: invisible
+at the protocol horizon, directionally confirmed at four times it, convergence beyond
+the tested 400 epochs. That is precisely the conditional status this remark assigns to
+Proposition~\ref{prop:variance}(iii): a direction-of-force statement whose terminal
+state the longest available run has not reached, and the measurement itself --- not the
+prediction --- as the finding. On the FGIB side the question does not arise as an
+empirical one at all: Proposition~\ref{prop:varfreeze} proves the posterior variance is
+pinned at $\tau^2$ by construction --- the flat zero line of the 400-epoch run --- and
+Corollary~\ref{cor:family} shows the race can
+re-enter only through a trainable prior log-variance --- DCEB's configuration --- whose
+measured collapse at $\beta=10$ is consistent with that channel.
 \end{remark}
 
 \begin{remark}[Train--evaluation mismatch]\label{rem:mismatch}
@@ -629,8 +642,46 @@ collapse is blocked --- with invertible $A$, $\operatorname{KL} = 0$ forces $h$ 
 to be class-constant --- but the approach to the rank-$K$ regime is not blocked, and
 that regime is exactly where the conditioning failure and the perturbation blow-up of
 Propositions~\ref{prop:conditioning} and~\ref{prop:inverse} live. This is the one
-channel of Part~I that FGIB has not closed; Section~\ref{sec:limits} collects it.
+channel of Part~I that FGIB has not closed; the fixed-orthogonal configuration of
+Proposition~\ref{prop:orth} below closes it by construction, and its conditioning is
+measured for the trainable variant in the main paper
+(Section~\ref{sec:ablation}); Section~\ref{sec:limits} collects it.
 \end{remark}
+
+\begin{proposition}[Fixed orthogonal side head: the regularizer anchors the deployed representation directly]\label{prop:orth}
+Let the side head be a \emph{fixed orthogonal} map $A \in \mathbb{R}^{d\times d}$ with
+$z = d$, and let $\{v_y\}$ be the anchor frame. Then:
+\begin{itemize}
+\item[(i)] \emph{Isometry.} $\|A h - a v_y\| = \|h - a\,A^{\top} v_y\|$, and
+$\{A^{\top}v_y\}$ is orthonormal --- combined with
+Proposition~\ref{prop:varfreeze}, the regularizer is exactly the fixed-anchor center
+loss $\tfrac{1}{2\tau^2}\|h - a\,A^{\top}v_y\|^2$ on the \emph{deployed representation}
+$h$ itself, with the rotated frame $\{A^{\top}v_y\}$.
+\item[(ii)] \emph{Conditioning.} $A^{\top}A = I$ has $\kappa = 1$ at every step: the
+pulled-back reference of Proposition~\ref{prop:fgib-ceb} is orthonormal at scale $a$ in
+the induced metric, the perturbation of Proposition~\ref{prop:inverse} is exactly
+$\tau\,\epsilon$ with unit covariance --- no blow-up --- and the counterexample of
+Proposition~\ref{prop:conditioning}(iii) is excluded by construction.
+\item[(iii)] \emph{Statistical equivalence.} For a Haar-distributed random orthogonal
+$A$, the rotated frame $\{A^{\top}v_y\}$ is distributed identically to $\{v_y\}$ across
+seeds, so the identity map $A = I$ is a representative canonical choice: the
+``$A{=}I$'' configuration loses nothing over any other fixed orthogonal map.
+\end{itemize}
+\end{proposition}
+
+\begin{proof}
+(i) is the isometry of orthogonal maps: $\|Ah - av_y\|^2
+= \|A(h - aA^{\top}v_y)\|^2 = \|h - aA^{\top}v_y\|^2$, and
+$v_i^{\top}A A^{\top} v_j = v_i^{\top}v_j = \delta_{ij}$. (ii) $\kappa(I) = 1$; the
+induced metric is $A^{\top}A = I$; the perturbation covariance is
+$\tau^2(A^{\top}A)^{-1} = \tau^2 I$. (iii) The QR frame $\{v_y\}$ is constructed from a
+standard normal matrix, whose distribution is invariant under the orthogonal group;
+Haar-distributed $A$ maps it to another frame with the same uniform distribution on the
+Stiefel manifold, so the seed distribution of the whole optimization problem --- encoder
+initialization, anchor frame, classifier initialization --- is identical for $A=I$ and
+for any random fixed orthogonal $A$.
+\hfill\qed
+\end{proof}
 
 \begin{remark}[Family closure]\label{rem:closure}
 Lemma~\ref{lem:kl-invariance} holds for the underlying Gaussian distributions. Within a
@@ -745,6 +796,65 @@ Eq.~\eqref{eq:kl-ce} since $\|v_y\| = 1$. The variance term is non-negative with
 unique minimum at $\sigma^2 = \tau^2$, and $\mathrm{CE}$ is independent of $\sigma^2$.
 \hfill\qed
 \end{proof}
+
+\begin{proposition}[A deterministic main path freezes the variance: the released KL is exactly a fixed-variance displacement term]\label{prop:varfreeze}
+Consider FGIB with a deterministic main path (the classifier consumes $h$, never $z$),
+a log-variance head $\ell_q(x) = W h(x) + b$ with zero initialization, a frozen prior
+log-variance $\ell_p = \ln \tau^2 = 0$, and a first-order optimizer without weight
+decay. Then $\ell_q \equiv \ell_p$ at \emph{every} training step and the regularizer is,
+throughout training,
+\begin{equation}
+\operatorname{KL}(q\,\|\,r)
+= \tfrac{1}{2\tau^2}\,\|\mu - \mu_p\|^2,
+\label{eq:freeze}
+\end{equation}
+a fixed-variance displacement term --- the KL of Lemma~\ref{lem:lagrangian} evaluated
+permanently at the variance optimum $\sigma^2 = \tau^2$, not merely in the limit.
+More generally, when the variance enters the objective only through the KL, the
+per-coordinate gap $u = \ell_q - \ell_p$ obeys
+$\partial_u \operatorname{KL} = \tfrac12(e^{u} - 1)$, which carries the sign of $u$:
+$u = 0$ is the unique attractor of the continuous descent flow
+$\dot u \propto -(e^{u}-1)$, and of discrete first-order updates whenever the standard
+step-size condition holds; zero initialization selects this fixed point at the first
+step and no force ever leaves it.
+\end{proposition}
+
+\begin{proof}
+The per-coordinate diagonal KL
+$\tfrac12\big[\ell_p - \ell_q + e^{\ell_q-\ell_p} + (\mu-\mu_p)^2 e^{-\ell_p} - 1\big]$
+gives
+$\partial_{\ell_q}\operatorname{KL} = \tfrac12(e^{\ell_q-\ell_p}-1)$,
+which vanishes iff $\ell_q = \ell_p$, independently of the mean gap. With $W=0$, $b=0$
+and $\ell_p=0$ the head output is identically zero, so $\ell_q = \ell_p = 0$ at
+initialization, the gradient of every head parameter is zero, and no weight decay or
+other variance-dependent term acts on the head: $\ell_q \equiv 0$ for all time.
+Substituting $\ell_q=\ell_p=0$ into the closed form yields
+Eq.~\eqref{eq:freeze}. For the general attractor statement, the gap evolves under
+gradient flow on $\ell_q$ as $\dot u = -\tfrac{\beta}{2}\|h\|^2(e^{u}-1)$, whose only
+fixed point is $u=0$ and whose linearization is $-\tfrac{\beta}{2}\|h\|^2$, so $u=0$
+is globally asymptotically stable (a one-dimensional monotone flow); a discrete
+first-order step multiplies the gap by $1 - \tfrac{\eta\beta}{2}\|h\|^2 \tfrac{e^{u}-1}{u}$,
+which contracts $|u|$ whenever $\eta \beta \|h\|^2 < 4/\sup_{u'} \tfrac{e^{u'}-1}{u'}$
+--- the standard condition.
+\hfill\qed
+\end{proof}
+
+\begin{corollary}[The FGIB family is a center-loss family; the variance race re-enters only through a trainable prior]\label{cor:family}
+The same argument pins the posterior variance in every FGIB-family variant, so with
+$\tau^2 = 1$: \emph{FGIB} and \emph{CentFGIB} are exactly
+$\mathrm{CE} + \tfrac{\beta}{2}\|\mu - a v_y\|^2$ (frozen anchors), and \emph{TAFGIB} is
+exactly the same loss with the anchor means trainable --- the ablation table's
+``coincidence'' is an identity, not an empirical observation. \emph{DCEB} is the single
+exception that leaves the family: its trainable prior log-variance has gradient
+$\partial_{\ell_p}\operatorname{KL} = \tfrac12\big[1 - e^{\ell_q-\ell_p}
+- (\mu-\mu_p)^2 e^{-\ell_p}\big]$, which at the zero-initialized point equals
+$-\tfrac12(\mu-\mu_p)^2 < 0$ --- the prior variance is pushed \emph{down} while the
+means are unmatched, amplifying the mean-matching force by up to $e^{10}$ at the clamp.
+This is Channel~P3 re-entering through the prior side, and it is consistent with the
+measured behavior: DCEB is the only variant that collapses ($\beta=10$,
+Section~\ref{sec:ablation} of the main paper), while TAFGIB, whose prior variance is
+frozen, stays in the family and does not.
+\end{corollary}
 
 \begin{proposition}[Unique interior optimum per $\beta$ at fixed classifier scale --- the sweep]\label{prop:sweep}
 \emph{At a fixed classifier scale $c$}, for every $\beta > 0$, the FGIB Lagrangian on
@@ -963,7 +1073,10 @@ carries over, again subject to the fixed-scale condition of Remark~\ref{rem:c-sc
 (the regression classifier has no margin scale; its norm is likewise unconstrained in
 the implementation). Training starts at $\operatorname{KL} \approx a^2/2$
 (zero-initialized logvar head, $\sigma = 1$, $\mu \approx 0$), so the anchor scale sets
-the initial regularization pressure; larger $a$ delays the approach to $s^*$. The
+the initial regularization pressure; larger $a$ delays the approach to $s^*$. In the
+released implementation the variance does not merely \emph{start} there: by
+Proposition~\ref{prop:varfreeze} it is pinned there for the whole run, and
+$\operatorname{KL} = \tfrac{1}{2\tau^2}\|\mu - \mu_p\|^2$ exactly. The
 finite-scale caveat formerly in this remark is stated, with its fix, in
 Remark~\ref{rem:c-scale}.
 \end{remark}
@@ -1256,25 +1369,55 @@ Remark~\ref{rem:endpoint}); (6) the one-dimensional sweep
 and its strict concavity \emph{at fixed classifier scale}, as a KL--CE surrogate curve
 on the aligned family (Props.~\ref{prop:sweep}, \ref{prop:curve};
 Remark~\ref{rem:surrogate} --- not a recovered IB curve); (7) the well-conditioning of the fixed
-reference side (Prop.~\ref{prop:conditioning}(i)--(ii)).
+reference side (Prop.~\ref{prop:conditioning}(i)--(ii)); (8) the deterministic main path
+freezes the variance: in the released implementation the regularizer is exactly the
+fixed-variance displacement term $\tfrac{1}{2\tau^2}\|\mu-\mu_p\|^2$ at every step, and
+the FGIB family is one center-loss family --- the ablation table's number-coincidence is
+an identity, not an empirical observation (Prop.~\ref{prop:varfreeze},
+Cor.~\ref{cor:family}); (9) the fixed orthogonal side head anchors the deployed
+representation directly: $\|Ah - av_y\| = \|h - aA^{\top}v_y\|$ with $\kappa(A^{\top}A)
+= 1$ and unit-covariance pull-back noise, so the conditioning counterexample is excluded
+by construction and $A = I$ is a representative canonical choice
+(Prop.~\ref{prop:orth}).
 
-\textbf{Open or conditional.} (1) The side head $A$ is a trainable, inference-unused
-party in the matching (Remark~\ref{rem:A-channel}); combined with the
-counterexample of Prop.~\ref{prop:conditioning}(iii), the perturbation in
-Prop.~\ref{prop:inverse} can be arbitrarily large, so the bound's object may be far from
-the deployed representation exactly where the residual lives. A constraint on $A$ or a
-measurement of $\kappa(A^{\top}A)$ over training would close or quantify this channel.
+\textbf{Measured.} (i) The trainable side head $A$ degrades $\kappa(A^{\top}A)$ from
+$10^{3.9}$ at initialization to $10^{5.8}$--$10^{6.8}$ (transient peaks to $10^{8.3}$)
+on MNIST/MLP, without touching accuracy (main paper, Section~\ref{sec:ablation},
+Fig.~\ref{fig:diag}) --- the channel of Remark~\ref{rem:A-channel} is real. The
+fixed-orthogonal variant of Prop.~\ref{prop:orth} closes it by construction, at a
+measured price: across five settings FGIB-H ($A{=}I$) trails the trainable head by
+$\approx 0.5$ points per setting at the inherited anchor scale $a=16$ (mean rank
+$4.00$ of $5$ vs.\ FGIB's $1.20$), recovering to mean rank $2.25$ when the anchor
+scale is re-tuned for $h$-space ($a=4$), so the trade-off is
+accuracy-versus-certification, small in both directions, and both configurations ship
+(main paper, Table~\ref{tab:hanchor}). (ii) CEB's variance race is invisible at the protocol
+horizon but drifts into view by 400 epochs, in the predicted direction and far from the
+clamp (Remark~\ref{rem:p3-status}).
+
+\textbf{Open or conditional.} (1) For the \emph{optional} trainable-$A$ variant, the
+bound's object may be far from the deployed representation exactly where the residual
+lives (Remark~\ref{rem:A-channel}, Prop.~\ref{prop:conditioning}(iii)); the
+fixed-orthogonal configuration removes the issue by construction, and the measured
+question left open is only whether trainable $A$ ever \emph{helps} --- on MNIST it does
+not.
 (2) The global sweep requires a bounded classifier scale
 (Remark~\ref{rem:c-scale}); the current implementation leaves the scale free and the
 proposition conditional. A fixed-temperature cosine classifier would satisfy the
 fixed-$c$ assumption by construction; weight decay only mitigates the scale divergence
 and replaces the problem with a new joint optimization over $(s,c)$ that must be
-re-derived. (3) Neither CEB's nor FGIB's certificate upper-bounds the deployed
+re-derived; the enforced-scale variants are tested on MNIST
+(Section~\ref{sec:ablation} of the main paper). (3) Neither CEB's nor FGIB's certificate
+upper-bounds the deployed
 deterministic residual (Prop.~\ref{prop:object}); claims of inference-representation
 compression are hypotheses, not conclusions. (4) Caveat~2 is not resolved
 (Remark~\ref{rem:endpoint}): the compressed endpoint is a chosen label-code geometry,
-not certified semantic compression. (5) The two-stage variance dynamics of
-Prop.~\ref{prop:variance}(ii)--(iii) await the measurement of
-Remark~\ref{rem:p3-status}. (6) The regression RFF anchor analysis inherits the same
-fixed-scale and conditioning caveats and is presently a transfer argument, not a proof.
+not certified semantic compression. (5) CEB's two-stage variance dynamics
+(Prop.~\ref{prop:variance}(ii)--(iii)) remain a hypothesis for horizons beyond the
+tested 400 epochs and for protocols other than ours; the FGIB-family counterpart is
+proved (Prop.~\ref{prop:varfreeze}), with DCEB the single variant that re-opens the
+race through its trainable prior variance (Cor.~\ref{cor:family}). (6) The regression
+RFF anchor analysis inherits the same
+fixed-scale caveats and is presently a transfer argument, not a proof; the
+subject-disjoint AgeDB control (main paper, Table~\ref{tab:agedb-disjoint}) is
+evidence, not certification.
 \end{remark}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=agedb backbone=cnn model=fgib runs=5 epochs=100 | 6 组组合（绿色高亮 = 各模型默认指标 R2 的最佳行）</div>
+
+<h2>fgib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-fgib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-fgib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="119.155" data-mae="11.665" data-r2="0.3371"><td>1</td><td>16</td><td>119.1550±5.6159</td><td>11.6650±0.3616</td><td>0.3371±0.0308</td></tr><tr data-loss="1192.95" data-mae="11.7197" data-r2="0.3363"><td>10</td><td>16</td><td>1192.9459±57.2582</td><td>11.7197±0.1819</td><td>0.3363±0.0219</td></tr><tr data-loss="12.2479" data-mae="11.738" data-r2="0.3313"><td>0.1</td><td>16</td><td>12.2479±0.5266</td><td>11.7380±0.3395</td><td>0.3313±0.0313</td></tr><tr data-loss="1.2932" data-mae="11.8208" data-r2="0.3158"><td>0.01</td><td>16</td><td>1.2932±0.0196</td><td>11.8208±0.5016</td><td>0.3158±0.0697</td></tr><tr data-loss="0.0371" data-mae="12.2695" data-r2="0.2783"><td>0.0001</td><td>16</td><td>0.0371±0.0052</td><td>12.2695±1.5674</td><td>0.2783±0.1580</td></tr><tr data-loss="0.1526" data-mae="12.2981" data-r2="0.2761"><td>0.001</td><td>16</td><td>0.1526±0.0043</td><td>12.2981±1.5590</td><td>0.2761±0.1579</td></tr>
+</tbody>
+</table>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

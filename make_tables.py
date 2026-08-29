@@ -66,8 +66,12 @@ def parse_dirname(name):
     return ds, rest[0], rest[1], beta, anchor
 
 
-def load(results_dir):
-    """返回每个配置一条记录：dict(setting, model, beta, anchor, val, test)。"""
+def load(results_dir, strict=True):
+    """返回每个配置一条记录：dict(setting, model, beta, anchor, val, test)。
+
+    strict=False 时跳过尚未完成的日志（缺 Average 汇总行），用于新实验
+    目录中还有子进程在跑的场景（如 table_hanchor）；主流程保持 strict。
+    """
     recs = []
     for name in sorted(os.listdir(results_dir)):
         path = os.path.join(results_dir, name, "train.log")
@@ -75,6 +79,8 @@ def load(results_dir):
             continue
         parsed = parse_dirname(name)
         if parsed is None:
+            continue
+        if not strict and "Average over" not in open(path, errors="ignore").read():
             continue
         ds, bb, model, beta, anchor = parsed
         text = open(path, errors="ignore").read()
@@ -164,16 +170,20 @@ def build_index(recs):
     return by_setting, selected, baseline
 
 
-def build_fixed_anchor_index(by_setting):
-    """FGIB 的等预算对照：固定 a=16、只扫 6 个 beta（与其余瓶颈同预算），验证集选模。
+def build_fixed_anchor_index(by_setting, anchor=16.0):
+    """FGIB 的等预算对照：固定 anchor（默认 a=16）、只扫 6 个 beta（与其余瓶颈
+    同预算），验证集选模。
 
-    返回 {setting: 选中记录}，用于报告与其余瓶颈搜索预算相同时 FGIB 的 rank。
+    返回 {setting: 选中记录}，用于报告与其余瓶颈搜索预算相同时 FGIB 的 rank；
+    anchor 参数化后也用于逐 a 的固定锚点敏感性（审稿人第 5 条：a=16 是后验
+    选择，应报告多个固定 a 的 rank）。
     """
     out = {}
     for setting, items in by_setting.items():
         cands = [r for r in items
-                 if r["model"] == "fgib" and r["anchor"] == 16.0 and r["beta"] is not None]
-        assert len(cands) == len(BETAS), f"{setting}: 固定 a=16 的 fgib 配置数 {len(cands)}"
+                 if r["model"] == "fgib" and r["anchor"] == float(anchor)
+                 and r["beta"] is not None]
+        assert len(cands) == len(BETAS), f"{setting}: 固定 a={anchor} 的 fgib 配置数 {len(cands)}"
         out[setting] = select_one(cands)
     return out
 
@@ -426,6 +436,204 @@ def table_main_std(selected, fgib16, baseline, out):
     open(out, "w").write("\n".join(lines) + "\n")
 
 
+def rank_split(selected, baseline, fgib16, out):
+    """分类 / 回归 / 排除 AgeDB 的 mean rank 分解（审稿人第 4 条）。
+
+    主表 12 设定联合 rank 混合了分类准确率与回归 R²；AgeDB 的 image-level
+    划分有身份泄漏（论文已披露）。此函数报告：
+    - CLS-only（7 设定）、REG-only（5 设定）
+    - 排除 AgeDB 的 10 设定（CLS + 3 个回归）
+    三种口径下全网格 FGIB 与等预算 FGIB(a=16) 的 mean rank 与 wins，
+    写入 out（LaTeX 片段）供正文引用。
+    """
+    order = ["det"] + BOTTLENECKS
+    subsets = {"CLS": CLS, "REG": REG,
+               "exAgeDB": [s for s in CLS + REG if s not in ("agedb_mlp", "agedb_cnn")]}
+    lines, prints = [], []
+    for tag, ss in subsets.items():
+        full = {m: [selected[s][m]["test"][metric_key(s)][0] for s in ss]
+                for m in BOTTLENECKS}
+        full["det"] = [baseline[s]["test"][metric_key(s)][0] for s in ss]
+        eq = dict(full)
+        eq["fgib"] = [fgib16[s]["test"][metric_key(s)][0] for s in ss]
+        mr_full, wins_full = rank_stats(full)
+        mr_eq, wins_eq = rank_stats(eq)
+        prints.append(
+            f"[rank 分解 {tag:7s} n={len(ss):2d}] FGIB 全网格 rank {mr_full['fgib']:.2f} "
+            f"({wins_full['fgib']}/{len(ss)}) | FGIB a=16 rank {mr_eq['fgib']:.2f} "
+            f"({wins_eq['fgib']}/{len(ss)}) | det {mr_eq['det']:.2f} | "
+            + ", ".join(f"{m} {mr_eq[m]:.2f}" for m in BOTTLENECKS if m != "fgib"))
+        lines.append(
+            f"\\item[{tag}] full-grid FGIB mean rank {mr_full['fgib']:.2f} of 7 "
+            f"(best or tied {wins_full['fgib']}/{len(ss)}); equal-budget FGIB ($a{{=}}16$) "
+            f"mean rank {mr_eq['fgib']:.2f} (best or tied {wins_eq['fgib']}/{len(ss)}); "
+            f"deterministic backbone {mr_eq['det']:.2f}.")
+    for p in prints:
+        print(p)
+    with open(out, "w", encoding="utf-8") as f:
+        f.write("\\begin{itemize}\n" + "\n".join(lines) + "\n\\end{itemize}\n")
+
+
+def table_anchor_ranks(by_setting, baseline, out_dir):
+    """逐固定 a 的等预算 FGIB rank 敏感性（审稿人第 5 条：a=16 为后验选择）。
+
+    对每个 a ∈ ANCHORS 用与其余瓶颈相同的 6 点 β 预算验证集选模，报告
+    12 设定 / 仅分类 / 仅回归的 mean rank 与 wins，写入附录表。
+    """
+    rows = []
+    for a in ANCHORS:
+        fgib_a = build_fixed_anchor_index(by_setting, a)
+        cells = []
+        wins12 = None
+        for tag, ss in [("12", CLS + REG), ("cls", CLS), ("reg", REG)]:
+            vals = {m: [selected0(by_setting, s, m, a)["test"][metric_key(s)][0]
+                        for s in ss] for m in BOTTLENECKS}
+            vals["det"] = [baseline[s]["test"][metric_key(s)][0] for s in ss]
+            vals["fgib"] = [fgib_a[s]["test"][metric_key(s)][0] for s in ss]
+            mr, wins = rank_stats(vals)
+            cells.append(mr["fgib"])
+            if wins12 is None:
+                wins12 = wins["fgib"]
+        rows.append((a, cells, wins12))
+        print(f"[anchor-ranks] a={a:2d} rank12={cells[0]:.2f} rankCLS={cells[1]:.2f} "
+              f"rankREG={cells[2]:.2f} wins={wins12}/12")
+    lines = [
+        "\\begin{table}[t]",
+        "\\caption{Sensitivity of the equal-budget FGIB rank to the fixed anchor scale. "
+        "Each column reports FGIB selected over the same 6-point $\\beta$ grid as every other "
+        "bottleneck at a \\emph{single globally fixed} anchor scale $a$, so its search budget "
+        "matches the comparison exactly (the $a{=}16$ column is the post-hoc control of "
+        "Table~\\ref{tab:main-std}). Mean rank of 7 entries (deterministic backbone + 6 "
+        "bottlenecks) over all 12 settings, over the 7 classification settings, and over the 5 "
+        "regression settings; ``best'' counts best-or-tied settings out of 12. The main-table "
+        "number ($1.75$, full $6\\times9$ grid) is a ceiling only over the full grid, not over "
+        "fixed $a$; the range of fixed-$a$ ranks quantifies how much of FGIB's edge is anchor "
+        "search budget (Section~\\ref{sec:exp}).}",
+        "\\label{tab:anchor-ranks}",
+        "\\begin{center}\\small",
+        "\\begin{tabular}{lccccccccc}",
+        "anchor scale $a$ & " + " & ".join(str(a) for a in ANCHORS) + " \\\\ \\hline \\\\[-1.8ex]",
+    ]
+    for label, idx in [("mean rank (12 settings)", 0),
+                       ("mean rank (classification, 7)", 1),
+                       ("mean rank (regression, 5)", 2),
+                       ("best or tied-best (of 12)", 3)]:
+        if idx == 3:
+            cells = [str(w) for _, _, w in rows]
+        else:
+            cells = [f"{c[idx]:.2f}" for _, c, _ in rows]
+        lines.append("\\multicolumn{1}{l}{" + label + "} & " + " & ".join(cells) + " \\\\")
+    lines.append("\\end{tabular}\\end{center}\\end{table}")
+    with open(os.path.join(out_dir, "tab_anchor_ranks.tex"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def selected0(by_setting, setting, model, anchor):
+    """该设定下 model 的 val 选择记录（fgib 固定 anchor，其余模型无 anchor 维度）。"""
+    cands = [r for r in by_setting[setting] if r["model"] == model
+             and (model != "fgib" or r["anchor"] == float(anchor))]
+    return select_one(cands)
+
+
+def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
+    """h 直锚（A=I 固定正交侧头，FGIB-H）跨设置表（审稿人第 2/7 条）。
+
+    比较 det / FGIB(a=16) / CentFGIB(a=16) / FGIB-H(A=I, a=16) /
+    FGIB-H(A=I, a=4) 五种形态在 mnist_mlp（aid/ 已有）、mnist_cnn、
+    imagenet100_mlp、california_mlp、cora_gnn 上的验证集选模测试分。
+    a=16 为继承自 z 空间的锚点尺度，a=4 为 h 空间重调的尺度
+    （hdirect_a48/ 新跑；mnist_mlp 无 a=4 数据时该列显示 --）。
+    数据目录缺失时跳过。
+    """
+    import pathlib
+    settings = ["mnist_mlp", "mnist_cnn", "imagenet100_mlp", "california_mlp", "cora_gnn"]
+    aid_dir = {"mnist_mlp": "aid", "mnist_cnn": "hdirect", "imagenet100_mlp": "hdirect",
+               "california_mlp": "hdirect", "cora_gnn": "hdirect"}
+    rows, avail = {}, []
+    for setting in settings:
+        d = pathlib.Path("tune_results_ablation") / aid_dir[setting]
+        if not d.is_dir():
+            continue
+        recs = load(str(d), strict=False)
+        aid_recs = [r for r in recs if r["setting"] == setting
+                    and r["model"] == "fgib" and r["anchor"] == 16.0]
+        if len(aid_recs) != len(BETAS):
+            continue
+        # h 空间重调尺度 a=4（hdirect_a48，部分设置可能缺失）
+        d48 = pathlib.Path("tune_results_ablation/hdirect_a48")
+        h4 = None
+        if d48.is_dir():
+            recs48 = load(str(d48), strict=False)
+            h4_recs = [r for r in recs48 if r["setting"] == setting
+                       and r["model"] == "fgib" and r["anchor"] == 4.0]
+            if len(h4_recs) == len(BETAS):
+                h4 = select_one(h4_recs)["test"][metric_key(setting)][0]
+        cent_recs = load("tune_results_ablation/centfgib_all")
+        cent_recs = [r for r in cent_recs if r["setting"] == setting
+                     and r["model"] == "centfgib" and r["anchor"] == 16.0]
+        if len(cent_recs) != len(BETAS):
+            continue
+        key = metric_key(setting)
+        det = baseline[setting]["test"][key][0]
+        f16 = fgib16[setting]["test"][key][0]
+        aid = select_one(aid_recs)["test"][key][0]
+        cent = select_one(cent_recs)["test"][key][0]
+        rows[setting] = (det, f16, cent, aid, h4)
+        avail.append(setting)
+    if len(avail) != len(settings):
+        print(f"[tab_hanchor] 数据不全，跳过表格（现有 {sorted(avail)}，需要 {settings}）")
+        return
+    lines = [
+        "\\begin{table}[t]",
+        "\\caption{The fixed-orthogonal side head across settings. FGIB, CentFGIB and FGIB-H "
+        "differ only in the side-path regularizer --- trainable side head + KL, trainable side "
+        "head + plain center loss, and fixed side head $A{=}I$ (equivalently the anchor matching "
+        "applied directly to the deployed representation $h$, Result~\\ref{res:orth}) --- each "
+        "selected over the same 6-point $\\beta$ budget at a single fixed anchor scale, on "
+        "validation. $a{=}16$ is the scale inherited from the $z$-space sweep; $a{=}4$ is a "
+        "re-tuned scale for $h$-space (the fixed head's adaptive rescaling is gone, so its "
+        "optimal scale shifts). Units as in Table~\\ref{tab:main}. At the inherited scale the "
+        "fixed head trails by $\\approx 0.5$ points per setting; at the re-tuned scale it "
+        "recovers most of the gap and ties or beats the backbone on every row --- the price of "
+        "the $\\kappa{=}1$ closure is small, and both configurations ship in the released "
+        "code.}",
+        "\\label{tab:hanchor}",
+        "\\begin{center}\\small",
+        "\\begin{tabular}{llccccc}",
+        "Task & Backbone & Det. & FGIB ($a{=}16$) & CentFGIB ($a{=}16$) & "
+        "FGIB-H ($A{=}I$, $a{=}16$) & FGIB-H ($A{=}I$, $a{=}4$) \\\\ \\hline \\\\[-1.8ex]",
+    ]
+    ranks = collections.defaultdict(list)
+    wins = collections.Counter()
+    for setting in settings:
+        task, bb = NAMES[setting]
+        vals = list(rows[setting])
+        best = max(v for v in vals if v is not None)
+        cells = [fmt(v, v is not None and v >= best - TIE_EPS) if v is not None else "--"
+                 for v in vals]
+        lines.append(f"{task} & {bb} & " + " & ".join(cells) + " \\\\")
+        for name, v in zip(["det", "fgib", "centfgib", "h16", "h4"], vals):
+            if v is None:
+                continue
+            ranks[name].append(1 + sum(1 for w in vals if w is not None and w > v + TIE_EPS))
+            if v >= best - TIE_EPS:
+                wins[name] += 1
+    order = ["det", "fgib", "centfgib", "h16", "h4"]
+    lines.append("\\hline \\\\[-1.8ex]")
+    lines.append("\\multicolumn{2}{l}{Mean rank (of 5)} & " + " & ".join(
+        f"{statistics.fmean(ranks[m]):.2f}" for m in order) + " \\\\")
+    lines.append("\\multicolumn{2}{l}{Best or tied-best (of 5)} & " + " & ".join(
+        str(wins[m]) for m in order) + " \\\\")
+    lines.append("\\end{tabular}\\end{center}\\end{table}")
+    with open(os.path.join(out_dir, "tab_hanchor.tex"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    labels = {"det": "Det.", "fgib": "FGIB(a16)", "centfgib": "CentFGIB(a16)",
+              "h16": "FGIB-H(a16)", "h4": "FGIB-H(a4)"}
+    print("[tab_hanchor] mean rank: " + ", ".join(
+        f"{labels[m]}={statistics.fmean(ranks[m]):.2f}" for m in order)
+          + " | wins: " + ", ".join(f"{labels[m]}={wins[m]}/5" for m in order))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--results-dir", default="tune_results")
@@ -443,6 +651,9 @@ def main():
     table_robust(by_setting, selected, fgib16, baseline, os.path.join(args.out_dir, "tab_robust.tex"))
     table_anchor(by_setting, baseline, os.path.join(args.out_dir, "tab_anchor.tex"))
     table_main_std(selected, fgib16, baseline, os.path.join(args.out_dir, "tab_main_std.tex"))
+    rank_split(selected, baseline, fgib16, os.path.join(args.out_dir, "rank_split.tex"))
+    table_anchor_ranks(by_setting, baseline, args.out_dir)
+    table_hanchor(selected, baseline, fgib16, args.out_dir, args.results_dir)
     print(f"{len(recs)} configurations, {sum(r['runs'] for r in recs)} runs, "
           f"{len(by_setting)} task×backbone settings → {args.out_dir}/")
 
