@@ -87,18 +87,42 @@ def nib_mi_upper_bound(m: torch.Tensor, noise_var) -> torch.Tensor:
 
 
 def build_anchor_prior(
-    z_dim: int, num_classes: int, anchor_scale: float = 4.0, anchor_var: float = 1.0
+    z_dim: int,
+    num_classes: int,
+    anchor_scale: float = 4.0,
+    anchor_var: float = 1.0,
+    geometry: str = "qr",
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """构造 FGIB 固定类条件锚点先验表，返回 (prior_mu, prior_logvar)。
 
-    对随机矩阵做 QR 分解得到 K 个正交方向，缩放 anchor_scale 作为各类先验
-    均值（(num_classes, z_dim)），方差固定为 anchor_var。要求类别数不超过
-    z 维度。返回的均值/对数方差表以 register_buffer 挂到模型上、不参与梯度。
+    锚点框架由 geometry 选择（几何消融，审稿人要求比较"同一表示上的
+    orthogonal / simplex-ETF / 随机归一化"正则）：
+    - "qr"：对随机矩阵做 QR 分解得到 K 个正交方向（默认，互余弦 0）；
+    - "etf"：单纯形/ETF 框架（单位范数、互余弦 -1/(K-1) 的神经坍缩配置，
+      嵌入 z_dim 后经随机正交旋转，几何不变）；
+    - "random"：随机单位方向（不正交化）。
+    各方向缩放 anchor_scale 作为各类先验均值（(num_classes, z_dim)），
+    方差固定为 anchor_var。要求类别数不超过 z 维度。返回的均值/对数方差
+    表以 register_buffer 挂到模型上、不参与梯度。
     """
     assert num_classes <= z_dim, "固定锚点先验要求类别数不超过 z 维度"
-    g = torch.randn(z_dim, num_classes)
-    q, _ = torch.linalg.qr(g)  # q 为 (z_dim, num_classes) 正交列
-    prior_mu = (q * anchor_scale).t().contiguous()  # (num_classes, z_dim)
+    if geometry == "qr":
+        g = torch.randn(z_dim, num_classes)
+        q, _ = torch.linalg.qr(g)  # q 为 (z_dim, num_classes) 正交列
+        prior_mu = (q * anchor_scale).t().contiguous()  # (num_classes, z_dim)
+    elif geometry == "etf":
+        assert num_classes > 1, "ETF 框架要求类别数大于 1"
+        frame = torch.eye(num_classes) - torch.ones(num_classes, num_classes) / num_classes
+        frame *= (num_classes / (num_classes - 1)) ** 0.5  # 行范数 1、互余弦 -1/(K-1)
+        embed = torch.zeros(num_classes, z_dim)
+        embed[:, :num_classes] = frame  # K 维单纯形嵌入 z_dim
+        rot, _ = torch.linalg.qr(torch.randn(z_dim, z_dim))  # 随机正交旋转（几何不变）
+        prior_mu = anchor_scale * (embed @ rot).contiguous()  # (num_classes, z_dim)
+    elif geometry == "random":
+        g = torch.randn(z_dim, num_classes)
+        prior_mu = (anchor_scale * g / g.norm(dim=0, keepdim=True)).t().contiguous()
+    else:
+        raise ValueError(f"未知锚点几何: {geometry}")
     prior_logvar = torch.full((num_classes, z_dim), math.log(anchor_var))
     return prior_mu, prior_logvar
 

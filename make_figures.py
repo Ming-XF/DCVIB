@@ -197,12 +197,14 @@ def fig2():
 
 
 def fig3():
-    """图 3：CEB/FGIB 400-epoch 长训练轨迹（P3 是否早停伪影；FGIB 固定点可视化）。
+    """图 3：400-epoch 长训练方差轨迹（β=10，run 1）。
 
     数据来自 tables/longtrain_traj.json（make_ablation.longtrain_summary 导出，
-    run 1 逐 epoch 的 mean log σ²）。CEB β=1/10 的后验（与 β=1 先验）是否在
-    长时程下向 clamp 移动；FGIB 的 ℓ_q≡0 固定点（Proposition varfreeze 的
-    直接可视化）画为恒零线。
+    run 1 逐 epoch 的 mean log σ²）。第四轮版本对照四个模型：
+    - CEB（可训练先验）：后验与先验 logvar 双双下漂（钳位竞赛方向）；
+    - DCEB：先验 logvar 上漂（膨胀逃逸，Corollary family 修正后的方向）；
+    - VIB（固定先验）：后验 logvar 钉在初始化附近（无竞赛通道）；
+    - FGIB：ℓ_q≡0 固定点（Result varfreeze 直接可视化）画为恒零线。
     """
     import json
     traj_path = os.path.join("tables", "longtrain_traj.json")
@@ -218,10 +220,12 @@ def fig3():
     ax.annotate("init. ($\\log\\sigma^2{=}0$)", xy=(400, 0), xytext=(6, 0),
                 textcoords="offset points", fontsize=8, color=INK, va="center")
     curves = [
-        ("CEB $\\beta{=}1$ posterior", "ceb_beta_1", SLOT[1], 0),
         ("CEB $\\beta{=}10$ posterior", "ceb_beta_10", SLOT[2], 0),
-        ("CEB $\\beta{=}1$ prior", "ceb_beta_1", SLOT[3], 1),
-        ("FGIB $\\beta{=}1$ posterior", "fgib_beta_1", SLOT[6], 0),
+        ("CEB $\\beta{=}10$ prior", "ceb_beta_10", SLOT[3], 1),
+        ("DCEB $\\beta{=}10$ posterior", "dceb_beta_10", SLOT[4], 0),
+        ("DCEB $\\beta{=}10$ prior", "dceb_beta_10", SLOT[5], 1),
+        ("VIB $\\beta{=}10$ posterior", "vib_beta_10", SLOT[7], 0),
+        ("FGIB $\\beta{=}10$ posterior", "fgib_beta_10", SLOT[6], 0),
     ]
     for label, key, color, idx in curves:
         if key not in data:
@@ -231,7 +235,7 @@ def fig3():
         xs = [t[0] for t in traj if t[idx + 1] is not None]
         if not xs:
             continue
-        ax.plot(xs, ys, color=color, lw=2.2 if key == "fgib_beta_1" else 2.0,
+        ax.plot(xs, ys, color=color, lw=2.4 if key == "fgib_beta_10" else 1.8,
                 label=label)
         ax.annotate(label, xy=(xs[-1], ys[-1]), xytext=(6, 0),
                     textcoords="offset points", fontsize=8, color=INK, va="center")
@@ -242,10 +246,68 @@ def fig3():
     ax.set_xlim(0, 400)
     ax.set_xlabel("Epoch", color=INK2, fontsize=10)
     ax.set_ylabel(r"mean $\log\sigma^2$ (full validation set)", color=INK2, fontsize=10)
-    ax.set_title("Long-horizon variance trajectories (400 epochs, run 1)", color=INK, fontsize=10)
+    ax.set_title("Long-horizon variance trajectories (400 epochs, $\\beta{=}10$, run 1)",
+                 color=INK, fontsize=10)
     fig.tight_layout()
     fig.savefig("figures/longtrain.pdf", facecolor=SURFACE)
     print("已生成 figures/longtrain.pdf")
+
+
+def fig4():
+    """图 4 figures/effective.pdf：尺度无关有效正则强度 r 与 MNIST/MLP 赤字。
+
+    横轴 log10 r = log10(β·‖∇R‖₂/‖∇CE‖₂)（tables/effective_strength.json），
+    纵轴为该 β 下相对确定性基线的测试 Acc 赤字（百分点）。
+    显示 raw-β 网格跨目标的实际强度跨度：NIB 的 r≡0（旋钮不作用）、SVIB 的
+    β=1 已达 r≈10^6.2（量纲伪影）、KL-nat 目标在 r≈10^3 处坍缩而 FGIB 全区间
+    无赤字（r 高达 10^3.6）。
+    """
+    import json
+    import numpy as np
+    from make_ablation import parse_log, series_test_acc
+
+    with open(os.path.join("tables", "effective_strength.json")) as f:
+        data = json.load(f)
+    betas = list(data["betas"])  # float 列表，与 series_test_acc 的键一致
+    rmap = {row["model"]: [row["r"][f"{b:g}"] for b in betas] for row in data["rows"]}
+
+    det = parse_log(os.path.join("tune_results", "mnist_mlp", "train.log"))["test"]["Acc"][0]
+    curves = [
+        ("vib", "VIB", "tune_results", None, 1, False),
+        ("svib", "SVIB", "tune_results", None, 2, False),
+        ("ceb", "CEB", "tune_results", None, 3, False),
+        ("nib", "NIB", "tune_results", None, 4, False),
+        ("dvcca", "DVCCA", "tune_results", None, 5, False),
+        ("fgib_a16", "FGIB ($a{=}16$)", "tune_results", 16, 6, True),
+        ("fgib_a4", "FGIB ($a{=}4$)", "tune_results", 4, 7, False),
+    ]
+    fig, ax = plt.subplots(figsize=(7.2, 3.5), dpi=200)
+    fig.patch.set_facecolor(SURFACE)
+    for key, label, resdir, anchor, slot, emph in curves:
+        accs, _ = series_test_acc(resdir, "fgib" if key.startswith("fgib") else key, anchor)
+        deficit = [100 * (det - accs[b]) for b in betas]
+        r = rmap[key]
+        ax.plot(np.log10(r), deficit, color=SLOT[slot], lw=2.2 if emph else 1.4,
+                ls="-" if emph else "--", marker="o", markersize=6 if emph else 4,
+                markerfacecolor=SLOT[slot], markeredgecolor="white",
+                markeredgewidth=0.8, zorder=3)
+        ax.annotate(label, xy=(np.log10(r[-1]), deficit[-1]), xytext=(6, 0),
+                    textcoords="offset points", fontsize=8.5, color=INK, va="center",
+                    zorder=4)
+    ax.axhline(0, color=DET_GRAY, lw=1.0, ls=":", zorder=1)
+    ax.set_facecolor(SURFACE)
+    ax.grid(True, which="major", axis="both", color="#d9d8d3", linewidth=0.6, alpha=0.7)
+    ax.tick_params(colors=INK2, labelsize=9)
+    for spine in ax.spines.values():
+        spine.set_color("#b5b4ae")
+    ax.set_xlabel(r"effective regularization strength $\log_{10} r$, "
+                  r"$r=\beta\Vert\nabla_\theta R\Vert_2/\Vert\nabla_\theta \mathrm{CE}\Vert_2$",
+                  color=INK2, fontsize=10)
+    ax.set_ylabel("deficit vs.\ Det. (acc. points, MNIST/MLP)", color=INK2, fontsize=10)
+    ax.set_title("The stress test on a scale-free axis", color=INK, fontsize=10)
+    fig.tight_layout()
+    fig.savefig("figures/effective.pdf", facecolor=SURFACE)
+    print("已生成 figures/effective.pdf")
 
 
 if __name__ == "__main__":
@@ -253,3 +315,4 @@ if __name__ == "__main__":
     fig1()
     fig2()
     fig3()
+    fig4()

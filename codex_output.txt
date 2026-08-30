@@ -1,182 +1,151 @@
-# ICLR 2027 审稿意见与修改建议（更新版）
+# ICLR 2027 专业审稿意见与修改建议
 
-## 结论先行：方差竞赛是否已被证伪
+## 总体结论
 
-不能称“方差竞赛问题已经被普遍证伪”。现有实验只证伪了一个更窄的经验命题：
+我会给当前版本 **5/10，Weak Reject / Borderline，置信度 4/5**。相比上一版，论文在科学透明度、机制消融和限制说明上有明显改善，但新加入的核心理论解释存在一个方向性错误，且“canonical 方法、理论保证、主实验结果”仍未对齐。若直接投稿，篇幅也不符合当前 ICLR 九页正文规范。
 
-> 在 MNIST、当前实现、100 epoch、patience=10 的早停协议下，CEB 没有在训练结束前把方差推到 clamp。
+论文最有价值的定位不是“新的随机信息瓶颈”，而是：
 
-这不是对 Proposition~(iii) 渐近动力学的数学证伪。该命题的 (i) 方差匹配和
-(ii) 分类项偏好减小噪声仍是条件化的方向分析；(iii) “两阶段 dynamics 最终跑到
-clamp”不是收敛定理。它还可能在更长训练、不同学习率、不同初始化或其他数据集上出现。
+> 条件信息瓶颈可以确定信息平面上的 MNI 点，却不能识别该点对应的表示几何；通过设计正则项的零惩罚集，可以从这个等价类中选择一个预测性的固定几何端点。
 
-建议保留 P3，但只作为“被测量且在当前协议下未发生的动力学假设”：
-
-- 从摘要、贡献列表和结论中删除它作为 FGIB 解决的核心 failure channel；
-- 主文保留一段简短的负结果，明确写成“under the tested early-stopping protocol”；
-- 将 Proposition~(iii) 移到 appendix，或改名为 conditional dynamical hypothesis；
-- 保留 CEB 的方差诊断以体现科学诚实，但不要把它解释成对所有训练过程的否证。
-
-还有一个比 P3 更关键的实现事实。FGIB 的 `logvar_head` 被零初始化，固定先验的
-`logvar_p=0`，分类损失完全不经过该头，优化器也没有 weight decay。对角高斯 KL 满足
-
-\[
-\frac{\partial \mathrm{KL}}{\partial \ell_q}
- = \frac12\left(e^{\ell_q-\ell_p}-1\right).
-\]
-
-因此在 `ell_q=ell_p=0` 时梯度严格为零；只要保持该状态，FGIB 的方差恒为 1。
-当前实现中，FGIB 的 KL 精确退化为固定方差下的
-
-\[
-\mathrm{KL}(q\|r)=\tfrac12\|A h-a v_y\|^2
-\]
-
-（`anchor_var=1`），即 CentFGIB 的 center loss，而不是仅仅“在实验精度内相近”。
-这说明 CentFGIB 的跨数据集重合是解析等价，不是独立证据。相关代码见
-`model/mlp/fgib.py` 和 `model/mlp/utils.py`。
-
-此外，P3 诊断函数只读取验证集的第一个 batch，并在 `eval()` 模式执行。因此论文中
-“每个 epoch、每个 run 的 clamp fraction 为 0”应限定为诊断 batch，而不是整个数据集。
-
-## 模拟 ICLR 2027 评分
-
-我会给当前版本：**5/10，Borderline / Weak Reject**，置信度 **4/5**。
-
-如果按照下面建议重新定位贡献、修正实现解释并压缩主文，评分有机会提升到 6/10。
-当前最有价值的贡献已经不是“提出一种更好的 variational bottleneck”，而是：
-
-1. 把高正则化行为归因于 bottleneck 的 zero-penalty set；
-2. 用固定的类条件几何把高 \(\beta\) 端点从 collapse 改成 predictive label code；
-3. 通过实验显示经验稳定性主要来自固定锚点几何，而不是 KL 或 Gaussian variance 机制。
+这一定位比当前反复强调“variance race”和平均 rank 更有创新性，也更能抵御“FGIB 只是 fixed-prototype center loss”的质疑。
 
 ## 主要优点
 
-- 已修复测试集选模问题，并加入验证集选参、等预算控制和配对统计；
-- 公开报告了 AgeDB 身份泄漏、单 split、classifier scale、side head 条件数等限制；
-- MNIST 消融、anchor-scale 扫描和 CentFGIB 全 12 个 setting 使机制讨论明显比初稿可信；
-- 理论中已经区分 idealized result、conditional result 和 empirical observation；
-- 负结果披露较完整，没有继续坚持“variance race 已经发生”这一错误叙事。
+- “zero-penalty set 决定高正则化端点”的视角清晰，能统一解释 VIB 的非预测端点、CEB 的几何不确定性和固定原型正则。
+- 方差头零初始化导致 KL 在整个训练过程中精确退化为固定方差位移项，这个不动点结论简洁且有价值。
+- 作者诚实承认 deployed representation 没有获得信息压缩证书、回归理论不完整、分类器尺度条件不满足。
+- 固定 \(a=16\) 时，七个分类设置中六点 \(\beta\) 扫描的最坏结果均距 backbone 不超过 0.52 个点，是目前最可信的经验发现。
+- CentFGIB 的跨设置复现实验有助于识别真实机制，而不是继续把 Gaussian 参数化当作经验贡献。
 
-## 主要审稿问题
+## 必须修正的问题
 
-### 1. 经验贡献基本退化为固定锚点 center regularization
+### 1. DCEB 推论的梯度方向写反了
 
-CentFGIB 在 12 个 setting 上几乎复现 FGIB，说明当前实验的经验引擎是固定锚点几何，
-不是 KL。TAFGIB 也显示 anchor mean 的可训练性不是稳定性的必要条件。论文仍把
-CentFGIB 放在“消融”位置，会让审稿人认为这是“center loss + variational packaging”。
+在 `fgib_theory.tex:848` 中，
 
-建议将核心定位改为：
+\[
+\partial_{\ell_p}\mathrm{KL}
+=-\tfrac12\|\mu-\mu_p\|^2e^{-\ell_p}<0.
+\]
 
-> We study how the zero-penalty set determines high-beta behavior. Fixed class-conditional geometry relocates this set from collapse or an underdetermined family to a prescribed predictive label code. FGIB is a variational instantiation of this principle.
+但梯度下降执行的是
 
-FGIB 的 KL 可保留为理论解释，但不应再声称 KL 是经验稳定性的必要机制。
+\[
+\ell_p^{t+1}=\ell_p^t-\eta\partial_{\ell_p}\mathrm{KL},
+\]
 
-### 2. 没有证明部署表示 (h) 不坍缩
+因此 \(\ell_p\) 会增大，先验方差会放大，均值匹配力 \(e^{-\ell_p}(\mu-\mu_p)\) 会减弱，而不是论文所称的“方差被压低、均值匹配被放大”。这也与同一附录中“KL pulls \(\tau^2\) up”的正确解释直接矛盾。
 
-正则项作用在 `mu=A h`，而 (A) 是可训练且推理不用的旁路头。当前
-\(\kappa(A^\top A)\) 达到 \(10^{5.8}\)--\(10^{6.8}\)，说明旁路可能吸收大量锚点拟合，
-模型保持准确率并不等价于部署表示受到固定几何保护。
+因此 Corollary family 不能解释 DCEB 为什么坍缩，“唯一逃逸该族且唯一坍缩”目前只是相关性。建议删除因果解释，重新分析完整的 \(q/p\) 方差耦合动力学。
 
-因此“fixed geometry prevents representation collapse”仍然过强。更准确的说法是：
+### 2. 方差不动点定理的核心成立，但一般吸引子结论过强
 
-> Fixed geometry prevents collapse of the auxiliary anchor-matching objective; its effect on the deployed representation remains unproven.
+零初始化下每个样本的输出梯度为零，因此参数保持不动，这部分成立。但 `fgib_theory.tex:813` 将实际共享参数头 \(\ell_q(x)=Wh+b\) 简化为独立标量 \(u\) 的更新，忽略了样本间 Gram 耦合、bias、随训练变化的 \(h\) 和具体优化器状态。“unique attractor of any first-order descent”没有被当前证明支持。
 
-如果不重新跑实验，应把“geometry alone generalizes”改成“fixed-anchor side-loss behavior
-generalizes”。CentFGIB 仍然有可训练的 (A)，所以它也没有单独隔离部署表示的作用。
+保留“零初始化是精确不变流形”即可；删除一般全局吸引子主张。
 
-### 3. “certificate”仍然需要进一步降调
+### 3. “VIB 和 CEB 都因释放方差而 race to clamp”不正确
 
-该 KL 只给辅助含噪 code 的条件互信息上界，不能认证：
+VIB 的先验方差固定，KL 对 posterior variance 提供恢复力，不存在 CEB 中 \(q/p\) 方差共同下移而 KL 保持为零的方向。VIB 在高 \(\beta\) 下的主要失败是 \(q(z|x)\to\mathcal N(0,I)\) 导致预测信息消失，不是同一个 variance race。摘要、Result 2 和结论中的相关句子需要全部拆开。
 
-- 部署表示 (h) 的压缩；
-- 高 \(\beta\) 下的准确率或优化稳定性；
-- unconstrained (A) 和自由 classifier scale 下的全局行为。
+### 4. canonical 方法与主实验不是同一个方法
 
-建议统一使用：
+正文把 FGIB-H \(A=I\) 定义为 canonical，但又明确承认 5,100-run 主表使用的是 trainable-\(A\) 默认版本（`paper.tex:1182`）。后者的 \(\kappa(A^\top A)\) 达到 \(10^{5.8}\) 至 \(10^{6.8}\)，并不满足“直接锚定 deployed representation”的主要保证。
 
-> FGIB retains an exact variational upper-bound interpretation for the auxiliary noisy code; its predictive robustness and endpoint behavior outside the analyzed family remain empirical.
+此外，FGIB-H 的 \(a=4\) 列在 MNIST/MLP 上缺失，却仍报告 “mean rank of 5” 和“每一行击败 backbone”（`tables/tab_hanchor.tex:7`）。其 2.25 rank 实际只由四个非缺失设置计算，不能与 trainable FGIB 的五设置 1.20 直接比较。
 
-“not an ad hoc prototype loss”应删除或改为“has a variational interpretation, although its
-current optimization is exactly a fixed-anchor center loss”。
+必须二选一：
 
-### 4. 数据、统计和模型选择仍限制结论强度
+- 将 trainable-\(A\) 明确定义为经验版本，降低关于 deployed representation 的主张；
+- 更推荐把 FGIB-H 作为真正方法，在全部七个分类设置上完成主实验，并使用固定尺度分类器使理论和实现同时闭合。
 
-- AgeDB 的 image-level split 中 562/567 个身份跨越 train/test，不能作为核心泛化证据；
-- 所有数据集只有一个固定 split；
-- 五个 seed 的 bootstrap 只能描述训练随机性，不能代表 split uncertainty；
-- 12 个 setting-level means 不是独立样本，Wilcoxon 应视为探索性证据；
-- 分类准确率和回归 \(R^2\times100\) 混合后的 median deficit 解释性较弱；
-- FGIB 额外搜索 anchor scale，其他方法只搜索 beta，存在搜索预算差异。
+### 5. raw-\(\beta\) 稳定性不是公平的方法比较
 
-已有日志足以支持更稳健的正文头条：分类 mean rank 约为 1.86；排除 AgeDB 后为 1.70，
-6/10 个 setting 最优或并列最优。完整 1.75 应作为补充统计，而不是唯一核心证据。
+论文一方面承认不同目标的数值尺度不一致（`paper.tex:505`），另一方面又用同一 \(10^{-4}\) 至 \(10\) 网格的最坏结果宣称 FGIB 的 knob 独有地安全。任意缩放一个正则项都能改变这种结论；FGIB 的有效强度还与 \(a^2/\tau^2\) 耦合。
 
-### 5. 等预算的 (a=16) 仍是后验选择
+建议把该表重新定位为“固定协议下的压力测试”，并增加至少一种尺度无关横轴：初始梯度范数比、实际达到的 KL/center loss、或与任务损失匹配的正则强度。
 
-论文已经把 (a=16) 称为 post-hoc sensitivity control，这是正确的，但不应同时强调
-“first under equal budget”仿佛它是预注册设置。现有日志显示固定 (a) 的 rank 会明显变化，
-因此应报告多个固定 (a) 的 rank 曲线、均值和范围，或把 (a=16) 明确放在敏感性分析中。
+### 6. 统计证据不足以支持性能优势叙事
 
-### 6. 理论与代码仍有层级差异
+全网格 FGIB 使用 \(6\times9\) 搜索，而其他方法只有 6 点（`tables/tab_main.tex:2`）；固定 \(a=16\) 又是事后选择。修改报告承认 classification-only Wilcoxon \(p\approx0.22\)，但正文只突出混合 12 设置的 \(p=0.014\)，没有报告该分类结果。现有数据支持“分类下非破坏性较好”，不支持“显著提高准确率”。
 
-理论需要可逆线性 (A)、固定 classifier scale、class-symmetric aligned family，
-而实现使用带 bias 的 unconstrained `nn.Linear`，不约束可逆性、正交性或条件数，
-默认 classifier scale 也自由增长。回归 RFF anchor 没有对应证明，且 STS-B、AgeDB、
-ZINC 的高压端点并不稳定。应将回归明确标为 exploratory transfer，将“every beta selects
-a distinct interior optimum”限制在 theorem assumptions 内。
+## 创新性与叙事建议
 
-### 7. 直接相关基线仍不足
+建议标题改为类似：
 
-建议至少讨论或在有限实验中加入：
+> **Designing Zero-Penalty Sets: From Conditional Variational Bounds to Fixed Prototype Regularization**
 
-- 直接作用于部署表示 (h) 的 fixed-anchor loss；
-- 经典 learned-center loss；
-- fixed simplex/ETF classifier；
-- 参数量匹配的 deterministic baseline。
+引言不要再把 CEB 的 MNI 最优点称为简单“failure”。更准确的论证是：
 
-如果不重跑，应明确说明现有结果只能证明“FGIB 与固定锚点 side loss 行为一致”，不能证明它
-优于所有 prototype 或 fixed-classifier 方法。
+1. CEB 在信息平面上可以达到正确的 MNI 点；
+2. 但该点对应一个表示等价类，目标函数不识别其中的几何；
+3. FGIB 用固定标签几何解决这种 representational non-identifiability；
+4. 在确定性旁路实现中，变分 KL 精确化为固定原型正则，这揭示了 variational interpretation 与 empirical mechanism 的分工。
 
-## 无需重跑的优先修改
+建议将贡献压缩为三条：
 
-1. **重写 P3 定位。** 保留 CEB 的负结果，删除其作为核心 failure channel 的地位，并说明
-   诊断只覆盖当前早停协议和诊断 batch。
+- 提出“零惩罚集设计”视角，区分信息最优性和表示几何可识别性；
+- 证明确定性旁路下 conditional Gaussian KL 精确等价于固定原型损失，并明确其成立边界；
+- 实验表明分类稳定性来自固定预测端点，而非 Gaussian variance machinery；准确率提升很小且统计上不稳定。
 
-2. **加入 FGIB/CentFGIB 的解析等价命题。** 由零初始化、固定先验方差和零梯度不变点说明：
-   当前 released implementation 中 KL 的训练目标就是 fixed-anchor center loss。将 KL 的
-   贡献定位为 variational interpretation 和受限理论，而不是准确率机制。
+平均 rank、回归结果和 P3 长时程漂移都应降为次要证据。P3 最多称为“MNIST 上观察到与方向分析一致的慢漂移”，不能称为已经确认的普遍动力学。
 
-3. **把“fixed-geometry endpoint design”作为主贡献。** 建议摘要和结论突出 zero-penalty
-   set、predictive label code、anchor-scale 控制和分类稳定性。
+## 最有价值的补实验
 
-4. **重排统计结果。** 正文以分类结果为主，AgeDB 移入附录或从核心统计中排除；分别报告
-   classification/regression rank；将 Wilcoxon 和 gain-over-backbone 改为探索性分析。
+- 在全部七个分类设置上运行真正的 canonical FGIB-H，最好同时固定 classifier scale。
+- 比较同一表示上的 orthogonal、simplex/ETF、随机归一化和 learned-center 正则。冻结 ETF classifier 不是 fixed-prototype representation loss 的等价基线。
+- 使用多数据划分，而不仅是相同 split 上的五个训练 seed。
+- 若继续援引 CEB 的 adversarial/OOD/calibration 动机，至少补一个 corruption、OOD 或 calibration 实验；否则删除这些动机。
+- 回归在五个设置中的三个会被某些 \(\beta\) 明显破坏，建议整体移到附录并标记为初步探索。
 
-5. **处理 (a=16) 的选择偏差。** 使用现有日志报告固定 anchor scale 的敏感性，不把后验选择的
-   (a=16) 写成公平比较的唯一主结果。
+## 投稿完整性
 
-6. **统一修正文案和 scope ledger。** 至少修复：
+当前 `build/paper.pdf` 共 39 页，正文结论结束于第 11 页，附录从第 14 页开始；按九页正文限制仍超约两页。源码还存在“新增实验共 360 runs”与修改报告“600 runs”不一致、FGIB-H 四/五设置不一致，以及 \(\log_{10}\kappa\) 被写成从 \(10^{3.9}\) 开始等问题。
 
-   - `paper.tex:671` 仍写着 “six-decade sweep”；
-   - `paper.tex:1254` 仍写着 “four failure channels”；
-   - `fgib_theory.tex:1261-1278` 仍声称 \(\kappa(A^\top A)\) 和 P3 等待测量，和正文新结果冲突。
+修复数学错误并重新定位叙事后，现有证据可支撑较扎实的 **5/10**。若补齐 canonical 分类实验、尺度匹配的 fixed-prototype 基线和多 split 统计，论文有机会达到 **6/10**；要进入更稳定的接收区间，还需要证明这种几何端点对准确率之外的表示质量确有实际价值。
 
-7. **检查页数。** ICLR 2027 初稿主文严格限制 9 页。当前主文包含大量理论限定、6 张表、
-   2 张图和较长诊断段落，建议用官方 style 编译后把 P3、条件数轨迹、完整消融表和部分
-   related-work 内容移到 appendix。
+## 关于 P1/P2/P3/P4 的叙事取舍
 
-## 可选的最小补实验
+将论文重构为“CEB 目标函数识别信息点，但不识别该信息点对应的表示几何”是正确方向，但不建议简单地“保留 P1/P2、删除 P3/P4”。更严谨的处理如下：
 
-不重新跑全部实验也可以完成主要修正。若只补少量运行，优先级如下：
+- **P1 保留并重新命名**：它说明 CEB 在确定性标签场景下，所有 \(\gamma>0\) 都选择同一个 MNI 信息点。重点不再是“dead knob/失败”，而是“目标函数只识别信息点，不识别该信息点上的表示几何”。
+- **P2 保留但降级为辅助论据**：它说明 residual certificate 单独无法区分从标签坍缩到完整标签码的表示。但完整 CEB 目标还包含 CE，CE 会偏好保留标签，所以不能据此声称完整目标在 collapse 与 copy 之间完全无差别。
+- **P3 从核心叙事中移除**：它是特定 Gaussian 参数化和优化过程的条件动力学，不是几何不可识别性的必要论据。目前 DCEB 推论还有梯度方向错误。最多作为附录中的诊断性观察。
+- **P4 不必彻底删除，但应降为 limitation**：它说明 variational certificate 约束 noisy code 而非部署表示。这与“几何不可识别”是另一条问题线，会分散主叙事；正文一两句话说明范围，完整命题放附录即可。
 
-1. 修改诊断脚本，对 CEB 的所有 validation batches 聚合 logvar，而不是只看第一个 batch；
-2. 只对 MNIST 的 CEB \(\beta=1,10\) 做更长训练，检验 P3 是否是早停效应；
-3. 只在 subject-disjoint AgeDB 上比较 deterministic、FGIB 和 CentFGIB；
-4. 在 MNIST 或 ImageNet-100 上加入直接对 (h) 的 fixed-anchor loss，验证 side head bypass。
+### 新增核心命题：MNI 解的几何不可识别性
 
-这些实验都不是当前叙事修正的必要条件。最重要的是不要继续把“方差竞赛已被证伪”或
-“KL 机制带来经验稳定性”作为论文主张。
+当前 P1/P2 仍不足以直接证明“几何不识别”。建议新增一个简洁命题作为真正的理论支点：
 
-我已执行 `python -m compileall train.py tune.py rebuild_tune_html.py datasets model`，语法检查通过；
-本次只覆盖了 `codex_output.txt`，没有重新训练或修改论文代码。
+> **Geometric non-identifiability of the MNI solution.**  
+> 若 \(Z\) 是 CEB 的 MNI 解，则对任意可逆变换 \(\psi\)，\(Z'=\psi(Z)\) 具有相同的
+> \(I(X;Z'|Y)\)、\(I(Y;Z')\) 和最优 Bayes cross-entropy；但其类间距离、尺度、条件数及欧氏几何可以任意改变。因此 CEB 识别信息等价类，而不识别其中的表示几何。
+
+这比 P2 更直接，因为它明确区分了两个层次：
+
+\[
+\text{CEB identifies an information point}
+\quad\neq\quad
+\text{CEB identifies a representation geometry}.
+\]
+
+需要注意该命题的精确表述：一般可逆变换确实保持互信息和最优 Bayes 风险，但“类间距离、尺度、条件数可以任意改变”应限定在允许的可逆坐标变换范围内；若要覆盖有限维线性表示，可直接使用任意可逆线性映射 \(B\in\mathrm{GL}(d)\) 构造尺度和条件数反例。
+
+### 推荐的主线结构
+
+1. **P1：信息点退化。** 确定性场景下，所有参数都指向同一个 MNI 点。这不是坏事，但说明 \(\beta\) 不负责选择几何。
+2. **几何不可识别命题：核心缺口。** 同一 MNI 点对应任意可逆重编码；CEB 对欧氏结构、类间距离和条件数没有偏好。
+3. **P2：证书层面的补充解释。** residual certificate 只测量类内剩余信息，不能单独判断标签是否保留，也不能确定标签码采用什么几何。
+4. **FGIB：从“估计信息量”转向“设计等价类中的代表元”。** 固定锚点不是声称获得更紧的信息证书，而是显式选择一个预测性、非退化且条件良好的代表几何。
+5. **方差不动点：实现身份，而非动机。** 当前实现中 KL 精确等价于 fixed-prototype loss。这说明经验机制就是几何约束，而 variational form 提供 conditional-information interpretation。
+6. **P3/P4：附录范围说明。** P3 是优化诊断；P4 是证书对象限制。二者都不再承担 FGIB 的主要创新论证。
+
+相应地，建议删除 “three failure channels and one mismatch” 这一整体组织方式，改为：
+
+- `Conditional bottlenecks identify information, not geometry`
+- `Geometric non-identifiability at the MNI solution`
+- `Designing the zero-penalty set`
+- `Fixed geometry as a variationally interpretable prototype regularizer`
+
+这种写法不会攻击 CEB 的正确性，而是指出它没有试图解决、FGIB 明确补充的识别问题。P1、P2 因此仍可用，但真正承载创新性的应当是新增的“几何不可识别”命题，而不是把两个已有退化结论重新命名。

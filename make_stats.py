@@ -138,8 +138,10 @@ def main():
     print("== 敏感性：排除 AgeDB 两行（10 设定）==")
     settings_no_age = [s for s in settings if not s.startswith("agedb")]
     d_no = {m: np.array([100 * diffs[m][s][0] for s in settings_no_age]) for m in mt.BOTTLENECKS}
+    wil_no = {}
     for m in mt.BOTTLENECKS:
         p = stats.wilcoxon(d_no[m]).pvalue if not np.allclose(d_no[m], 0) else 1.0
+        wil_no[m] = p
         print(f"{m:7s} mean={d_no[m].mean():+.2f} median={np.median(d_no[m]):+.2f} p={p:.4f}")
     vals_no = {m: [selected[s][m]["test"][mt.metric_key(s)][0] for s in settings_no_age] for m in mt.BOTTLENECKS}
     vals_no["det"] = [baseline[s]["test"][mt.metric_key(s)][0] for s in settings_no_age]
@@ -149,20 +151,24 @@ def main():
     # 审稿人第 4 条：分类 / 回归分别做 Wilcoxon（混合口径的设定级检验仅探索性）
     print("== 分类-only（7 设定）Wilcoxon vs 基线 ==")
     d_cls = {m: np.array([100 * diffs[m][s][0] for s in mt.CLS]) for m in mt.BOTTLENECKS}
+    wil_cls = {}
     for m in mt.BOTTLENECKS:
         p = stats.wilcoxon(d_cls[m]).pvalue if not np.allclose(d_cls[m], 0) else 1.0
+        wil_cls[m] = p
         print(f"{m:7s} mean={d_cls[m].mean():+.2f} median={np.median(d_cls[m]):+.2f} p={p:.4f}")
     print("== 回归-only（5 设定）Wilcoxon vs 基线 ==")
     d_reg = {m: np.array([100 * diffs[m][s][0] for s in mt.REG]) for m in mt.BOTTLENECKS}
+    wil_reg = {}
     for m in mt.BOTTLENECKS:
         p = stats.wilcoxon(d_reg[m]).pvalue if not np.allclose(d_reg[m], 0) else 1.0
+        wil_reg[m] = p
         print(f"{m:7s} mean={d_reg[m].mean():+.2f} median={np.median(d_reg[m]):+.2f} p={p:.4f}")
 
     # LaTeX 表：每设定一行，各瓶颈 vs 基线的配对均值差 [95% CI]
     lines = [
         "\\begin{table}[t]",
         "\\caption{Paired per-seed differences against the deterministic backbone, at each "
-        "objective's validation-selected configuration (Table~\\ref{tab:main}), with bootstrap "
+        "objective's validation-selected configuration (Tables~\\ref{tab:main} and~\\ref{tab:main-reg}), with bootstrap "
         "95\\% confidence intervals over the 5 paired seeds (10{,}000 resamples). Units are "
         "percentage points (accuracy for classification, $R^2\\times100$ for regression); "
         "positive means the objective beats the backbone at that setting. The last column is the "
@@ -191,6 +197,19 @@ def main():
             cells.append(f"{100 * mu:+.2f} [{100 * lo:+.2f},{100 * hi:+.2f}]")
             lines.append(f"{task} & {bb} & " + " & ".join(cells) + " \\\\")
         lines.append("\\\\[-1.5ex]")
+    # Wilcoxon 汇总行（兑现 caption 中"分类/回归子集检验 alongside"的承诺）
+    lines.append("\\\\[-1.5ex]")
+    lines.append("\\multicolumn{9}{l}{\\emph{Wilcoxon vs.\ Det.\ ($p$-value over setting-level "
+                 "paired means, exploratory)}} \\\\[0.3ex]")
+    subsets = [
+        ("12 settings (mixed)", wil, None),
+        ("7 settings (classification)", wil_cls, None),
+        ("5 settings (regression)", wil_reg, None),
+        ("10 settings (excl.\ AgeDB)", wil_no, None),
+    ]
+    for label, wd, _ in subsets:
+        cells = [f"{wd[m]:.3f}" for m in mt.BOTTLENECKS] + ["--"]
+        lines.append(f"{label} & & " + " & ".join(cells) + " \\\\")
     lines.append("\\end{tabular}\\end{center}\\end{table}")
     open(args.out, "w").write("\n".join(lines) + "\n")
     print(f"已生成 {args.out}")

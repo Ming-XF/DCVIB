@@ -505,6 +505,15 @@ def build_parser():
         "random Fourier features, 0 = N(0,I) prior)",
     )
     parser.add_argument(
+        "--anchor-geometry",
+        type=str,
+        default="qr",
+        choices=("qr", "etf", "random"),
+        help="fgib/tafgib/centfgib 固定锚点框架（几何消融，仅分类模式）："
+        "qr=正交方向（默认，互余弦 0）、etf=单纯形/ETF 框架（单位范数、"
+        "互余弦 -1/(K-1)）、random=随机单位方向（不正交化）",
+    )
+    parser.add_argument(
         "--max-len",
         type=int,
         default=250,
@@ -741,9 +750,10 @@ def main():
         model_kwargs["z_dim"] = args.z_dim
     if args.model in ("fgib", "tafgib", "centfgib"):
         model_kwargs["anchor_scale"] = args.anchor_scale
+        model_kwargs["anchor_geometry"] = args.anchor_geometry
     if args.model in ("vib", "ceb", "fgib", "dceb", "tafgib", "centfgib"):
         model_kwargs["cosine_classifier"] = args.cosine_classifier
-    if args.model == "fgib":
+    if args.model in ("fgib", "tafgib", "centfgib"):
         model_kwargs["freeze_a"] = args.freeze_a
         model_kwargs["a_identity"] = args.a_identity
     if args.task == "housing":

@@ -1,5 +1,5 @@
 \begin{table}[t]
-\caption{Paired per-seed differences against the deterministic backbone, at each objective's validation-selected configuration (Table~\ref{tab:main}), with bootstrap 95\% confidence intervals over the 5 paired seeds (10{,}000 resamples). Units are percentage points (accuracy for classification, $R^2\times100$ for regression); positive means the objective beats the backbone at that setting. The last column is the equal-budget FGIB control of Table~\ref{tab:main-std}. Wilcoxon signed-rank tests over the 12 setting-level paired means against zero are reported in the text as an \emph{exploratory} summary: the 12 settings mix classification and regression metrics, are not independent (shared backbones and protocols), and the 5 seeds describe training noise, not split uncertainty (a single fixed split per dataset); the classification-only (7 settings) and regression-only (5 settings) tests are reported alongside.}
+\caption{Paired per-seed differences against the deterministic backbone, at each objective's validation-selected configuration (Tables~\ref{tab:main} and~\ref{tab:main-reg}), with bootstrap 95\% confidence intervals over the 5 paired seeds (10{,}000 resamples). Units are percentage points (accuracy for classification, $R^2\times100$ for regression); positive means the objective beats the backbone at that setting. The last column is the equal-budget FGIB control of Table~\ref{tab:main-std}. Wilcoxon signed-rank tests over the 12 setting-level paired means against zero are reported in the text as an \emph{exploratory} summary: the 12 settings mix classification and regression metrics, are not independent (shared backbones and protocols), and the 5 seeds describe training noise, not split uncertainty (a single fixed split per dataset); the classification-only (7 settings) and regression-only (5 settings) tests are reported alongside.}
 \label{tab:paired}
 \begin{center}\small
 \begin{tabular}{llccccccc}
@@ -20,4 +20,10 @@ ZINC-12k & GCN & -0.10 [-0.51,+0.47] & -0.23 [-0.47,-0.00] & -1.70 [-2.76,-0.80]
 AgeDB & MLP & +9.93 [+6.42,+13.43] & +12.05 [+10.05,+13.64] & +5.30 [+3.09,+7.50] & +11.37 [+6.91,+15.93] & +10.00 [+7.43,+11.96] & +10.90 [+8.49,+13.25] & +7.62 [-1.01,+14.38] \\
 AgeDB & CNN & -5.72 [-22.83,+3.64] & -5.91 [-22.78,+3.19] & -5.78 [-22.75,+3.61] & -0.32 [-2.82,+2.18] & -7.09 [-23.72,+2.12] & +0.41 [-1.54,+2.27] & -3.21 [-5.04,-1.04] \\
 \\[-1.5ex]
+\\[-1.5ex]
+\multicolumn{9}{l}{\emph{Wilcoxon vs.\ Det.\ ($p$-value over setting-level paired means, exploratory)}} \\[0.3ex]
+12 settings (mixed) & & 0.622 & 0.470 & 0.424 & 0.569 & 0.569 & 0.014 & -- \\
+7 settings (classification) & & 0.375 & 0.297 & 0.375 & 0.297 & 0.375 & 0.219 & -- \\
+5 settings (regression) & & 1.000 & 1.000 & 0.812 & 0.812 & 1.000 & 0.125 & -- \\
+10 settings (excl.\ AgeDB) & & 0.492 & 0.322 & 0.322 & 0.322 & 0.432 & 0.055 & -- \\
 \end{tabular}\end{center}\end{table}

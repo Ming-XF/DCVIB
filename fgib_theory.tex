@@ -6,16 +6,18 @@
 % Alemi et al. (2017, VIB)。
 %
 % 核心结论（FGIB 论文问题陈述与解法）：
-% 第一部分（四条失效通道）：
-%   P1 退化继承（死旋钮）：CEB ≡ IB(β=1+γ>1)，确定性场景下所有 γ>0 的唯一最优解钉在角点，
-%      γ 扫不出任何中间点（SIB Caveat 1 的退化半区，经 β'=1/(1+γ)∈(0,1) 映射）。
-%      该角点恰是 CEB 自己的 MNI 目标，rem:mni 正面处理这一反驳；
-%   P2 证书盲视 + 1:β 交换率：T_α 流形上 ReX 恒为 0（证书对标签保留量完全盲视），
-%      且目标以 1 nat 标签信息 ↔ β nat 认证残差的比率交换；
-%   P3 方差竞赛：KL 两侧皆可训练，分类项压 σ→0、钳位处退化为权重 e^{10} 的均值匹配。
-%      (ii)(iii) 是受力方向分析而非收敛证明，且可实测（rem:p3-status）；
-%   P4 对象错位：两种方法的界都只界住各自的含噪码，都不界住确定性连续推理表示的残差
-%      （后者为 +∞）。差别是结构性的（噪声在不在推理路径上），不是紧度排序。
+% 第一部分（条件瓶颈识别信息、不识别几何）：
+%   P1 信息点退化（原"死旋钮"）：CEB ≡ IB(β=1+γ>1)，确定性场景下所有 γ>0 的唯一最优解
+%      钉在角点即 MNI 点——目标函数只识别信息点，不识别该点上的表示几何；
+%   prop:geomet 几何不可识别（第四轮新增核心命题）：MNI 解在任意可逆重编码下保持
+%      信息点与最优 Bayes 交叉熵，但欧氏几何（类间距离/尺度/条件数）可在 GL(d) 内
+%      任意改变——等价类中几何由优化器决定，不由目标函数决定；
+%   P2 证书盲视 + 1:β 交换率：T_α 流形上 ReX 恒为 0，目标以 1 nat 标签信息 ↔
+%      β nat 认证残差的比率交换（辅助论据：完整目标还含 CE 偏好保留标签）；
+%   P3 方差竞赛（降级为参数化诊断）：KL 两侧皆可训练，分类项压 σ→0、钳位处退化为
+%      权重 e^{10} 的均值匹配。仅限可训练先验族（CEB/DCEB），VIB 固定先验无此通道
+%      （rem:vib-prior）；DCEB 先验方差方向为**膨胀**（cor:family，第四轮修正）；
+%   P4 对象错位（降为 limitation）：界只界住含噪码、不界住部署表示的残差（+∞）。
 % 第二部分（FGIB 机制，以及它没能关闭的通道）：
 %   M1 等价性：旁路 = 固定 A 下作用在 h+已知噪声上的 CEB 瓶颈（逐步成立，非全程固定参考）；
 %   M2 扫参：固定分类器尺度 c 时 L_β(s)=CE(s)+(β/2)(s−a)² 严格凸、每 β 唯一内点、曲线严格凹；
@@ -42,7 +44,7 @@
 \newtheorem{remark}{Remark}
 
 % =====================================================================
-\section*{Part I. Three failure channels of the conditional bottleneck and an object mismatch}
+\section*{Part I. Conditional bottlenecks identify information, not geometry}
 % =====================================================================
 
 \textbf{Notation.}
@@ -135,10 +137,11 @@ hyperparameter robustness rather than failure. Three things keep it from closing
 \item[(i)] \emph{The corner is one point in the information plane and an entire equivalence
 class of representations.} The objective is exactly constant on
 $\{Z : I(Y;Z) = H(Y),\ I(X;Z|Y) = 0\}$, which contains $Z = Y$, $Z = (Y,N)$ with
-$N \perp X \mid Y$, and every bijective recoding of these. Adversarial robustness, OoD
-detection and calibration --- the properties CEB is argued for --- are properties of the
-\emph{geometry} of $Z$, on which the objective has no opinion; which member of the class is
-reached is settled by the optimizer. That is channels P3 and P4 below.
+$N \perp X \mid Y$, and every bijective recoding of these. Proposition~\ref{prop:geomet}
+makes the point precise at the MNI solution: the objective is invariant under bijective
+recodings while the Euclidean geometry --- inter-class distances, scale, conditioning ---
+is arbitrary within the class. Which member of the class is reached is settled by the
+optimizer, not the objective.
 \item[(ii)] \emph{CEB's own reading of the knob is unavailable at the exact optimum.}
 Fischer (2020, p.~7) writes ``$\rho < 0$ may capture less than the MNI. $\rho > 0$ may
 capture more'', whereas Proposition~\ref{prop:dead} places every $\gamma > 0$ at the MNI
@@ -162,6 +165,48 @@ optimization''; Proposition~\ref{prop:flat} supplies the finite-$\beta$ variatio
 counterpart. The account is owed by any method reporting a $\beta$-sweep on
 deterministically labelled data --- FGIB and the experiments of this paper included
 (Remark~\ref{rem:c-scale}).
+\end{remark}
+
+\begin{proposition}[Geometric non-identifiability at the MNI solution]\label{prop:geomet}
+Let $Z = \varphi(X)$ attain the MNI point of the CEB objective (Eq.~1). Then for every
+bijective measurable map $\psi$ with measurable inverse, the recoded representation
+$\psi(Z)$ attains the \emph{same} information point,
+$I(X;\psi(Z)|Y) = I(X;Z|Y)$ and $I(Y;\psi(Z)) = I(Y;Z)$, and the optimal Bayes
+cross-entropy is unchanged, $H(Y \mid \psi(Z)) = H(Y \mid Z)$: the objective identifies
+an \emph{equivalence class} of representations, never a member of it. The Euclidean
+geometry within the class is correspondingly unconstrained: for finite-dimensional
+codes and invertible linear $\psi = B \in \mathrm{GL}(d)$, the class-mean geometry
+transforms as
+$\|B(m_y - m_{y'})\|^2 = (m_y - m_{y'})^{\top} B^{\top}B\,(m_y - m_{y'})$.
+Taking $B = sI$ rescales every inter-class distance by $s$; taking
+$B = \mathrm{diag}(c, 1, \dots, 1)$ sends the condition number
+$\kappa(B^{\top}B) \to \infty$ as $c \to \infty$. Inter-class distances, scale, and
+conditioning of an MNI solution are therefore optimizer artifacts --- the objective
+selects none of them.
+\end{proposition}
+
+\begin{proof}
+Mutual information is invariant under bijections of either argument (data-processing
+inequality applied in both directions). For the Bayes risk, any classifier $g$ on $Z$
+induces $g \circ \psi^{-1}$ on $\psi(Z)$ with identical risk, and conversely, so
+$\inf_f \mathbb{E}\,\ell(Y, f(\psi(Z))) = \inf_g \mathbb{E}\,\ell(Y, g(Z))$; in
+log-loss form this reads $H(Y \mid \psi(Z)) = H(Y \mid Z)$. The geometry statement is
+the displayed computation.
+\hfill\qed
+\end{proof}
+
+\begin{remark}[Why the equivalence class is what FGIB designs]\label{rem:design}
+Proposition~\ref{prop:geomet} separates the two levels the conditional bottleneck
+confounds: the objective fixes the information point (what Proposition~\ref{prop:dead}
+shows is a single corner in the deterministic scenario), and the optimizer alone picks
+the member of the equivalence class --- geometry included. FGIB's fixed anchor prior is
+a \emph{choice of representative}: with a frozen conditional prior $r(z|y)$ the
+zero-penalty set $\{\operatorname{KL}(q\|r) = 0\}$ is exactly the anchor geometry, and
+Proposition~\ref{prop:varfreeze} shows the deterministic main path freezes the variance
+at the prior value, so the regularizer is identically the squared distance to a fixed,
+well-conditioned, class-separated frame. FGIB therefore does not estimate information
+better; it \emph{designs the zero-penalty set}, replacing an optimizer-settled geometry
+with a designed one.
 \end{remark}
 
 \begin{proposition}[Channel P2, a blind certificate and a $1{:}\beta$ exchange rate]\label{prop:flat}
@@ -296,6 +341,25 @@ gap identity (Lemma~\ref{lem:gap}) forces the certified residual and the certifi
 vanish together; the divergence attaches to the deployed mean $m(x)$ whenever it is not
 class-constant (Amjad \& Geiger; Kolchinsky et al.). \hfill\qed
 \end{proof}
+
+\begin{remark}[The race needs a trainable prior; VIB is not in it]\label{rem:vib-prior}
+The mechanism of Proposition~\ref{prop:variance} uses a trainable prior variance
+$\tau^2$: the race is the joint descent of $\sigma^2$ (driven by the prediction term)
+and $\tau^2$ (following the moment-matched value), which leaves the KL stationary
+because only the \emph{ratio} $\sigma^2/\tau^2$ is penalized. VIB's prior is the fixed
+unit Gaussian, so this channel is absent: with $\tau^2 = 1$ the KL is
+$\tfrac{d}{2}\big[\sigma^2 + \|m\|^2/d - 1 - \ln\sigma^2\big]$ with restoring force
+$\partial_{\sigma^2}\operatorname{KL} = \tfrac{d}{2}(1 - 1/\sigma^2) < 0$ for
+$\sigma^2 < 1$ --- the KL pushes the posterior variance back \emph{up} toward $1$. VIB's
+high-$\beta$ failure is a different mechanism: the fixed marginal prior pulls the
+posterior mean to zero, $q(z|x) \to \mathcal{N}(0, I)$, so the stochastic code loses the
+prediction information ($I(Y;Z) \to 0$) while the variance stays at the prior value.
+An earlier version of this paper lumped ``VIB and CEB race to the clamp''; the correct
+statement is that the clamp race is a property of trainable-prior bottlenecks (CEB,
+DCEB), and VIB's collapse is a mean collapse. The long-horizon control of
+Section~\ref{sec:ablation} measures both directions: CEB's log-variances drift down
+while VIB's hold at zero.
+\end{remark}
 
 \begin{remark}[Status of the two-stage account]\label{rem:p3-status}
 Parts~(ii) and~(iii) are a stationarity-and-direction-of-force argument, not a convergence
@@ -810,13 +874,14 @@ throughout training,
 \end{equation}
 a fixed-variance displacement term --- the KL of Lemma~\ref{lem:lagrangian} evaluated
 permanently at the variance optimum $\sigma^2 = \tau^2$, not merely in the limit.
-More generally, when the variance enters the objective only through the KL, the
-per-coordinate gap $u = \ell_q - \ell_p$ obeys
-$\partial_u \operatorname{KL} = \tfrac12(e^{u} - 1)$, which carries the sign of $u$:
-$u = 0$ is the unique attractor of the continuous descent flow
-$\dot u \propto -(e^{u}-1)$, and of discrete first-order updates whenever the standard
-step-size condition holds; zero initialization selects this fixed point at the first
-step and no force ever leaves it.
+The per-coordinate partial derivative
+$\partial_{\ell_q}\operatorname{KL} = \tfrac12(e^{\ell_q-\ell_p}-1)$ vanishes at
+$\ell_q = \ell_p$ independently of the mean gap; we state it only as the local reason
+the zero-initialized point is an invariant manifold. We do \emph{not} claim that the
+initialized point is a global attractor of the coupled system: under the shared
+parametrization $\ell_q(x) = Wh + b$ the per-coordinate gaps are coupled through the
+Gram matrix of the features and through the evolving encoder, and the argument below
+controls no such term.
 \end{proposition}
 
 \begin{proof}
@@ -824,36 +889,43 @@ The per-coordinate diagonal KL
 $\tfrac12\big[\ell_p - \ell_q + e^{\ell_q-\ell_p} + (\mu-\mu_p)^2 e^{-\ell_p} - 1\big]$
 gives
 $\partial_{\ell_q}\operatorname{KL} = \tfrac12(e^{\ell_q-\ell_p}-1)$,
-which vanishes iff $\ell_q = \ell_p$, independently of the mean gap. With $W=0$, $b=0$
+which vanishes at $\ell_q = \ell_p$, independently of the mean gap. With $W=0$, $b=0$
 and $\ell_p=0$ the head output is identically zero, so $\ell_q = \ell_p = 0$ at
-initialization, the gradient of every head parameter is zero, and no weight decay or
-other variance-dependent term acts on the head: $\ell_q \equiv 0$ for all time.
+initialization and the gradient of every head parameter is zero at the first step;
+by induction the head output is identically zero at every subsequent step, since the
+head parameters never move, and no weight decay or other variance-dependent term acts
+on the head: $\ell_q \equiv 0$ for all time.
 Substituting $\ell_q=\ell_p=0$ into the closed form yields
-Eq.~\eqref{eq:freeze}. For the general attractor statement, the gap evolves under
-gradient flow on $\ell_q$ as $\dot u = -\tfrac{\beta}{2}\|h\|^2(e^{u}-1)$, whose only
-fixed point is $u=0$ and whose linearization is $-\tfrac{\beta}{2}\|h\|^2$, so $u=0$
-is globally asymptotically stable (a one-dimensional monotone flow); a discrete
-first-order step multiplies the gap by $1 - \tfrac{\eta\beta}{2}\|h\|^2 \tfrac{e^{u}-1}{u}$,
-which contracts $|u|$ whenever $\eta \beta \|h\|^2 < 4/\sup_{u'} \tfrac{e^{u'}-1}{u'}$
---- the standard condition.
+Eq.~\eqref{eq:freeze}.
 \hfill\qed
 \end{proof}
 
-\begin{corollary}[The FGIB family is a center-loss family; the variance race re-enters only through a trainable prior]\label{cor:family}
+\begin{corollary}[The FGIB family is a center-loss family; a trainable prior variance re-opens the variance channel in the inflation direction]\label{cor:family}
 The same argument pins the posterior variance in every FGIB-family variant, so with
 $\tau^2 = 1$: \emph{FGIB} and \emph{CentFGIB} are exactly
 $\mathrm{CE} + \tfrac{\beta}{2}\|\mu - a v_y\|^2$ (frozen anchors), and \emph{TAFGIB} is
 exactly the same loss with the anchor means trainable --- the ablation table's
 ``coincidence'' is an identity, not an empirical observation. \emph{DCEB} is the single
-exception that leaves the family: its trainable prior log-variance has gradient
+exception that leaves the family, but not in the direction an earlier version of this
+paper claimed. Its trainable prior log-variance has gradient
 $\partial_{\ell_p}\operatorname{KL} = \tfrac12\big[1 - e^{\ell_q-\ell_p}
 - (\mu-\mu_p)^2 e^{-\ell_p}\big]$, which at the zero-initialized point equals
-$-\tfrac12(\mu-\mu_p)^2 < 0$ --- the prior variance is pushed \emph{down} while the
-means are unmatched, amplifying the mean-matching force by up to $e^{10}$ at the clamp.
-This is Channel~P3 re-entering through the prior side, and it is consistent with the
-measured behavior: DCEB is the only variant that collapses ($\beta=10$,
-Section~\ref{sec:ablation} of the main paper), while TAFGIB, whose prior variance is
-frozen, stays in the family and does not.
+$-\tfrac12(\mu-\mu_p)^2 < 0$: under first-order \emph{descent},
+$\ell_p^{t+1} = \ell_p^t - \eta\,\partial_{\ell_p}\operatorname{KL}$,
+a negative derivative drives $\ell_p$ \emph{up}, so $\tau^2 = e^{\ell_p}$ grows and the
+mean-matching coefficient $e^{-\ell_p}$ in the anchor force
+$\nabla_h \operatorname{KL} = e^{-\ell_p}(\mu - \mu_p)$ \emph{decays}. Along the
+ratio-pinned direction $\ell_q = \ell_p$ the KL itself decays as
+$\tfrac12(\mu-\mu_p)^2 e^{-\ell_p} \to 0$ (the KL is homogeneous in the ratio
+$\sigma^2/\tau^2$ and penalizes only the mean gap at unit ratio): the trainable prior
+opens a variance-\emph{inflation} escape that \emph{dilutes} the regularizer, the
+opposite of the amplification claimed before. The measured trajectory confirms the
+sign ($\ell_p$ rises at $\beta=1$, never falls), but DCEB's $\beta=10$ collapse
+(Section~\ref{sec:ablation} of the main paper) occurs with the variance near
+initialization, so this channel does \emph{not} explain the collapse; its precise
+mechanism remains an open, measured diagnostic (Section~\ref{sec:ablation},
+Remark~\ref{rem:p3-status}). TAFGIB, whose prior variance is frozen, stays in the
+family and does not collapse.
 \end{corollary}
 
 \begin{proposition}[Unique interior optimum per $\beta$ at fixed classifier scale --- the sweep]\label{prop:sweep}

@@ -1,175 +1,101 @@
-# FGIB 第三轮修改报告（回应 codex_output.txt 评审意见）
+# 修改报告（第四轮修订，回应 ICLR 2027 审稿意见）
 
-本报告覆盖对 `codex_output.txt`（ICLR 2027 模拟评审，评分 5/10）的完整回应。修订的
-核心决定：**不把"实现中 KL 解析退化为 center loss"当作需要淡化的缺陷，而把它写成
-设计定理，并把方法升级到理论要求的形式**。全部结论由新补实验（600 runs，协议与主
-实验一致）与既有日志（5100 runs）重新推导，无手抄数字。
+感谢审稿人的详细意见。本轮修订逐条落实了"必须修正"的六项问题、采纳了 P1/P2/P3/P4 的叙事取舍建议与"最有价值的补实验"清单，并完成了投稿完整性修复。总览：
+
+- **理论**：修正 DCEB 推论的梯度方向错误（并补了实测证据）；删除过强的全局吸引子主张；新增理论支点命题 **MNI 解的几何不可识别性**（Prop. G）；全文拆分 VIB/CEB 的"方差竞速"叙述。
+- **方法与叙事**：FGIB-H（A=I 固定正交头）升为 canonical 主方法并在**全部七个分类设置**上完成等预算实验；trainable-A 降为经验变体；标题与主线改为 "Designing Zero-Penalty Sets" 定位；P1 改述"信息点唯一"、P2 降为辅助、P3 降为参数化诊断、P4 降为 limitation。
+- **实验**：新增 **350 runs**（消融实验总数 710 runs；本报告与正文统一采用此数字，取代上一版报告中的旧统计）：FGIB-H 七设置补全 210 runs、DCEB/VIB 400-epoch 诊断 20 runs、同表示锚点几何消融 120 runs。
+- **统计**：如实上报 classification-only（p≈0.22）与 regression-only（p≈0.13）Wilcoxon 子集检验，混合 12 设定 p=0.014 明确标注为探索性池化；主表拆分为分类 7 设置，回归移附录并标注 exploratory。
+- **完整性**：正文压缩至 **9 页**（结论结束于第 9 页，此前为 11 页）；log10 κ 单位错误、tab_hanchor 缺格与 rank 分母、run 数不一致等全部修复。
 
 ---
 
-## 一、对评审核心判断的回应
+## 1. DCEB 推论的梯度方向写反了 ✅ 已修正 + 实测
 
-评审认为："当前最有价值的贡献已经不是'提出一种更好的 variational bottleneck'，
-而是零惩罚集设计与固定类条件几何"。**我们采纳这一判断并向前走了一步**：
+审稿人完全正确。Corollary "family" 原从
+∂ℓ_p KL = −½‖μ−μ_p‖²e^{−ℓ_p} < 0 推出"先验方差被压下、均值匹配力放大至 e¹⁰"，但梯度下降 ℓ_p ← ℓ_p − η·∂KL 下该导数为负意味着 ℓ_p **上升**；且与同一附录 prop:variance 证明中"KL pulls τ² up"的表述自相矛盾。
 
-1. **解析等价已定理化**（新增 Prop. varfreeze + Cor. family，见 §三）。论文不再写
-   "数值吻合"或"行为上重合"，而是证明：在决定性主路架构下，零初始化方差头在
-   ℓ_q=ℓ_p 处梯度严格为零（∂KL/∂ℓ_q = ½(e^{ℓq−ℓp}−1)，与均值距离无关），方差被
-   钉在 τ² 全程不动，KL ≡ ½‖μ−μ_p‖² **每步精确成立**。FGIB/TAFGIB/CentFGIB 是同一
-   条 center loss 族（仅锚点可训练性不同），审稿人指出的 12 设定重合因此是恒等式
-   而非独立证据。
-2. **叙事已按评审建议重定位**：摘要、引言、结论统一采用"零惩罚集决定高 β 行为；
-   固定类条件几何把零惩罚集从坍缩/欠定族移到预设的预测性标签码；FGIB 是该原理的
-   变分实例"的核心定位。
-3. 一个评审未注意的推论（Cor. family）：**DCEB 是唯一逃逸该族的变体**——其可训练
-   先验方差在均值未匹配时有负梯度（−½(μ−μ_p)²e^{−ℓp}），先验方差被压下、均值匹配
-   力被放大，P3 竞赛经先验侧重入。实测 DCEB 恰是唯一在 β=10 坍缩的变体（11.4%），
-   理论的解释与消融表逐点吻合。
+**修正**（fgib_theory.tex 的 cor:family 重写，主文 res:varfreeze/消融节/附录同步）：
+- 正确方向：ℓ_p 被拉**升**，τ²=e^{ℓ_p} 膨胀，均值匹配系数 e^{−ℓ_p} 衰减；比值钉定方向 ℓ_q=ℓ_p 上 KL = ½(μ−μ_p)²e^{−ℓ_p} → 0——可训练先验开启的是"方差膨胀逃逸"、**稀释**正则，而非放大。
+- 因果关系措辞全面降级为"符号证实 + 机制开放"。
 
-**评分回应**：认可 5/10 的批评力度，但不接受"解析等价是实验解释的漏洞"——在新定理
-下它成为方法的构造性质（释放方差正是 P3 的机制，决定性主路将其消除）。修订后
-我们评估可到 6-7 分区间。
+**新实测**（`dceb_diag/`，DCEB 400 epochs、β∈{1,10}、5 seeds、--log-variance-stats，10 runs）：
+- β=1：先验 logvar 从 e1:+0.022 单调升至 e400:**+0.115** nats（5-runs 平均，后验追踪 +0.1151≈先验 +0.1152，clamp 占比 0）——**符号修正被数据证实，且旧版"方差被压下"与实测方向相反**；
+- β=10：模型坍缩（acc 11.3%）时方差仍停留在初始化附近（+0.015）——**坍缩并非方差通道所致，其精确机制在本轮范围内仍未解释**。论文现如实表述为"符号被证实、坍缩机制开放（待诊断）"，不再声称任何因果链。
 
-## 二、逐条回应"主要审稿问题"
+## 2. 方差不动点定理的吸引子结论过强 ✅ 已删
 
-### 1. 经验贡献退化为固定锚点 center regularization —— 已按更激进的方式处理
+同意。prop:varfreeze 的零初始化不变性（头输出恒 0 → 逐样本因子 (e^{ℓq−ℓp}−1)=0 → 各参数梯度恒零）是精确成立的，这是论文实际依赖的部分。原"unique attractor of any first-order descent"的证明把共享参数头 ℓ_q(x)=Wh+b 化简为标量 gap、忽略 Gram 耦合与 h 演化，确实超出所证。已删除该主张（主文 res:varfreeze 与附录 prop:varfreeze 同步），保留"零初始化是精确不变流形"的表述，并明示不做全局吸引子声明。
 
-- CentFGIB 升格为与 FGIB 等价的主形式并列呈现（等预算 12 设定表保留并重写 caption：
-  重合是恒等式，非经验巧合）。
-- 论文明确写："FGIB retains an exact variational upper-bound interpretation for the
-  auxiliary noisy code; its predictive robustness and endpoint behavior outside the
-  analyzed family remain empirical."（评审建议句原文采纳）。
-- 新增两个定理把 KL 定位为解释层（见 §三）。
+## 3. "VIB 和 CEB 都 race to clamp" 不正确 ✅ 已拆分 + 实测
 
-### 2. 部署表示 h 是否受保护未证明 —— 补跑跨设置实验 + 定理关闭
+同意。VIB 先验固定 N(0,I)，KL 对后验方差有恢复力 ∂σ²KL = ½(1−1/σ²)，不存在 CEB 的 q/p 联合下移通道；VIB 高 β 失败模式是 μ→0（q→N(0,I)）的预测信息消失。
 
-- 新增 **Prop. orth**：固定正交侧头（z_dim=h_dim，A=I 为代表）⇒ ‖Ah−av_y‖=‖h−a·Aᵀv_y‖
-  等距、诱导度量 AᵀA=I、κ=1 恒成立、pull-back 扰动恰为 τ·ε、部署表示 h 直接锚定；
-  Haar 随机正交 A 与 A=I 跨 seed 统计等价。
-- **新实验（FGIB-H 跨 5 设置）**，结果如实报告且比预期更有信息量：
-  - 继承 z 空间的锚点尺度 a=16：FGIB-H rank 4.00/5（0/5 最优），比可训练头（rank
-    1.20）每设置约亏 0.5 分——**侧头做了真实适配工作**（部分即等效锚点尺度重调）。
-  - 重调 h 空间锚点尺度 a=4：FGIB-H rank 2.25/5（2/5 最优，MNIST/CNN 99.29 全场
-    最佳、Cora 87.68 并列第一），**全部 5 设置击败骨干**。
-  - 结论改为"精度-证书权衡，双向都很小，两配置均发布"——不再声称"geometry alone
-    generalizes"，改为"fixed-anchor side-loss behavior generalizes；固定正交头的
-   代价可量化且可经尺度重调收复"（评审建议措辞采纳）。
+**修正**：新增 `rem:vib-prior`（fgib_theory.tex），摘要、引言、Result 2、结论、附录 P3 段落中"VIB and CEB race to the clamp"全部拆开，竞速叙述限定于可训练先验族（CEB/DCEB）。
 
-### 3. certificate 降调 —— 已完成并写入范围账本
+**新实测**（`vib_longtrain/`，VIB 400 epochs、β∈{1,10}、5 seeds，10 runs）：后验 logvar 全程钉在初始化（终值 −0.0002/−0.0000，clamp 占比 0），而测试准确率坍缩至 13.5%/11.4%——"固定先验无钳位竞赛、坍缩走均值"被数据精确证实。图 fig:longtrain 现为四线对照：CEB 下漂（−2.27/−1.20 nats）、DCEB 上漂（+0.12）、VIB 平（钉零）、FGIB 零（固定点）。
 
-- 范围账本重写为 Proved 9 条 / Measured 2 条 / Open 6 条（`fgib_theory.tex` sec:limits）：
-  κ 通道从"open"移入"measured + closed-by-variant"，P3 从"await measurement"改为
-  已测量（见 §四.1）。
-- "not an ad hoc prototype loss"已删除。
+## 4. canonical 方法与主实验不是同一个方法 ✅ 已对齐
 
-### 4. 数据、统计与模型选择 —— 全部用既有日志重算 + 一处补实验
+同意，采纳审稿人推荐的第二选项：**FGIB-H（A=I）作为真正方法，在全部七个分类设置上完成主实验**。
 
-- **分类/回归分开的 rank**（新增 `tables/rank_split.tex`，附在主文证据 bullet）：
-  - 分类-only（7 设定）：FGIB 全网格 rank **1.86**（4/7 最优或并列）——与评审预测
-    的 1.86 完全一致；
-  - 排除 AgeDB（10 设定）：**1.70**（6/10）——与评审预测一致；
-  - 回归-only（5 设定）：1.60（3/5）。
-- **AgeDB 身份泄漏受控**：补跑 subject-disjoint 划分（身份级 60/20/20），排序保持：
-  骨干 21.37 → FGIB 35.10 / CentFGIB 35.10 / FGIB-H 33.71（R²×100）——泄漏只放大
-  数值、不制造模式；核心统计继续排除 AgeDB。
-- Wilcoxon 在 stats.tex caption 与正文中标注为**探索性**（12 设定非独立、单 split、
-  混合口径）；新增分类-only / 回归-only 检验（分类-only FGIB p≈0.22 不显著）。
-- 单 split 限制保留在 ledger（成本所限未跑多 split，已如实说明）。
+- 新实验 `hdirect_all/`（210 runs）：补上缺失的 imagenet100_cnn / imdb / agnews 的 a∈{4,16} 各 6 点 β，以及 mnist_mlp 的 a=4。tab_hanchor 现为**无缺格的 7 分类设置表**，rank 与 win 计数分母统一为 7：
+  - **FGIB-H(a=4，h 空间重调尺度)：mean rank 2.86/5（优于确定性骨干 3.29），best/tied 2/7，全 7 设置最坏赤字仅 0.23 点**（mnist_cnn 99.29 全场最佳、cora 87.68 并列第一）；
+  - FGIB-H(a=16，继承尺度)：rank 3.86/5，每设置平均亏 ~0.5 点——可训练侧头确实在做自适应（部分即等效锚点尺度重调），"精度-证书权衡"被量化而非隐藏。
+- 主表 tab_main 的 FGIB 列明确标注为 optional trainable-A 变体（其 κ(AᵀA) 退化至 10^{5.8}–10^{6.8} 而准确率无收益），canonical 配置的 closure 主张只由 FGIB-H 承载。正文（引言/摘要/结论/limits）全部改为 canonical-first 表述。
+- 固定尺度分类器（cosine）未在 7 设置全部重跑，仍为 MNIST 消融行 + Remark rem:c-scale 的条件性说明（列入待办，见 §8）。
 
-### 5. 等预算 a=16 的后验选择 —— 逐 a 敏感性已出
+## 5. raw-β 稳定性不是公平的方法比较 ✅ 重新定位 + 尺度无关轴
 
-- 新增 `tables/tab_anchor_ranks.tex`：对每个 a∈{1,2,4,6,8,10,12,14,16} 用 6 点 β
-  等预算验证集选模：rank 范围 **2.00（a=14，7/12 最优）到 3.17（a=1）**，a=16 为
-  2.33（6/12）——等预算优势不是所选锚点的伪影，任何 a≥8 的 rank 都优于全部对比
-  瓶颈。a=16 的定位保持"post-hoc sensitivity control"。
+同意其批评：原"唯一安全旋钮"的量化结论建立在共享原始 β 网格上，而各目标压缩项量纲不一。
 
-### 6. 理论与代码层级差异 —— 规范形式精确关闭
+**修正**：
+- knob 一节改称"固定协议压力测试"（fixed-protocol stress test），明确 raw β 网格是共享协议而非共享有效强度轴；
+- 新增尺度无关横轴（`effective_strength.py` + `tab:effective` + `fig:effective`）：在共享的 1-epoch CE-only 预热工作点计算有效正则强度 r = β·‖∇_θ R‖₂/‖∇_θ CE‖₂。结果暴露两个此前被原始网格掩盖的事实，以及一个存活的事实：
+  1. **NIB 的稳定性是惯性**：其界梯度在测量点数值为零（全网格 r≡0），"旋钮不作用"被定量化；
+  2. **SVIB 的原始网格坍缩是量纲伪影**：其惩罚 β·KL² 量纲不同，原始 β=1 处的有效强度高达 r≈10^{6.2}——比任何 KL-nat 目标整个网格的最大强度还高两个数量级——该处 38 点赤字不代表相对脆弱，平方 KL 缩放的是网格而非几何；
+  3. **存活的事实**：KL-nat 目标（量纲可比）在 r≈10^{3.15}（CEB）至 10^{3.23}（VIB/DVCCA）间坍缩，而 FGIB(a=16) 达到 r≈10^{3.75}——约 3 倍于最大坍缩阈值——全程零赤字。原始网格并未偏爱 FGIB：在有效强度轴上它被推得比任何坍缩目标都更远。
 
-- FGIB-H（A=I）**精确满足**全部理想化：正交、可逆、κ=1、pull-back 参考在诱导度量
-  下精确正交——不再有"实现近似理论"的层级差；可训练头降为可选消融，其层级差与
-  κ 测量保留在 ledger。
-- 回归 RFF 锚点保持"exploratory transfer"定位不变；"every beta selects a distinct
-  interior optimum"仍限定在固定分类器尺度的定理假设内（cosine 行保留为 sanity check）。
+## 6. 统计证据不足以支持性能优势叙事 ✅ 如实上报
 
-### 7. 直接相关基线 —— 四项全部落实
+同意。修改如下：
+- **classification-only Wilcoxon（7 设定）p≈0.219（不显著）与 regression-only（5 设定）p≈0.125（不显著）现均在正文与 stats 表内如实上报**（表 tab:paired 增加 Wilcoxon 汇总行，兑现 caption 承诺）；混合 12 设定 p=0.014 明确标注为"异构指标（acc 与 R²）池化、12 设定非独立、仅探索性"。
+- 主表拆分为**分类 7 设置**（回归 5 设置移附录 `tab_main-reg` 并标注 exploratory——采纳审稿人"回归移附录"建议）；分类上 FGIB rank 1.86/7（等预算 2.14），trainable-A 的"best/tied 7/12"等混合口径表述全部废止。
+- 正文主张统一为"**rank + 旋钮非破坏性**"，增益明确表述为"小而任务集敏感"；摘要、引言、结论同步。
 
-| 评审要求 | 状态 |
-|---|---|
-| 直接作用于部署表示 h 的 fixed-anchor loss | **新跑**：FGIB-H（A=I）跨 5 设置 + a=4/8 敏感性（§二.2） |
-| 经典 learned-center loss | 已有（TAFGIB 行），并新增解析定位：与 FGIB 同一 loss 族的可训练锚点版 |
-| fixed simplex/ETF classifier | **新跑**：冻结 ETF 分类头基线（`model/mlp/etf.py`），MNIST/MLP 98.32 ≈ 骨干 98.33——固定分类头买不到任何东西，锚点表示正则才是机制 |
-| 参数量匹配的 deterministic baseline | 骨干即参数量匹配对照（FGIB-H 与骨干仅差冻结 buffer），已在表内 |
+## 7. 创新性与叙事建议 ✅ 全部采纳
 
-## 三、新增理论（`fgib_theory.tex` Part II）
+- 标题改为 **"Designing Zero-Penalty Sets: From Conditional Variational Bounds to Fixed Prototype Regularization"**。
+- 新增理论支点命题 **Prop. G（几何不可识别性，主文 Result 1）**：若 Z 是 CEB 的 MNI 解，则任意可逆重编码 ψ(Z) 保持 I(X;Z|Y)、I(Y;Z) 与最优 Bayes 交叉熵不变；而对线性重编码 B∈GL(d)，类间距离变换为 (m_y−m_{y'})ᵀBᵀB(m_y−m_{y'})，B=diag(c,1,…,1) 使 κ(BᵀB)→∞——类间距离、尺度、条件数在等价类内任意。CEB 识别信息等价类而不识别其中的表示几何；FGIB 的固定锚点是从该等价类中**设计代表元**（附 rem:design）。
+- 主线按审稿人六点重构：①信息点唯一（P1 改述，不再是"failure"）；②几何不可识别命题（核心缺口）；③证书盲视降为辅助（注明完整目标含 CE、非字面无差别）；④FGIB=设计等价类代表元；⑤方差不动点=实现身份而非动机；⑥P3/P4 附录范围说明。"three failure channels and one mismatch"组织方式已删除；引言四段改为 `Conditional bottlenecks identify information, not geometry` / `Geometric non-identifiability at the MNI solution` / `Designing the zero-penalty set` / `Fixed geometry as a variationally interpretable prototype regularizer`。
+- 贡献压缩为三条（设计零惩罚集视角 / KL≡固定原型损失的精确等价及边界 / 分类稳定性来自固定预测端点而非 Gaussian 机制、准确率增益小且统计不稳定）；平均 rank、回归、P3 长时程全部降为次要证据；P3 表述为"MNIST 上观察到与受力方向一致的慢漂移"。
+- OOD/calibration/adversarial 动机已删除（未做相应实验，不援引）。
+- 同表示几何消融（审稿人"最有价值的补实验"第 2 条，`geometry/`，120 runs，`tab:geometry`）：MNIST/MLP、A=I、a=16、6 点 β——正交（KL 与 MSE 两种）、simplex/ETF、随机归一化、可学习中心（TAFGIB）**五行全部稳定在 98.2–98.3、跨 β 网格无一坍缩**："fixedness and class separation matter more than the frame"被证实；且 KL 行与 MSE 正交行逐格相同，为 varfreeze 恒等式的又一独立实证。冻结 ETF 分类头基线保留（买不到旋钮，说明它不是 fixed-prototype representation loss 的等价基线）。
 
-**Prop. varfreeze（结构不动点）**：决定性主路 + 零初始化 logvar 头 + 固定先验
-ℓ_p=ln τ²=0 + 无 weight decay 的一阶优化器 ⇒ ℓ_q ≡ ℓ_p 每步成立，
-KL = ½τ⁻²‖μ−μ_p‖² 全程精确。更一般地，u=ℓ_q−ℓ_p 的梯度 ½(e^u−1) 与 u 反号，
-u=0 是唯一吸引子（连续流全局渐近稳定，离散更新在标准步长条件下单调收缩）——
-零初始化只是提前选中该不动点。**推论（Cor. family）**：FGIB/TAFGIB/CentFGIB 解析
-同族；DCEB 的先验方差梯度为 −½(μ−μ_p)²e^{−ℓp}<0，P3 经先验侧重入，直至均值匹配
-后才回到不动点——与消融表唯一坍缩变体吻合。
+## 8. 投稿完整性与其余修复
 
-**Prop. orth（固定正交侧头）**：(i) 等距 ‖Ah−av_y‖=‖h−a·Aᵀv_y‖，{Aᵀv_y} 正交——
-锚点匹配直接作用于部署表示；(ii) AᵀA=I ⇒ κ=1 恒成立、扰动恰为 τ·ε、Prop.
-conditioning(iii) 反例构造性排除；(iii) Haar 随机正交 A 使锚点帧跨 seed 同分布 ⇒
-A=I 为代表。证明：范数等距 + 旋转不变性。
+- **篇幅**：正文 11 页 → **9 页**（结论完整结束于第 9 页；AI/伦理/复现声明与参考文献不计页数）。手段：tab_robust 移附录、主表拆分类/回归、细节移 app:ablation-detail、多处冗余压缩。
+- **run 数统一**：正文与修改报告统一为"新增 350 runs、消融总计 710 runs"（上版报告中不一致的旧数字以本版为准）。
+- **log10 κ 单位错误**：`log10 κ(AᵀA) rises from 10^{3.9}` → `rises from 3.9`（两处）。
+- **FGIB-H 四/五设置不一致**：tab_hanchor 现为完整 7 设置、无缺格、rank 分母统一。
+- **"4 of 5" 与表格不符**：已按新表重写（a=16 时 rank 3.86/5 等）。
+- **caption 承诺未兑现**（stats 表称分类/回归子集检验"reported alongside"而正文未报）：已兑现——表内新增 Wilcoxon 汇总行。
+- 未做而保留在 app:notyet 的：多数据划分统计、给比较方法等预算扩展、corruption/OOD/calibration 实验、固定尺度分类器的跨设置闭环。
 
-主文以 Result res:varfreeze / res:orth 复述。评审的三处陈旧文本已修：
-"six-decade sweep"→"five-order-of-magnitude sweep"（网格 [1e-4,10] 跨 5 个数量级）；
-"four failure channels"→"three failure channels and an object mismatch"；ledger 中
-κ 与 P3 的 "await the measurement" 改为已测量。
+## 9. 本轮新增实验总账（350 runs）
 
-## 四、新实验结果
+| 实验 | 目录 | 配置 | runs |
+|---|---|---|---|
+| FGIB-H 七分类设置补全（a=4/16，等预算 6 点 β） | `tune_results_ablation/hdirect_all/` | 42 | 210 |
+| DCEB 400-epoch 诊断（β=1/10，--log-variance-stats） | `tune_results_ablation/dceb_diag/` | 2 | 10 |
+| VIB 400-epoch 对照（β=1/10，--log-variance-stats） | `tune_results_ablation/vib_longtrain/` | 2 | 10 |
+| 同表示锚点几何消融（qr/etf/random/learned，A=I，a=16） | `tune_results_ablation/geometry/{qr,etf,random,learned}/` | 24 | 120 |
+| **合计（新增）** | | **70** | **350** |
 
-### 1. P3 长时程测量（评审第 3 条 + 补实验优先 1/2 的合并版）
+（此前消融实验 360 runs，现总计 **710 runs**；主实验 5,100 runs 不变。所有新增实验协议与主实验一致：100 epochs、patience 10、5 seeds、验证集选模，仅长训练组为 400 epochs/patience 400。）
 
-- **诊断修复**：Diag 统计改为**整个验证集聚合**（旧版只读第一个 batch，已修）。全
-  batch 重跑确认旧数值（CEB 最终后验 logvar +0.37…−0.01 nats 随 β 单调、clamp 0）。
-- **400-epoch 长训练（无早停）**——评审"P3 是否为早停伪影"的假设得到精确回答：
-  CEB 方差**单调漂移且方向与 Prop. variance(i)-(ii) 预测一致**：β=1 后验 −2.27
-  nats（第 100 epoch 为 −0.92）、β=10 为 −1.20，先验同步；clamp 占比始终 0，
-  −2.3 nats 距 e^{−10} 终点很远。**结论：竞赛真实但慢**——协议时程内不可见、4 倍
-  时程下方向明确、收敛时程超过 400 epochs。论文与 rem:p3-status 已按此改写（不再
-  写"does not materialize"，改为方向证实/终点未达的条件陈述）。
-- FGIB 后验方差 400 epoch **全程精确钉在 0**（逐 epoch 0.0000）——Prop. varfreeze
-  的直接实证，图 fig:longtrain 直接展示该不动点。
+## 10. 对评分与后续路径的回应
 
-### 2. 逐 a 等预算 rank 敏感性（§二.5）、分类/回归 rank 分解（§二.4）
+审稿人指出的三条硬伤（梯度符号、VIB 误归属、canonical 错位）均已修复并各配了针对性实测；统计与尺度问题按建议重新定位；新增的几何不可识别命题使论文的理论支点不再是"已有退化结论的改名"。若审稿人认为必要，以下各项是我们后续愿意补的（按优先级）：(i) DCEB β=10 坍缩的 g(y)/μ 轨迹分析以闭合机制；(ii) FGIB-H 全七设置 + cosine 固定尺度分类器（MNIST 已有，其余设置可补，约 210 runs）；(iii) 多划分（split-level）统计；(iv) 单一 corruption/OOD 探针实验。
 
-### 3. κ(AᵀA) 全 batch 诊断重跑
-
-- 重跑确认：10^{3.9}（初始化）→ 10^{5.8}–10^{6.8}（末 epoch），瞬态峰值 10^{8.3}，
-  数值与旧版一致，测量覆盖面扩大。
-
-## 五、实现与基础设施
-
-- **修复一个隐蔽崩溃**：CNN/GNN/RNN 版 FGIB 构造函数此前缺 a_identity/freeze_a 参数
-  （仅 MLP 版有），非 MLP 骨干传参会 TypeError——已补齐三骨干并冒烟测试（含 zinc
-  图级读出、cora mask 路径）。
-- 新增 `--model etf`（冻结 ETF 分类头基线，仅 MNIST/MLP）；`run_round3.sh` /
-  `run_round3b.sh` 实验脚本；`make_tables.py` 新增 rank_split / tab_anchor_ranks /
-  tab_hanchor（含 a=4 列）；`make_ablation.py` 新增 tab_agedb_disjoint / longtrain 汇总；
-  `make_figures.py` 新增 fig3 长训练轨迹图。
-- **编译与页数**：仓库此前无任何可编译 PDF。已用 iclr2026 官方样式（2027 样式未发布）
-  建立本地编译环境，paper.tex 编译通过（0 错误、0 未定义引用）。主文从约 20 页压缩
-  到约 13 页：详细 Preliminaries（app:prelim-detail）、limits-main 全文（app:limits）、
-  notyet 全文（app:notyet）、消融细节（app:ablation-detail）与 7 张表图移入附录；
-  **向 9 页限制的最后一轮压缩仍在进行**（剩余约 4 页需在方法节 Result 讨论与实验节
-  叙述上取舍，已列入收尾清单）。
-
-## 六、诚实记录的负结果与保留立场
-
-1. FGIB-H 在继承尺度 a=16 下确实输给可训练头（每设置约 0.5 分）——这是评审第 2 条
-   直觉的正确部分，已在正文与账本中如实量化，而非隐藏。
-2. CEB 的方差竞赛在 400 epochs 下方向被证实——P3 作为"被测的条件动力学假设"的定位
-   因此**加强**而非削弱（它是真实的慢动力学，只是协议时程内不可见）。
-3. 保留单 split 设计（成本所限），但 AgeDB 泄漏已受控；保留"回归为探索性转移"的定位。
-4. 未跑多固定 a 的 FGIB-H 全 12 设定扫描（当前 5 设定 + 3 尺度），如评审要求更大
-   覆盖可作后续。
-
-## 七、遗留事项（按优先级）
-
-1. 主文压缩到 9 页（当前约 13 页，结构移动已穷尽，剩余为叙述取舍）。
-2. 官方 iclr2027_conference.sty 发布后替换本地替身并终检。
-3. 全文最终润色与交叉引用终检。
+我们相信本轮修订后的版本已达成：一个可证明的、设计导向的零惩罚集视角；canonical 配置与主实验的对齐；以及诚实、经得起尺度无关检验的经验证据。

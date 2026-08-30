@@ -32,6 +32,7 @@ class FGIB(nn.Module):
         dropout: float = 0.2,
         anchor_scale: float = 4.0,
         anchor_var: float = 1.0,
+        anchor_geometry: str = "qr",
         continuous_y: bool = False,
         pooling: str = "mean",
         cosine_classifier: bool = False,
@@ -69,10 +70,11 @@ class FGIB(nn.Module):
 
         # 固定先验：分类为类条件锚点表，回归为固定 RFF 连续锚点，均不参与梯度
         if continuous_y:
+            assert anchor_geometry == "qr", "anchor_geometry 仅分类模式（回归走 RFF 连续锚点）"
             self.anchor_prior = ContinuousAnchorPrior(z_dim, anchor_scale, anchor_var)
         else:
             prior_mu, prior_logvar = build_anchor_prior(
-                z_dim, num_classes, anchor_scale, anchor_var
+                z_dim, num_classes, anchor_scale, anchor_var, anchor_geometry
             )
             self.register_buffer("prior_mu", prior_mu)
             self.register_buffer("prior_logvar", prior_logvar)

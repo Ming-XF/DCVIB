@@ -326,20 +326,28 @@ def agedb_disjoint_table():
 
 
 def longtrain_summary():
-    """CEB/FGIB 400-epoch 长训练汇总（tune_results_ablation/longtrain/，P3 早停伪影检验）。
+    """400-epoch 长训练汇总（P3/方差通道诊断）。
 
-    打印每 run 最终 epoch 的后验（与 CEB 先验）logvar 均值与 clamp 占比，
-    并把 run 1 的逐 epoch 轨迹导出 tables/longtrain_traj.json 供
-    make_figures.py 画图（x=epoch，y=mean log σ²）。
+    覆盖 longtrain/（CEB/FGIB）、dceb_diag/（DCEB，验证先验方差**膨胀**方向）
+    与 vib_longtrain/（VIB，验证固定先验下无钳位竞赛），打印每 run 最终
+    epoch 的后验（与可训练先验）logvar 均值与 clamp 占比，并把 run 1 的
+    逐 epoch 轨迹导出 tables/longtrain_traj.json 供 make_figures.py 画图。
     """
     import json
-    base = "tune_results_ablation/longtrain"
-    print("\n== CEB/FGIB 长训练（400 epochs，patience 400）最终 epoch logvar（5 runs 平均）==")
+    print("\n== 400-epoch 长训练最终 epoch logvar（5 runs 平均；缺数据跳过）==")
+    runs = [
+        ("ceb_beta_1", "longtrain", "mnist_mlp_ceb_beta_1"),
+        ("ceb_beta_10", "longtrain", "mnist_mlp_ceb_beta_10"),
+        ("fgib_beta_1", "longtrain", "mnist_mlp_fgib_beta_1_anchor_16"),
+        ("fgib_beta_10", "longtrain", "mnist_mlp_fgib_beta_10_anchor_16"),
+        ("dceb_beta_1", "dceb_diag", "mnist_mlp_dceb_beta_1"),
+        ("dceb_beta_10", "dceb_diag", "mnist_mlp_dceb_beta_10"),
+        ("vib_beta_1", "vib_longtrain", "mnist_mlp_vib_beta_1"),
+        ("vib_beta_10", "vib_longtrain", "mnist_mlp_vib_beta_10"),
+    ]
     traj_out = {}
-    for name, sub in [("ceb_beta_1", "mnist_mlp_ceb_beta_1"),
-                      ("ceb_beta_10", "mnist_mlp_ceb_beta_10"),
-                      ("fgib_beta_1", "mnist_mlp_fgib_beta_1_anchor_16")]:
-        path = glob.glob(os.path.join(base, sub, "train.log"))
+    for name, subdir, sub in runs:
+        path = glob.glob(os.path.join("tune_results_ablation", subdir, sub, "train.log"))
         if not path:
             print(f"  {name}: 未完成")
             continue
@@ -348,8 +356,9 @@ def longtrain_summary():
             vals = [float(re.search(field + r"=([\d.\-]+)", d).group(1))
                     for d in diags if field + "=" in d]
             return sum(vals) / len(vals) if vals else float("nan")
+        has_prior = "ceb" in name or "dceb" in name
         print(f"  {name}: q={stat('logvar_q_mean'):+.4f} clamp={stat('logvar_q_clamp'):.4f}"
-              + (f" p={stat('logvar_p_mean'):+.4f}" if "ceb" in name else ""))
+              + (f" p={stat('logvar_p_mean'):+.4f}" if has_prior else ""))
         # run 1 逐 epoch 轨迹（epoch, logvar_q_mean[, logvar_p_mean]）
         traj, run, last, cur = [], 0, 0, None
         for line in open(path[0]).read().splitlines():
@@ -375,6 +384,62 @@ def longtrain_summary():
     print("已导出 tables/longtrain_traj.json")
 
 
+def geometry_table():
+    """几何消融表（第四轮，审稿人"最有价值的补实验"第 2 条）。
+
+    在同一表示（--a-identity，A=I，锚点直接作用于部署表示 h）上比较锚点几何：
+    - KL + 正交框架（FGIB-H，数据来自 aid/）；
+    - MSE + 正交框架（CentFGIB qr，geometry/qr/）；
+    - MSE + 单纯形/ETF 框架（CentFGIB etf，geometry/etf/）；
+    - MSE + 随机单位方向（CentFGIB random，geometry/random/）；
+    - KL + 可训练锚点均值（learned-center，TAFGIB，geometry/learned/）。
+    MNIST/MLP、a=16、6 点 β × 5 seeds、协议同主实验。缺数据时整表跳过。
+    """
+    rows = [
+        ("KL, orthonormal (FGIB-H)", "tune_results_ablation/aid", "fgib", 16),
+        ("MSE, orthonormal (CentFGIB)", "tune_results_ablation/geometry/qr", "centfgib", 16),
+        ("MSE, simplex/ETF (CentFGIB)", "tune_results_ablation/geometry/etf", "centfgib", 16),
+        ("MSE, random normalized (CentFGIB)", "tune_results_ablation/geometry/random", "centfgib", 16),
+        ("KL, learned centers (TAFGIB)", "tune_results_ablation/geometry/learned", "tafgib", 16),
+    ]
+    lines = [
+        "\\begin{table}[t]",
+        "\\caption{Anchor-geometry ablation on the same representation (MNIST/MLP, $A{=}I$ so "
+        "the regularizer acts directly on the deployed representation $h$, $a=16$, 6-point "
+        "$\\beta$ grid $\\times$ 5 seeds, protocol as in the main experiments). Rows differ "
+        "only in the anchor geometry --- orthonormal frame, simplex/ETF frame (unit norms, "
+        "mutual cosine $-1/(K-1)$), random normalized directions, or trainable centers "
+        "(TAFGIB) --- and in whether the penalty is the KL or the plain MSE. Test accuracy "
+        "(\\%) across the grid plus the validation-selected configuration.}",
+        "\\label{tab:geometry}",
+        "\\begin{center}\\small",
+        "\\begin{tabular}{lccccccc}",
+        "Variant & $10^{-4}$ & $10^{-3}$ & $10^{-2}$ & $10^{-1}$ & $1$ & $10$ & val-sel. "
+        "\\\\ \\hline \\\\[-1.8ex]",
+    ]
+    complete = True
+    print("\n== 几何消融：同表示（A=I）锚点几何对照（MNIST/MLP，a=16）==")
+    for name, resdir, model, anchor in rows:
+        try:
+            accs, recs = series_test_acc(resdir, model, anchor)
+        except AssertionError as e:
+            print(f"{name:32s} 未完成（{e}），整表跳过")
+            complete = False
+            break
+        bsel = val_select(recs)
+        val_sel = recs[bsel]["test"]["Acc"][0]
+        cells = [f"{100 * accs[b]:.2f}" for b in BETAS] + [f"\\textbf{{{100 * val_sel:.2f}}}"]
+        print(f"{name:32s} " + " ".join(f"{100 * accs[b]:.2f}" for b in BETAS)
+              + f" | val-sel beta={bsel:g}: {100 * val_sel:.2f}")
+        lines.append(f"{name} & " + " & ".join(cells) + " \\\\")
+    if not complete:
+        return
+    lines.append("\\end{tabular}\\end{center}\\end{table}")
+    out = os.path.join("tables", "tab_geometry.tex")
+    open(out, "w").write("\n".join(lines) + "\n")
+    print(f"已生成 {out}")
+
+
 if __name__ == "__main__":
     main()
     # CentFGIB 全设定表：仅在 12 设定 × 6 β 全部完成后生成
@@ -386,4 +451,5 @@ if __name__ == "__main__":
     else:
         print(f"centfgib_all 未完成（{n_done}/{expected} 个配置），跳过全设定表")
     agedb_disjoint_table()
+    geometry_table()
     longtrain_summary()

@@ -239,54 +239,69 @@ def equal_budget_fgib_summary(by_setting, selected, baseline, out):
     return fgib16
 
 
-def table_main(selected, baseline, out):
-    lines = [
-        "\\begin{table}[t]",
-        "\\caption{Test performance of the validation-selected configuration of each objective, "
-        "averaged over 5 runs (seeds 0--4). Accuracy (\\%) for classification, $R^2\\times100$ for "
-        "regression; higher is better. \\emph{Det.}\\ is the deterministic backbone trained with the "
-        "task loss alone. For every bottleneck $\\beta$ is chosen per cell by mean best-epoch "
-        "validation score --- and for FGIB the anchor scale $a$ as well --- never by test score, so "
-        "FGIB is selected over a $6\\times9$ grid and the others over a $6$-point grid; exact ties "
-        "are broken by a second validation quantity and then by fixed grid order. Best per row "
-        "in bold (ties within $0.01$ points both bolded); per-run standard deviations and the "
-        "selected hyperparameters are in Table~\\ref{tab:main-std}, whose last column reports the "
-        "equal-budget FGIB control.}",
-        "\\label{tab:main}",
-        "\\begin{center}\\small",
-        "\\begin{tabular}{llccccccc}",
-        "Task & Backbone & Det. & " + " & ".join(HEADERS) + " \\\\ \\hline \\\\[-1.8ex]",
-    ]
+def _main_table_rows(selected, baseline, settings, caption, label, out):
+    """生成一个"验证集选模测试分"表的共享实现（第四轮：主表分类 7 设置、
+    回归 5 设置单独成附录表并标注 exploratory）。"""
+    lines = ["\\begin{table}[t]", caption, "\\label{" + label + "}",
+             "\\begin{center}\\footnotesize",
+             "\\begin{tabular}{llccccccc}",
+             "Task & Backbone & Det. & " + " & ".join(HEADERS) + " \\\\ \\hline \\\\[-1.8ex]"]
     ranks, wins = collections.defaultdict(list), collections.Counter()
-    for group, label in [(CLS, "\\emph{Classification (Acc \\%)}"),
-                         (REG, "\\emph{Regression ($R^2\\times100$)}")]:
-        lines.append("\\multicolumn{9}{l}{" + label + "} \\\\[0.3ex]")
-        for setting in group:
-            task, bb = NAMES[setting]
-            key = metric_key(setting)
-            vals = [baseline[setting]["test"][key][0]]
-            vals += [selected[setting][m]["test"][key][0] for m in BOTTLENECKS]
-            best = max(vals)
-            lines.append(f"{task} & {bb} & "
-                         + " & ".join(fmt(v, v >= best - TIE_EPS) for v in vals) + " \\\\")
-            for name, v in zip(["det"] + BOTTLENECKS, vals):
-                ranks[name].append(1 + sum(1 for w in vals if w > v + TIE_EPS))
-                if v >= best - TIE_EPS:
-                    wins[name] += 1
-        lines.append("\\\\[-1.5ex]")
+    for setting in settings:
+        task, bb = NAMES[setting]
+        key = metric_key(setting)
+        vals = [baseline[setting]["test"][key][0]]
+        vals += [selected[setting][m]["test"][key][0] for m in BOTTLENECKS]
+        best = max(vals)
+        lines.append(f"{task} & {bb} & "
+                     + " & ".join(fmt(v, v >= best - TIE_EPS) for v in vals) + " \\\\")
+        for name, v in zip(["det"] + BOTTLENECKS, vals):
+            ranks[name].append(1 + sum(1 for w in vals if w > v + TIE_EPS))
+            if v >= best - TIE_EPS:
+                wins[name] += 1
     order = ["det"] + BOTTLENECKS
     mean_rank = {m: statistics.fmean(ranks[m]) for m in order}
     top = min(mean_rank.values())
     best_wins = max(wins[m] for m in order)
+    n = len(settings)
     lines.append("\\hline \\\\[-1.8ex]")
-    lines.append("\\multicolumn{2}{l}{Mean rank (of 7)} & " + " & ".join(
+    lines.append(f"\\multicolumn{{2}}{{l}}{{Mean rank (of {n})}} & " + " & ".join(
         ("\\textbf{" + f"{mean_rank[m]:.2f}" + "}") if mean_rank[m] <= top + 1e-9
         else f"{mean_rank[m]:.2f}" for m in order) + " \\\\")
-    lines.append("\\multicolumn{2}{l}{Best or tied-best (of 12)} & " + " & ".join(
+    lines.append(f"\\multicolumn{{2}}{{l}}{{Best or tied-best (of {n})}} & " + " & ".join(
         ("\\textbf{" + str(wins[m]) + "}") if wins[m] == best_wins else str(wins[m])
         for m in order) + " \\\\")
     lines.append("\\end{tabular}\\end{center}\\end{table}")
     open(out, "w").write("\n".join(lines) + "\n")
+    return {m: mean_rank[m] for m in order}, dict(wins), n
+
+
+def table_main(selected, baseline, out):
+    caption = (
+        "\\caption{Test accuracy (\\%) of the validation-selected configuration of each objective on "
+        "the seven classification settings, averaged over 5 runs (seeds 0--4); higher is better. "
+        "\\emph{Det.}\\ is the deterministic backbone trained with the task loss alone. For every "
+        "bottleneck $\\beta$ is chosen per cell by mean best-epoch validation score --- and for FGIB "
+        "the anchor scale $a$ as well --- never by test score, so FGIB is selected over a $6\\times9$ "
+        "grid and the others over a $6$-point grid; exact ties are broken by a second validation "
+        "quantity and then by fixed grid order. The FGIB column is the optional trainable-head "
+        "variant; the canonical fixed head (FGIB-H) is Table~\\ref{tab:hanchor}. The five regression "
+        "settings are Table~\\ref{tab:main-reg}, reported as exploratory. Best per row in bold (ties "
+        "within $0.01$ points both bolded); per-run standard deviations and the selected "
+        "hyperparameters are in Table~\\ref{tab:main-std}, whose last column reports the equal-budget "
+        "FGIB control.}"
+    )
+    return _main_table_rows(selected, baseline, CLS, caption, "tab:main", out)
+
+
+def table_main_reg(selected, baseline, out):
+    caption = (
+        "\\caption{Regression settings ($R^2\\times100$), reported as \\emph{exploratory}: the "
+        "random-Fourier anchor construction for continuous targets is a transfer, not a proof "
+        "(Remark~\\ref{rem:caveats}), and the knob destroys FGIB on three of these five settings at "
+        "some $\\beta$ (Section~\\ref{sec:knob}). Protocol and notation as in Table~\\ref{tab:main}.}"
+    )
+    return _main_table_rows(selected, baseline, REG, caption, "tab:main-reg", out)
 
 
 def series(by_setting, setting, model, anchor=None):
@@ -318,19 +333,17 @@ def table_robust(by_setting, selected, fgib16, baseline, out):
                                     "val_gain": fgib16[setting]["test"][metric_key(setting)][0] - base}
     lines = [
         "\\begin{table}[t]",
-        "\\caption{Robustness of the compression knob. For each objective we sweep "
-        "$\\beta\\in\\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\\}$ and report the \\emph{worst} test "
-        "score any $\\beta$ produces, as a deficit (in points) against the deterministic backbone of "
-        "the same row; negative means the objective never falls below its backbone. Units as in "
-        "Table~\\ref{tab:main}. FGIB is shown twice: at the anchor scale selected on validation in "
-        "Table~\\ref{tab:main}, and at a single globally fixed anchor scale $a=16$ (a post-hoc sensitivity control, not selected a priori). Lower is better; best per row"
-        "in bold. The summary rows take medians over the 12 settings and count settings where the "
-        "worst case falls more than 5 points below the backbone. The ``best $\\beta$'' gain row is "
-        "the maximum over the grid of the \\emph{test} score --- an exploratory upper bound, not a "
-        "model-selection result; the validation-selected gain row is the selection result of "
-        "Table~\\ref{tab:main} expressed relative to the backbone.}",
+        "\\caption{Robustness of the compression knob: the \\emph{worst} test score any "
+        "$\\beta$ produces, as a deficit (in points) against the deterministic backbone of the same "
+        "row; negative means the objective never falls below its backbone. Units as in "
+        "Table~\\ref{tab:main}. FGIB is shown at the validation-selected anchor and at a single "
+        "globally fixed $a=16$ (a post-hoc sensitivity control). Summary rows: medians over the 12 "
+        "settings, the count of settings destroyed (worst case $>5$ points below the backbone), and "
+        "two gain summaries --- ``best $\\beta$'' is a test-selected exploratory upper bound, "
+        "``validation-selected'' is the selection result of Table~\\ref{tab:main} relative to the "
+        "backbone.}",
         "\\label{tab:robust}",
-        "\\begin{center}\\small",
+        "\\begin{center}\\footnotesize",
         "\\begin{tabular}{llccccc|cc}",
         "& & \\multicolumn{5}{c|}{} & \\multicolumn{2}{c}{\\textbf{FGIB}} \\\\",
         "Task & Backbone & " + " & ".join(HEADERS[:-1])
@@ -400,7 +413,8 @@ def table_anchor(by_setting, baseline, out):
 def table_main_std(selected, fgib16, baseline, out):
     lines = [
         "\\begin{table}[t]",
-        "\\caption{Standard deviations over the 5 runs for every cell of Table~\\ref{tab:main}, with "
+        "\\caption{Standard deviations over the 5 runs for every cell of "
+        "Tables~\\ref{tab:main} and~\\ref{tab:main-reg}, with "
         "the validation-selected hyperparameters underneath each cell ($\\beta$, and $\\beta,a$ for "
         "FGIB; \\texttt{--} for the deterministic backbone, which has neither). The last column is "
         "the equal-budget control: FGIB selected over the same 6-point $\\beta$ grid as every other "
@@ -536,67 +550,73 @@ def selected0(by_setting, setting, model, anchor):
 
 
 def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
-    """h 直锚（A=I 固定正交侧头，FGIB-H）跨设置表（审稿人第 2/7 条）。
+    """h 直锚（A=I 固定正交侧头，FGIB-H）七分类设置表（第四轮：canonical 主表）。
 
     比较 det / FGIB(a=16) / CentFGIB(a=16) / FGIB-H(A=I, a=16) /
-    FGIB-H(A=I, a=4) 五种形态在 mnist_mlp（aid/ 已有）、mnist_cnn、
-    imagenet100_mlp、california_mlp、cora_gnn 上的验证集选模测试分。
-    a=16 为继承自 z 空间的锚点尺度，a=4 为 h 空间重调的尺度
-    （hdirect_a48/ 新跑；mnist_mlp 无 a=4 数据时该列显示 --）。
-    数据目录缺失时跳过。
+    FGIB-H(A=I, a=4) 五种形态在全部 7 个分类设置上的验证集选模测试分，
+    每种形态同一 6 点 β 预算、固定单一锚点尺度（等预算，非 6×9 网格）。
+    a=16 为继承自 z 空间的锚点尺度，a=4 为 h 空间重调的尺度。数据来源：
+    - FGIB-H a=16：mnist_mlp=aid/、mnist_cnn/imagenet100_mlp/cora_gnn=hdirect/、
+      其余三设置=hdirect_all/（第四轮新跑）；
+    - FGIB-H a=4：mnist_mlp 与三新设置=hdirect_all/、其余=hdirect_a48/。
+    任一设置缺数据时整表跳过（防分母不一致的 rank 比较）。
     """
     import pathlib
-    settings = ["mnist_mlp", "mnist_cnn", "imagenet100_mlp", "california_mlp", "cora_gnn"]
-    aid_dir = {"mnist_mlp": "aid", "mnist_cnn": "hdirect", "imagenet100_mlp": "hdirect",
-               "california_mlp": "hdirect", "cora_gnn": "hdirect"}
+    settings = ["mnist_mlp", "mnist_cnn", "imagenet100_mlp", "imagenet100_cnn",
+                "cora_gnn", "imdb_rnn", "agnews_rnn"]
+    h16_dir = {"mnist_mlp": "aid", "mnist_cnn": "hdirect", "imagenet100_mlp": "hdirect",
+               "imagenet100_cnn": "hdirect_all", "cora_gnn": "hdirect",
+               "imdb_rnn": "hdirect_all", "agnews_rnn": "hdirect_all"}
+    h4_dir = {"mnist_mlp": "hdirect_all", "mnist_cnn": "hdirect_a48",
+              "imagenet100_mlp": "hdirect_a48", "imagenet100_cnn": "hdirect_all",
+              "cora_gnn": "hdirect_a48", "imdb_rnn": "hdirect_all",
+              "agnews_rnn": "hdirect_all"}
+
+    def load_aid(setting, dname, anchor):
+        """从指定消融子目录读取某设置 FGIB a-identity 的选模测试分；缺失返回 None。"""
+        d = pathlib.Path("tune_results_ablation") / dname
+        if not d.is_dir():
+            return None
+        recs = load(str(d), strict=False)
+        sub = [r for r in recs if r["setting"] == setting
+               and r["model"] == "fgib" and r["anchor"] == float(anchor)]
+        if len(sub) != len(BETAS):
+            return None
+        return select_one(sub)["test"][metric_key(setting)][0]
+
     rows, avail = {}, []
     for setting in settings:
-        d = pathlib.Path("tune_results_ablation") / aid_dir[setting]
-        if not d.is_dir():
-            continue
-        recs = load(str(d), strict=False)
-        aid_recs = [r for r in recs if r["setting"] == setting
-                    and r["model"] == "fgib" and r["anchor"] == 16.0]
-        if len(aid_recs) != len(BETAS):
-            continue
-        # h 空间重调尺度 a=4（hdirect_a48，部分设置可能缺失）
-        d48 = pathlib.Path("tune_results_ablation/hdirect_a48")
-        h4 = None
-        if d48.is_dir():
-            recs48 = load(str(d48), strict=False)
-            h4_recs = [r for r in recs48 if r["setting"] == setting
-                       and r["model"] == "fgib" and r["anchor"] == 4.0]
-            if len(h4_recs) == len(BETAS):
-                h4 = select_one(h4_recs)["test"][metric_key(setting)][0]
-        cent_recs = load("tune_results_ablation/centfgib_all")
+        key = metric_key(setting)
+        det = baseline[setting]["test"][key][0]
+        f16 = fgib16[setting]["test"][key][0]
+        cent_recs = load("tune_results_ablation/centfgib_all", strict=False)
         cent_recs = [r for r in cent_recs if r["setting"] == setting
                      and r["model"] == "centfgib" and r["anchor"] == 16.0]
         if len(cent_recs) != len(BETAS):
             continue
-        key = metric_key(setting)
-        det = baseline[setting]["test"][key][0]
-        f16 = fgib16[setting]["test"][key][0]
-        aid = select_one(aid_recs)["test"][key][0]
         cent = select_one(cent_recs)["test"][key][0]
-        rows[setting] = (det, f16, cent, aid, h4)
+        h16 = load_aid(setting, h16_dir[setting], 16)
+        h4 = load_aid(setting, h4_dir[setting], 4)
+        if h16 is None or h4 is None:
+            print(f"[tab_hanchor] {setting} 缺 a-identity 数据（h16={h16 is not None}, "
+                  f"h4={h4 is not None}），整表跳过")
+            return
+        rows[setting] = (det, f16, cent, h16, h4)
         avail.append(setting)
-    if len(avail) != len(settings):
-        print(f"[tab_hanchor] 数据不全，跳过表格（现有 {sorted(avail)}，需要 {settings}）")
-        return
     lines = [
         "\\begin{table}[t]",
-        "\\caption{The fixed-orthogonal side head across settings. FGIB, CentFGIB and FGIB-H "
-        "differ only in the side-path regularizer --- trainable side head + KL, trainable side "
-        "head + plain center loss, and fixed side head $A{=}I$ (equivalently the anchor matching "
-        "applied directly to the deployed representation $h$, Result~\\ref{res:orth}) --- each "
-        "selected over the same 6-point $\\beta$ budget at a single fixed anchor scale, on "
-        "validation. $a{=}16$ is the scale inherited from the $z$-space sweep; $a{=}4$ is a "
-        "re-tuned scale for $h$-space (the fixed head's adaptive rescaling is gone, so its "
-        "optimal scale shifts). Units as in Table~\\ref{tab:main}. At the inherited scale the "
-        "fixed head trails by $\\approx 0.5$ points per setting; at the re-tuned scale it "
-        "recovers most of the gap and ties or beats the backbone on every row --- the price of "
-        "the $\\kappa{=}1$ closure is small, and both configurations ship in the released "
-        "code.}",
+        "\\caption{The canonical fixed-orthogonal side head across the seven classification "
+        "settings. FGIB, CentFGIB and FGIB-H differ only in the side-path regularizer --- "
+        "trainable side head + KL, trainable side head + plain center loss, and fixed side "
+        "head $A{=}I$ (equivalently the anchor matching applied directly to the deployed "
+        "representation $h$, Result~\\ref{res:orth}) --- each selected over the same 6-point "
+        "$\\beta$ budget at a single fixed anchor scale, on validation. $a{=}16$ is the scale "
+        "inherited from the $z$-space sweep; $a{=}4$ is a re-tuned scale for $h$-space (the "
+        "fixed head's adaptive rescaling is gone, so its optimal scale shifts). Units as in "
+        "Table~\\ref{tab:main}. At the inherited scale the fixed head trails by $\\approx 0.5$ "
+        "points per setting; at the re-tuned scale it recovers most of the gap --- the price "
+        "of the $\\kappa{=}1$ closure is small. All ranks and win counts below are computed "
+        "over the same seven complete rows.}",
         "\\label{tab:hanchor}",
         "\\begin{center}\\small",
         "\\begin{tabular}{llccccc}",
@@ -605,6 +625,7 @@ def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
     ]
     ranks = collections.defaultdict(list)
     wins = collections.Counter()
+    worst = collections.defaultdict(float)
     for setting in settings:
         task, bb = NAMES[setting]
         vals = list(rows[setting])
@@ -612,18 +633,23 @@ def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
         cells = [fmt(v, v is not None and v >= best - TIE_EPS) if v is not None else "--"
                  for v in vals]
         lines.append(f"{task} & {bb} & " + " & ".join(cells) + " \\\\")
+        det = vals[0]
         for name, v in zip(["det", "fgib", "centfgib", "h16", "h4"], vals):
             if v is None:
                 continue
             ranks[name].append(1 + sum(1 for w in vals if w is not None and w > v + TIE_EPS))
             if v >= best - TIE_EPS:
                 wins[name] += 1
+            worst[name] = max(worst[name], det - v)
     order = ["det", "fgib", "centfgib", "h16", "h4"]
+    n = len(avail)
     lines.append("\\hline \\\\[-1.8ex]")
-    lines.append("\\multicolumn{2}{l}{Mean rank (of 5)} & " + " & ".join(
+    lines.append(f"\\multicolumn{{2}}{{l}}{{Mean rank (of {n})}} & " + " & ".join(
         f"{statistics.fmean(ranks[m]):.2f}" for m in order) + " \\\\")
-    lines.append("\\multicolumn{2}{l}{Best or tied-best (of 5)} & " + " & ".join(
+    lines.append(f"\\multicolumn{{2}}{{l}}{{Best or tied-best (of {n})}} & " + " & ".join(
         str(wins[m]) for m in order) + " \\\\")
+    lines.append("\\multicolumn{2}{l}{Worst deficit vs.\ Det.} & -- & " + " & ".join(
+        f"{fmt(worst[m])}" for m in order[1:]) + " \\\\")
     lines.append("\\end{tabular}\\end{center}\\end{table}")
     with open(os.path.join(out_dir, "tab_hanchor.tex"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
@@ -631,7 +657,7 @@ def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
               "h16": "FGIB-H(a16)", "h4": "FGIB-H(a4)"}
     print("[tab_hanchor] mean rank: " + ", ".join(
         f"{labels[m]}={statistics.fmean(ranks[m]):.2f}" for m in order)
-          + " | wins: " + ", ".join(f"{labels[m]}={wins[m]}/5" for m in order))
+          + f" | wins: " + ", ".join(f"{labels[m]}={wins[m]}/{n}" for m in order))
 
 
 def main():
@@ -648,6 +674,7 @@ def main():
         os.path.join(args.out_dir, "equal_budget.tex"),
     )
     table_main(selected, baseline, os.path.join(args.out_dir, "tab_main.tex"))
+    table_main_reg(selected, baseline, os.path.join(args.out_dir, "tab_main_reg.tex"))
     table_robust(by_setting, selected, fgib16, baseline, os.path.join(args.out_dir, "tab_robust.tex"))
     table_anchor(by_setting, baseline, os.path.join(args.out_dir, "tab_anchor.tex"))
     table_main_std(selected, fgib16, baseline, os.path.join(args.out_dir, "tab_main_std.tex"))

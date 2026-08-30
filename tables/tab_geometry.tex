@@ -1,0 +1,12 @@
+\begin{table}[t]
+\caption{Anchor-geometry ablation on the same representation (MNIST/MLP, $A{=}I$ so the regularizer acts directly on the deployed representation $h$, $a=16$, 6-point $\beta$ grid $\times$ 5 seeds, protocol as in the main experiments). Rows differ only in the anchor geometry --- orthonormal frame, simplex/ETF frame (unit norms, mutual cosine $-1/(K-1)$), random normalized directions, or trainable centers (TAFGIB) --- and in whether the penalty is the KL or the plain MSE. Test accuracy (\%) across the grid plus the validation-selected configuration.}
+\label{tab:geometry}
+\begin{center}\small
+\begin{tabular}{lccccccc}
+Variant & $10^{-4}$ & $10^{-3}$ & $10^{-2}$ & $10^{-1}$ & $1$ & $10$ & val-sel. \\ \hline \\[-1.8ex]
+KL, orthonormal (FGIB-H) & 98.26 & 98.20 & 98.30 & 98.32 & 98.21 & 98.21 & \textbf{98.26} \\
+MSE, orthonormal (CentFGIB) & 98.26 & 98.20 & 98.30 & 98.32 & 98.21 & 98.21 & \textbf{98.26} \\
+MSE, simplex/ETF (CentFGIB) & 98.28 & 98.24 & 98.27 & 98.28 & 98.21 & 98.20 & \textbf{98.27} \\
+MSE, random normalized (CentFGIB) & 98.32 & 98.29 & 98.31 & 98.30 & 98.21 & 98.20 & \textbf{98.31} \\
+KL, learned centers (TAFGIB) & 98.27 & 98.26 & 98.24 & 98.32 & 98.27 & 98.26 & \textbf{98.27} \\
+\end{tabular}\end{center}\end{table}
