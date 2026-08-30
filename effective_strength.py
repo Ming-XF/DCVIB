@@ -130,8 +130,8 @@ def main():
         ("ceb", "CEB (trainable prior)"),
         ("nib", "NIB (pairwise bound)"),
         ("dvcca", "DVCCA (KL $+$ recon)"),
-        ("fgib_a16", "FGIB ($a{=}16$)"),
-        ("fgib_a4", "FGIB ($a{=}4$)"),
+        ("fgib_a16", "FGIB-A ($a{=}16$)"),
+        ("fgib_a4", "FGIB-A ($a{=}4$)"),
         ("centfgib_a16", "CentFGIB ($a{=}16$)"),
     ]
     rows = []
@@ -165,9 +165,9 @@ def main():
                  "\\mathrm{CE}\\rVert_2$ at the shared one-epoch CE-only operating point "
                  "(MNIST/MLP, seed 0). The raw $\\beta$ grid is not a shared axis across "
                  "objectives (SVIB penalizes $\\beta\\,\\mathrm{KL}^2$, NIB is in nats, "
-                 "DVCCA weights reconstruction too); $r$ is. FGIB's row at $a{=}4$ vs "
+                 "DVCCA weights reconstruction too); $r$ is. FGIB-A's row at $a{=}4$ vs "
                  "$a{=}16$ shows the $a^2/\\tau^2$ coupling explicitly; NIB's $r$ is "
-                 "numerically zero across the grid (its knob does not act).}")
+                 "below $1.7\times10^{-3}$ at this operating point (its knob does not act).}")
     lines.append("\\label{tab:effective}")
     lines.append("\\begin{center}\\small")
     cols = "l" + "r" * len(BETAS)

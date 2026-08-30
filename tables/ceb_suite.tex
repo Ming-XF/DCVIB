@@ -1,0 +1,12 @@
+\begin{table}[t]
+\caption{Matched CEB suite on MNIST/MLP (Section~\ref{sec:suite}): clean accuracy (5-seed mean), PGD-$L_\infty$ ($\varepsilon{=}0.3$, 40 steps, 1000 test samples, seed 0; untargeted/targeted), OOD detection with uniform noise (AUROC; label-free scores: max-softmax, CEB's rate with its \emph{predicted} label, and FGIB-S's anchor distance $\min_y\KLd(q(z|x)\|\Ncal(a v_y,\tau^2I))$), calibration (ECE 15 bins, seed 0), and random-label memorization (final train accuracy, 100 epochs, 5 seeds). FGIB-S is evaluated on its \emph{deployed} sampled $z$; the $\mu$-deployment control is reported in the text.}
+\label{tab:suite}
+\begin{center}\footnotesize
+\begin{tabular}{lcccccccc}
+Model & Clean & PGD-un & PGD-t & OOD-msp & OOD-rate & OOD-anchor & ECE & Rand-lab \\ \hline \\[-1.8ex]
+Det. & 98.33 & 0.99 & 0.96 & 0.96 & -- & -- & 0.089 & -- \\
+CEB $\beta{=}10^{-3}$ & 98.30 & 0.98 & 0.95 & 1.00 & 0.96 & -- & 0.069 & 0.4$\pm$0.0 \\
+CEB $\beta{=}10^{-1}$ & 98.16 & 0.97 & 0.89 & 1.00 & 1.00 & -- & 0.110 & 0.1$\pm$0.0 \\
+FGIB-S $\beta{=}10^{-3}$ & 97.99 & 0.89 & 0.72 & 0.98 & -- & 0.03 & 0.083 & 0.4$\pm$0.0 \\
+FGIB-S $\beta{=}10^{-1}$ & 97.77 & 0.80 & 0.68 & 0.99 & -- & 0.00 & 0.093 & 0.3$\pm$0.0 \\
+\end{tabular}\end{center}\end{table}

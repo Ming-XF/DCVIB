@@ -6,6 +6,7 @@ from .dceb import DCEB
 from .dvcca import DVCCA
 from .etf import ETF
 from .fgib import FGIB
+from .fgib_s import FGIBS
 from .mlp import MLP
 from .nib import NIB
 from .svib import SVIB

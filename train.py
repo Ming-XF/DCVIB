@@ -73,7 +73,7 @@ from datasets.datasets import (
 from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
-from model import CEB, DCEB, CNN, DVCCA, ETF, FGIB, GCN, MLP, NIB, SVIB, TAFGIB, VIB, CentFGIB
+from model import CEB, DCEB, CNN, DVCCA, ETF, FGIB, FGIBS, GCN, MLP, NIB, SVIB, TAFGIB, VIB, CentFGIB
 from model.cnn import CEB as CNNCEB, CentFGIB as CNNCentFGIB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import CEB as GNNCEB, CentFGIB as GNNCentFGIB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
@@ -96,6 +96,11 @@ def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None
     """
     if isinstance(model, (VIB, CEB, NIB, CNNVIB, CNNCEB, CNNNIB, RNNVIB, RNNCEB, RNNNIB)):
         logits, kl = model(images, labels, stochastic=stochastic)
+        return logits, kl, None
+    if isinstance(model, FGIBS):
+        # FGIB-S canonical：部署对象即采样 z，训练与评估统一随机推理
+        # （stochastic=False 的均值部署对照由 ceb_suite.py 直接调用模型获取）
+        logits, kl = model(images, labels, stochastic=True)
         return logits, kl, None
     if isinstance(model, (GNNVIB, GNNCEB, GNNNIB)):
         logits, kl = model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask, batch=batch)
@@ -407,6 +412,8 @@ MODEL_CLASSES = {
     ("fgib", "cnn"): CNNFGIB,
     ("fgib", "gnn"): GNNFGIB,
     ("fgib", "rnn"): RNNFGIB,
+    # FGIB-S：随机部署 canonical mode（固定正交 A=I + 可训练方差 + 部署采样 z）
+    ("fgibs", "mlp"): FGIBS,
     # 消融变体（审稿人要求的混淆隔离实验）
     ("dceb", "mlp"): DCEB,
     ("tafgib", "mlp"): TAFGIB,
@@ -440,7 +447,7 @@ def build_parser():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca",
+        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "fgibs", "svib", "nib", "dvcca",
                  "dceb", "tafgib", "centfgib", "etf"],
         default="mlp",
         help="svib is Squared-IB (ICLR 2019 Caveats): a VIB subclass whose forward "
@@ -631,6 +638,11 @@ def main():
             parser.error("dceb/tafgib 消融变体仅支持 MLP 骨干")
         if args.task != "mnist":
             parser.error("dceb/tafgib 消融变体仅支持 mnist 任务（审稿人消融实验）")
+    if args.model == "fgibs":
+        if args.backbone != "mlp":
+            parser.error("fgibs（FGIB-S 随机部署 mode）目前仅支持 MLP 骨干")
+        if args.task != "mnist":
+            parser.error("fgibs（FGIB-S 随机部署 mode）目前仅支持 mnist 任务（第五轮首批实验）")
     if args.model == "etf":
         if args.backbone != "mlp":
             parser.error("etf 基线仅支持 MLP 骨干")
@@ -748,10 +760,10 @@ def main():
         model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
     if args.model not in ("mlp", "cnn", "gcn", "rnn"):
         model_kwargs["z_dim"] = args.z_dim
-    if args.model in ("fgib", "tafgib", "centfgib"):
+    if args.model in ("fgib", "fgibs", "tafgib", "centfgib"):
         model_kwargs["anchor_scale"] = args.anchor_scale
         model_kwargs["anchor_geometry"] = args.anchor_geometry
-    if args.model in ("vib", "ceb", "fgib", "dceb", "tafgib", "centfgib"):
+    if args.model in ("vib", "ceb", "fgib", "fgibs", "dceb", "tafgib", "centfgib"):
         model_kwargs["cosine_classifier"] = args.cosine_classifier
     if args.model in ("fgib", "tafgib", "centfgib"):
         model_kwargs["freeze_a"] = args.freeze_a

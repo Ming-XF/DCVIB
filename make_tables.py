@@ -10,7 +10,7 @@
 3. 输出四张表到 out-dir：
    - tab_main.tex        主结果（验证集选参）
    - tab_robust.tex      beta 鲁棒性（全网格最差值相对确定性基线的缺口）
-   - tab_anchor.tex      beta=10 时 FGIB 随锚点尺度 a 的变化
+   - tab_anchor.tex      beta=10 时 FGIB-A 随锚点尺度 a 的变化
    - tab_main_std.tex    主表的标准差与选中的超参（附录）
 
 分类指标为 Acc、回归为 R²，统一乘 100 输出。
@@ -24,7 +24,7 @@ import statistics
 
 DATASETS = ["mnist", "imagenet100", "cora", "imdb", "agnews", "california", "stsb", "zinc", "agedb"]
 BOTTLENECKS = ["vib", "svib", "nib", "ceb", "dvcca", "fgib"]
-HEADERS = ["VIB", "SVIB", "NIB", "CEB", "DVCCA", "\\textbf{FGIB}"]
+HEADERS = ["VIB", "SVIB", "NIB", "CEB", "DVCCA", "\\textbf{FGIB-A}"]
 BETAS = [1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0]
 ANCHORS = [1, 2, 4, 6, 8, 10, 12, 14, 16]
 # 相差 0.005 个百分点以内视为并列（浮点与四舍五入噪声）
@@ -171,10 +171,10 @@ def build_index(recs):
 
 
 def build_fixed_anchor_index(by_setting, anchor=16.0):
-    """FGIB 的等预算对照：固定 anchor（默认 a=16）、只扫 6 个 beta（与其余瓶颈
+    """FGIB-A 的等预算对照：固定 anchor（默认 a=16）、只扫 6 个 beta（与其余瓶颈
     同预算），验证集选模。
 
-    返回 {setting: 选中记录}，用于报告与其余瓶颈搜索预算相同时 FGIB 的 rank；
+    返回 {setting: 选中记录}，用于报告与其余瓶颈搜索预算相同时 FGIB-A 的 rank；
     anchor 参数化后也用于逐 a 的固定锚点敏感性（审稿人第 5 条：a=16 是后验
     选择，应报告多个固定 a 的 rank）。
     """
@@ -210,9 +210,9 @@ def rank_stats(vals_by_name):
 
 
 def equal_budget_fgib_summary(by_setting, selected, baseline, out):
-    """等预算对照：FGIB 固定 a=16（6 个 beta，与其余瓶颈同预算）的选模结果。
+    """等预算对照：FGIB-A 固定 a=16（6 个 beta，与其余瓶颈同预算）的选模结果。
 
-    打印 mean rank / wins 对比（全网格 FGIB vs 固定 a=16 FGIB），并写入
+    打印 mean rank / wins 对比（全网格 FGIB-A vs 固定 a=16 FGIB-A），并写入
     out（LaTeX 片段）供论文正文引用。
     """
     fgib16 = build_fixed_anchor_index(by_setting)
@@ -223,15 +223,15 @@ def equal_budget_fgib_summary(by_setting, selected, baseline, out):
     eq["fgib"] = [fgib16[s]["test"][metric_key(s)][0] for s in CLS + REG]
     mr_full, wins_full = rank_stats(full)
     mr_eq, wins_eq = rank_stats(eq)
-    print(f"[等预算对照] FGIB 全网格(54 组) mean rank = {mr_full['fgib']:.2f}, wins = {wins_full['fgib']}/12")
-    print(f"[等预算对照] FGIB 固定 a=16(6 组) mean rank = {mr_eq['fgib']:.2f}, wins = {wins_eq['fgib']}/12")
+    print(f"[等预算对照] FGIB-A 全网格(54 组) mean rank = {mr_full['fgib']:.2f}, wins = {wins_full['fgib']}/12")
+    print(f"[等预算对照] FGIB-A 固定 a=16(6 组) mean rank = {mr_eq['fgib']:.2f}, wins = {wins_eq['fgib']}/12")
     print(f"[等预算对照] 其余方法（不受影响）：" + ", ".join(
         f"{m}={mr_eq[m]:.2f}({wins_eq[m]}/12)" for m in order if m != "fgib"))
     with open(out, "w", encoding="utf-8") as f:
         f.write(
             "\\emph{Equal-budget control.} Selected over the same 6-point $\\beta$ grid as "
             "every other bottleneck at a single globally fixed anchor scale $a=16$ (a post-hoc "
-            "sensitivity control), FGIB's "
+            "sensitivity control), FGIB-A's "
             f"mean rank is {mr_eq['fgib']:.2f} of 7 (vs.\\ {mr_full['fgib']:.2f} over the full "
             f"$6\\times9$ grid) and it is best or tied-best on {wins_eq['fgib']} of 12 settings "
             f"(vs.\\ {wins_full['fgib']}).\n"
@@ -281,15 +281,15 @@ def table_main(selected, baseline, out):
         "\\caption{Test accuracy (\\%) of the validation-selected configuration of each objective on "
         "the seven classification settings, averaged over 5 runs (seeds 0--4); higher is better. "
         "\\emph{Det.}\\ is the deterministic backbone trained with the task loss alone. For every "
-        "bottleneck $\\beta$ is chosen per cell by mean best-epoch validation score --- and for FGIB "
-        "the anchor scale $a$ as well --- never by test score, so FGIB is selected over a $6\\times9$ "
+        "bottleneck $\\beta$ is chosen per cell by mean best-epoch validation score --- and for FGIB-A "
+        "the anchor scale $a$ as well --- never by test score, so FGIB-A is selected over a $6\\times9$ "
         "grid and the others over a $6$-point grid; exact ties are broken by a second validation "
-        "quantity and then by fixed grid order. The FGIB column is the optional trainable-head "
+        "quantity and then by fixed grid order. The FGIB-A column is the optional trainable-head "
         "variant; the canonical fixed head (FGIB-H) is Table~\\ref{tab:hanchor}. The five regression "
         "settings are Table~\\ref{tab:main-reg}, reported as exploratory. Best per row in bold (ties "
         "within $0.01$ points both bolded); per-run standard deviations and the selected "
         "hyperparameters are in Table~\\ref{tab:main-std}, whose last column reports the equal-budget "
-        "FGIB control.}"
+        "FGIB-A control.}"
     )
     return _main_table_rows(selected, baseline, CLS, caption, "tab:main", out)
 
@@ -298,7 +298,7 @@ def table_main_reg(selected, baseline, out):
     caption = (
         "\\caption{Regression settings ($R^2\\times100$), reported as \\emph{exploratory}: the "
         "random-Fourier anchor construction for continuous targets is a transfer, not a proof "
-        "(Remark~\\ref{rem:caveats}), and the knob destroys FGIB on three of these five settings at "
+        "(Remark~\\ref{rem:caveats}), and the knob destroys FGIB-A on three of these five settings at "
         "some $\\beta$ (Section~\\ref{sec:knob}). Protocol and notation as in Table~\\ref{tab:main}.}"
     )
     return _main_table_rows(selected, baseline, REG, caption, "tab:main-reg", out)
@@ -336,7 +336,7 @@ def table_robust(by_setting, selected, fgib16, baseline, out):
         "\\caption{Robustness of the compression knob: the \\emph{worst} test score any "
         "$\\beta$ produces, as a deficit (in points) against the deterministic backbone of the same "
         "row; negative means the objective never falls below its backbone. Units as in "
-        "Table~\\ref{tab:main}. FGIB is shown at the validation-selected anchor and at a single "
+        "Table~\\ref{tab:main}. FGIB-A is shown at the validation-selected anchor and at a single "
         "globally fixed $a=16$ (a post-hoc sensitivity control). Summary rows: medians over the 12 "
         "settings, the count of settings destroyed (worst case $>5$ points below the backbone), and "
         "two gain summaries --- ``best $\\beta$'' is a test-selected exploratory upper bound, "
@@ -345,7 +345,7 @@ def table_robust(by_setting, selected, fgib16, baseline, out):
         "\\label{tab:robust}",
         "\\begin{center}\\footnotesize",
         "\\begin{tabular}{llccccc|cc}",
-        "& & \\multicolumn{5}{c|}{} & \\multicolumn{2}{c}{\\textbf{FGIB}} \\\\",
+        "& & \\multicolumn{5}{c|}{} & \\multicolumn{2}{c}{\\textbf{FGIB-A}} \\\\",
         "Task & Backbone & " + " & ".join(HEADERS[:-1])
         + " & val-sel.\\ $a$ & $a{=}16$ \\\\ \\hline \\\\[-1.8ex]",
     ]
@@ -379,7 +379,7 @@ def table_robust(by_setting, selected, fgib16, baseline, out):
 def table_anchor(by_setting, baseline, out):
     lines = [
         "\\begin{table}[t]",
-        "\\caption{The anchor scale controls the fully compressed corner. Test score of FGIB at the "
+        "\\caption{The anchor scale controls the fully compressed corner. Test score of FGIB-A at the "
         "strongest compression pressure in the grid ($\\beta=10$), as the anchor scale $a$ varies; "
         "$\\Delta$ is the gap from the deterministic backbone at the largest anchor ($a{=}16$). Units "
         "as in Table~\\ref{tab:main}. At small $a$ the anchors approach the single origin of a VIB "
@@ -416,8 +416,8 @@ def table_main_std(selected, fgib16, baseline, out):
         "\\caption{Standard deviations over the 5 runs for every cell of "
         "Tables~\\ref{tab:main} and~\\ref{tab:main-reg}, with "
         "the validation-selected hyperparameters underneath each cell ($\\beta$, and $\\beta,a$ for "
-        "FGIB; \\texttt{--} for the deterministic backbone, which has neither). The last column is "
-        "the equal-budget control: FGIB selected over the same 6-point $\\beta$ grid as every other "
+        "FGIB-A; \\texttt{--} for the deterministic backbone, which has neither). The last column is "
+        "the equal-budget control: FGIB-A selected over the same 6-point $\\beta$ grid as every other "
         "bottleneck at a single globally fixed anchor scale $a=16$ (a post-hoc sensitivity "
         "control), so its search budget matches the comparison (see Section~\\ref{sec:exp}). "
         "Units as in Table~\\ref{tab:main}.}",
@@ -425,7 +425,7 @@ def table_main_std(selected, fgib16, baseline, out):
         "\\begin{center}\\scriptsize",
         "\\begin{tabular}{llcccccccc}",
         "Task & Backbone & Det. & " + " & ".join(h.replace("\\textbf{", "").replace("}", "")
-                                                 for h in HEADERS) + " & FGIB ($a{=}16$) \\\\ \\hline \\\\[-1.8ex]",
+                                                 for h in HEADERS) + " & FGIB-A ($a{=}16$) \\\\ \\hline \\\\[-1.8ex]",
     ]
     for group, label in [(CLS, "\\emph{Classification (Acc \\%)}"),
                          (REG, "\\emph{Regression ($R^2\\times100$)}")]:
@@ -457,7 +457,7 @@ def rank_split(selected, baseline, fgib16, out):
     划分有身份泄漏（论文已披露）。此函数报告：
     - CLS-only（7 设定）、REG-only（5 设定）
     - 排除 AgeDB 的 10 设定（CLS + 3 个回归）
-    三种口径下全网格 FGIB 与等预算 FGIB(a=16) 的 mean rank 与 wins，
+    三种口径下全网格 FGIB-A 与等预算 FGIB-A(a=16) 的 mean rank 与 wins，
     写入 out（LaTeX 片段）供正文引用。
     """
     order = ["det"] + BOTTLENECKS
@@ -473,13 +473,13 @@ def rank_split(selected, baseline, fgib16, out):
         mr_full, wins_full = rank_stats(full)
         mr_eq, wins_eq = rank_stats(eq)
         prints.append(
-            f"[rank 分解 {tag:7s} n={len(ss):2d}] FGIB 全网格 rank {mr_full['fgib']:.2f} "
-            f"({wins_full['fgib']}/{len(ss)}) | FGIB a=16 rank {mr_eq['fgib']:.2f} "
+            f"[rank 分解 {tag:7s} n={len(ss):2d}] FGIB-A 全网格 rank {mr_full['fgib']:.2f} "
+            f"({wins_full['fgib']}/{len(ss)}) | FGIB-A a=16 rank {mr_eq['fgib']:.2f} "
             f"({wins_eq['fgib']}/{len(ss)}) | det {mr_eq['det']:.2f} | "
             + ", ".join(f"{m} {mr_eq[m]:.2f}" for m in BOTTLENECKS if m != "fgib"))
         lines.append(
-            f"\\item[{tag}] full-grid FGIB mean rank {mr_full['fgib']:.2f} of 7 "
-            f"(best or tied {wins_full['fgib']}/{len(ss)}); equal-budget FGIB ($a{{=}}16$) "
+            f"\\item[{tag}] full-grid FGIB-A mean rank {mr_full['fgib']:.2f} of 7 "
+            f"(best or tied {wins_full['fgib']}/{len(ss)}); equal-budget FGIB-A ($a{{=}}16$) "
             f"mean rank {mr_eq['fgib']:.2f} (best or tied {wins_eq['fgib']}/{len(ss)}); "
             f"deterministic backbone {mr_eq['det']:.2f}.")
     for p in prints:
@@ -489,7 +489,7 @@ def rank_split(selected, baseline, fgib16, out):
 
 
 def table_anchor_ranks(by_setting, baseline, out_dir):
-    """逐固定 a 的等预算 FGIB rank 敏感性（审稿人第 5 条：a=16 为后验选择）。
+    """逐固定 a 的等预算 FGIB-A rank 敏感性（审稿人第 5 条：a=16 为后验选择）。
 
     对每个 a ∈ ANCHORS 用与其余瓶颈相同的 6 点 β 预算验证集选模，报告
     12 设定 / 仅分类 / 仅回归的 mean rank 与 wins，写入附录表。
@@ -513,15 +513,15 @@ def table_anchor_ranks(by_setting, baseline, out_dir):
               f"rankREG={cells[2]:.2f} wins={wins12}/12")
     lines = [
         "\\begin{table}[t]",
-        "\\caption{Sensitivity of the equal-budget FGIB rank to the fixed anchor scale. "
-        "Each column reports FGIB selected over the same 6-point $\\beta$ grid as every other "
+        "\\caption{Sensitivity of the equal-budget FGIB-A rank to the fixed anchor scale. "
+        "Each column reports FGIB-A selected over the same 6-point $\\beta$ grid as every other "
         "bottleneck at a \\emph{single globally fixed} anchor scale $a$, so its search budget "
         "matches the comparison exactly (the $a{=}16$ column is the post-hoc control of "
         "Table~\\ref{tab:main-std}). Mean rank of 7 entries (deterministic backbone + 6 "
         "bottlenecks) over all 12 settings, over the 7 classification settings, and over the 5 "
         "regression settings; ``best'' counts best-or-tied settings out of 12. The main-table "
         "number ($1.75$, full $6\\times9$ grid) is a ceiling only over the full grid, not over "
-        "fixed $a$; the range of fixed-$a$ ranks quantifies how much of FGIB's edge is anchor "
+        "fixed $a$; the range of fixed-$a$ ranks quantifies how much of FGIB-A's edge is anchor "
         "search budget (Section~\\ref{sec:exp}).}",
         "\\label{tab:anchor-ranks}",
         "\\begin{center}\\small",
@@ -552,7 +552,7 @@ def selected0(by_setting, setting, model, anchor):
 def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
     """h 直锚（A=I 固定正交侧头，FGIB-H）七分类设置表（第四轮：canonical 主表）。
 
-    比较 det / FGIB(a=16) / CentFGIB(a=16) / FGIB-H(A=I, a=16) /
+    比较 det / FGIB-A(a=16) / CentFGIB(a=16) / FGIB-H(A=I, a=16) /
     FGIB-H(A=I, a=4) 五种形态在全部 7 个分类设置上的验证集选模测试分，
     每种形态同一 6 点 β 预算、固定单一锚点尺度（等预算，非 6×9 网格）。
     a=16 为继承自 z 空间的锚点尺度，a=4 为 h 空间重调的尺度。数据来源：
@@ -573,7 +573,7 @@ def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
               "agnews_rnn": "hdirect_all"}
 
     def load_aid(setting, dname, anchor):
-        """从指定消融子目录读取某设置 FGIB a-identity 的选模测试分；缺失返回 None。"""
+        """从指定消融子目录读取某设置 FGIB-A a-identity 的选模测试分；缺失返回 None。"""
         d = pathlib.Path("tune_results_ablation") / dname
         if not d.is_dir():
             return None
@@ -606,21 +606,27 @@ def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
     lines = [
         "\\begin{table}[t]",
         "\\caption{The canonical fixed-orthogonal side head across the seven classification "
-        "settings. FGIB, CentFGIB and FGIB-H differ only in the side-path regularizer --- "
+        "settings. FGIB-A, CentFGIB and FGIB-H differ only in the side-path regularizer --- "
         "trainable side head + KL, trainable side head + plain center loss, and fixed side "
         "head $A{=}I$ (equivalently the anchor matching applied directly to the deployed "
         "representation $h$, Result~\\ref{res:orth}) --- each selected over the same 6-point "
-        "$\\beta$ budget at a single fixed anchor scale, on validation. $a{=}16$ is the scale "
-        "inherited from the $z$-space sweep; $a{=}4$ is a re-tuned scale for $h$-space (the "
-        "fixed head's adaptive rescaling is gone, so its optimal scale shifts). Units as in "
-        "Table~\\ref{tab:main}. At the inherited scale the fixed head trails by $\\approx 0.5$ "
-        "points per setting; at the re-tuned scale it recovers most of the gap --- the price "
-        "of the $\\kappa{=}1$ closure is small. All ranks and win counts below are computed "
-        "over the same seven complete rows.}",
+        "$\\beta$ budget at a single fixed anchor scale, on validation. All cells are the "
+        "\\emph{validation-selected} configuration; the ``worst deficit'' row is the worst "
+        "validation-selected deficit across the seven settings, not the worst across "
+        "$\\beta$ --- the full per-$\\beta$ curves and their worst-across-$\\beta$ deficits "
+        "are Tables~\\ref{tab:hanchor-sweep-a4} and~\\ref{tab:hanchor-sweep-a16}. $a{=}16$ "
+        "is the scale inherited from the $z$-space sweep; $a{=}4$ is a re-tuned scale for "
+        "$h$-space, chosen as the representative of the sensitivity sweep "
+        "$a\\in\\{4,8,16\\}$ after seeing those results (each cell still selected on "
+        "validation; no test score participates). Units as in Table~\\ref{tab:main}. At the "
+        "inherited scale the fixed head trails by $\\approx 0.5$ points per setting; at the "
+        "re-tuned scale it recovers most of the gap --- the price of the $\\kappa{=}1$ "
+        "closure is small. All ranks and win counts below are computed over the same seven "
+        "complete rows.}",
         "\\label{tab:hanchor}",
         "\\begin{center}\\small",
         "\\begin{tabular}{llccccc}",
-        "Task & Backbone & Det. & FGIB ($a{=}16$) & CentFGIB ($a{=}16$) & "
+        "Task & Backbone & Det. & FGIB-A ($a{=}16$) & CentFGIB ($a{=}16$) & "
         "FGIB-H ($A{=}I$, $a{=}16$) & FGIB-H ($A{=}I$, $a{=}4$) \\\\ \\hline \\\\[-1.8ex]",
     ]
     ranks = collections.defaultdict(list)
@@ -653,11 +659,132 @@ def table_hanchor(selected, baseline, fgib16, out_dir, results_dir):
     lines.append("\\end{tabular}\\end{center}\\end{table}")
     with open(os.path.join(out_dir, "tab_hanchor.tex"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
-    labels = {"det": "Det.", "fgib": "FGIB(a16)", "centfgib": "CentFGIB(a16)",
+    labels = {"det": "Det.", "fgib": "FGIB-A(a16)", "centfgib": "CentFGIB(a16)",
               "h16": "FGIB-H(a16)", "h4": "FGIB-H(a4)"}
     print("[tab_hanchor] mean rank: " + ", ".join(
         f"{labels[m]}={statistics.fmean(ranks[m]):.2f}" for m in order)
           + f" | wins: " + ", ".join(f"{labels[m]}={wins[m]}/{n}" for m in order))
+
+
+def table_hanchor_sweep(baseline, out_dir):
+    """FGIB-H（A=I）七分类设置的**完整 β 曲线**表（第五轮，审稿人要求：
+    报告全网格曲线与跨 β 最坏赤字，而非仅验证选中单点）。
+
+    两张表（a=4 与 a=16 各一），每行一个分类设置：Det + 6 个 β 的测试分
+    （5 seeds 平均）+ 跨 β 最坏赤字（max_β Det−acc_β）。数据来自
+    aid/hdirect/hdirect_a48/hdirect_all（见 table_hanchor 的目录映射）。
+    """
+    import pathlib
+    settings = ["mnist_mlp", "mnist_cnn", "imagenet100_mlp", "imagenet100_cnn",
+                "cora_gnn", "imdb_rnn", "agnews_rnn"]
+    d16 = {"mnist_mlp": "aid", "mnist_cnn": "hdirect", "imagenet100_mlp": "hdirect",
+           "imagenet100_cnn": "hdirect_all", "cora_gnn": "hdirect",
+           "imdb_rnn": "hdirect_all", "agnews_rnn": "hdirect_all"}
+    d4 = {"mnist_mlp": "hdirect_all", "mnist_cnn": "hdirect_a48",
+          "imagenet100_mlp": "hdirect_a48", "imagenet100_cnn": "hdirect_all",
+          "cora_gnn": "hdirect_a48", "imdb_rnn": "hdirect_all",
+          "agnews_rnn": "hdirect_all"}
+    a_dir = {}
+    for s in settings:
+        a_dir[(s, 16)] = d16[s]
+        a_dir[(s, 4)] = d4[s]
+
+    def per_beta(setting, anchor):
+        """该设置该尺度下 {beta: 测试分}；数据缺失返回 None。"""
+        d = pathlib.Path("tune_results_ablation") / a_dir[(setting, anchor)]
+        if not d.is_dir():
+            return None
+        recs = load(str(d), strict=False)
+        sub = [r for r in recs if r["setting"] == setting and r["model"] == "fgib"
+               and r["anchor"] == float(anchor)]
+        if len(sub) != len(BETAS):
+            return None
+        return {r["beta"]: r["test"][metric_key(setting)][0] for r in sub}
+
+    lines = []
+    for anchor, label in ((4, "tab:hanchor-sweep-a4"), (16, "tab:hanchor-sweep-a16")):
+        lines.append("\\begin{table}[t]")
+        lines.append(f"\\caption{{FGIB-H ($A{{=}}I$) full $\\beta$ sweep at $a{{=}}{anchor}$ on the "
+                     f"seven classification settings: test accuracy (\\%) per $\\beta$ "
+                     f"(5-seed mean), the deterministic backbone for reference, and the "
+                     f"\\emph{{worst deficit across the six $\\beta$ values}} (max$_\\beta$ "
+                     f"Det $-$ acc$_\\beta$). Validation-selected cells feed "
+                     f"Table~\\ref{{tab:hanchor}}; the full curve is what "
+                     f"Result~\\ref{{res:endpoint}} predicts over.}}")
+        lines.append(f"\\label{{{label}}}")
+        lines.append("\\begin{center}\\footnotesize")
+        lines.append("\\begin{tabular}{ll" + "c" * (1 + len(BETAS) + 1) + "}")
+        header = ["Task", "Backbone", "Det."] + [f"$\\beta={b:g}$" for b in BETAS] + ["Worst"]
+        lines.append(" & ".join(header) + " \\\\ \\hline \\\\[-1.8ex]")
+        missing = 0
+        for setting in settings:
+            accs = per_beta(setting, anchor)
+            if accs is None:
+                missing += 1
+                continue
+            key = metric_key(setting)
+            det = baseline[setting]["test"][key][0]
+            vals = [accs[b] for b in BETAS]
+            worst = max(det - v for v in vals)
+            task, bb = NAMES[setting]
+            cells = [task, bb, fmt(det)] + [fmt(v) for v in vals] + [fmt(worst)]
+            lines.append(" & ".join(cells) + " \\\\")
+        if missing:
+            print(f"[tab_hanchor_sweep] a={anchor} 缺 {missing} 个设置，该表跳过")
+            return
+        lines.append("\\end{tabular}\\end{center}\\end{table}")
+        lines.append("")
+    with open(os.path.join(out_dir, "tab_hanchor_sweep.tex"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    print("[tab_hanchor_sweep] 已生成（a=4 与 a=16 两张完整曲线表）")
+
+
+def table_fgibs_mnist(baseline, selected, out_dir):
+    """FGIB-S 在 MNIST/MLP 上的主表对照（第五轮：审稿人要求随机部署 mode
+    至少在一个视觉任务入主结果表）。FGIB-S 用与 FGIB-A 相同的 6×9 网格、
+    验证集选模；对照 Det / VIB / CEB / FGIB-A / FGIB-H(a=4) 的验证选中分。"""
+    recs = load("tune_results_fgibs", strict=False)
+    sub = [r for r in recs if r["setting"] == "mnist_mlp" and r["model"] == "fgibs"]
+    if not sub:
+        print("[tab_fgibs_mnist] tune_results_fgibs 数据缺失，跳过")
+        return
+    best = select_one(sub)
+    lines = [
+        "\\begin{table}[t]",
+        "\\caption{FGIB-S on MNIST/MLP: the stochastic canonical mode selected over the same "
+        "$6\\times9$ grid as FGIB-A (validation-selected, 5 seeds), against the deterministic "
+        "backbone and the deterministic-side objectives. FGIB-S is evaluated on its deployed "
+        "sampled $z$; the $\\mu$-deployment figures are reported in the text "
+        "(Section~\\ref{sec:suite}). Units as in Table~\\ref{tab:main}.}",
+        "\\label{tab:fgibs-mnist}",
+        "\\begin{center}\\footnotesize",
+        "\\begin{tabular}{llllll}",
+        "Det. & VIB & CEB & FGIB-A & FGIB-H ($a{=}4$) & FGIB-S \\\\ "
+        "\\hline \\\\[-1.8ex]",
+    ]
+    key = "Acc"
+    det = baseline["mnist_mlp"]["test"][key][0]
+    vib = selected["mnist_mlp"]["vib"]["test"][key][0]
+    ceb = selected["mnist_mlp"]["ceb"]["test"][key][0]
+    fgib_a = selected["mnist_mlp"]["fgib"]["test"][key][0]
+    s = best["test"][key][0]
+    h4 = None
+    import pathlib
+    d = pathlib.Path("tune_results_ablation/hdirect_all")
+    if d.is_dir():
+        r4 = [r for r in load(str(d), strict=False)
+              if r["setting"] == "mnist_mlp" and r["model"] == "fgib" and r["anchor"] == 4.0]
+        if len(r4) == len(BETAS):
+            h4 = select_one(r4)["test"][key][0]
+    cells = [fmt(det), fmt(vib), fmt(ceb), fmt(fgib_a),
+             fmt(h4) if h4 is not None else "--", fmt(s)]
+    lines.append(" & ".join(cells) + " \\\\")
+    lines.append("\\end{tabular}\\end{center}\\end{table}")
+    with open(os.path.join(out_dir, "tab_fgibs_mnist.tex"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"[tab_fgibs_mnist] Det={100*det:.2f} VIB={100*vib:.2f} CEB={100*ceb:.2f} "
+          f"FGIB-A={100*fgib_a:.2f} FGIB-H(a4)={100*h4:.2f} FGIB-S={100*s:.2f} "
+          f"(FGIB-S 均值部署由 ceb_suite 报告)")
 
 
 def main():
@@ -679,6 +806,8 @@ def main():
     table_anchor(by_setting, baseline, os.path.join(args.out_dir, "tab_anchor.tex"))
     table_main_std(selected, fgib16, baseline, os.path.join(args.out_dir, "tab_main_std.tex"))
     rank_split(selected, baseline, fgib16, os.path.join(args.out_dir, "rank_split.tex"))
+    table_hanchor_sweep(baseline, args.out_dir)
+    table_fgibs_mnist(baseline, selected, args.out_dir)
     table_anchor_ranks(by_setting, baseline, args.out_dir)
     table_hanchor(selected, baseline, fgib16, args.out_dir, args.results_dir)
     print(f"{len(recs)} configurations, {sum(r['runs'] for r in recs)} runs, "
