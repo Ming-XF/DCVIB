@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=cora backbone=gnn model=opb runs=5 epochs=100 | 6 组组合（绿色高亮 = 各模型默认指标 Acc 的最佳行）</div>
+
+<h2>opb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-opb">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-opb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="2.3337" data-acc="0.1908" data-auc="0.5704" data-pre="0.1964" data-rec="0.207"><td>0.0001</td><td>10</td><td>2.3337±0.2602</td><td>0.1908±0.0274</td><td>0.5704±0.0144</td><td>0.1964±0.0331</td><td>0.2070±0.0397</td></tr><tr data-loss="2.6244" data-acc="0.1889" data-auc="0.5632" data-pre="0.1779" data-rec="0.1913"><td>0.01</td><td>10</td><td>2.6244±0.2612</td><td>0.1889±0.0277</td><td>0.5632±0.0212</td><td>0.1779±0.0307</td><td>0.1913±0.0464</td></tr><tr data-loss="2.4043" data-acc="0.1753" data-auc="0.5682" data-pre="0.2025" data-rec="0.1915"><td>0.001</td><td>10</td><td>2.4043±0.2355</td><td>0.1753±0.0201</td><td>0.5682±0.0164</td><td>0.2025±0.0328</td><td>0.1915±0.0228</td></tr><tr data-loss="5.2241" data-acc="0.1469" data-auc="0.5761" data-pre="0.0242" data-rec="0.144"><td>0.1</td><td>10</td><td>5.2241±0.5308</td><td>0.1469±0.0203</td><td>0.5761±0.0136</td><td>0.0242±0.0083</td><td>0.1440±0.0026</td></tr><tr data-loss="34.9866" data-acc="0.1435" data-auc="0.5715" data-pre="0.0325" data-rec="0.1401"><td>1</td><td>10</td><td>34.9866±4.0951</td><td>0.1435±0.0182</td><td>0.5715±0.0144</td><td>0.0325±0.0209</td><td>0.1401±0.0126</td></tr><tr data-loss="331.065" data-acc="0.1292" data-auc="0.5737" data-pre="0.0185" data-rec="0.1421"><td>10</td><td>10</td><td>331.0648±39.7932</td><td>0.1292±0.0413</td><td>0.5737±0.0151</td><td>0.0185±0.0058</td><td>0.1421±0.0018</td></tr>
+</tbody>
+</table>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

@@ -36,6 +36,9 @@
     python train.py --task cora --backbone gnn --model fgib    # GNN 版 FGIB
     python train.py --task imdb --backbone rnn --model fgib    # RNN 版 FGIB
     python train.py --task agnews --backbone rnn --model fgib  # AG News 版 FGIB
+    python train.py --model opb     # OPB（正交先验信息瓶颈：先验编码器全类别均值每前向 QR 正交化，仅分类任务）
+    python train.py --model opb --anchor-scale 8   # 自定义锚点尺度
+    python train.py --backbone cnn --model opb     # CNN 版 OPB（gnn/rnn 同理）
     python train.py --model ceb     # CEB（标签条件先验 r(z|y)，对角高斯实现）
     python train.py --model svib    # SVIB（平方信息瓶颈：基于 VIB 的模型变体，CE + β·KL²）
     python train.py --backbone cnn --model svib   # CNN 版 SVIB（其他骨干同理）
@@ -71,14 +74,15 @@ from datasets.datasets import (
 from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
-from model import CEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, SVIB, VIB
-from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, SVIB as CNNSVIB, VIB as CNNVIB
-from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, SVIB as GNNSVIB, VIB as GNNVIB
+from model import CEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, OPB, SVIB, VIB
+from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, OPB as CNNOPB, SVIB as CNNSVIB, VIB as CNNVIB
+from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, OPB as GNNOPB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
     CEB as RNNCEB,
     DVCCA as RNNDVCCA,
     FGIB as RNNFGIB,
     NIB as RNNNIB,
+    OPB as RNNOPB,
     RNN,
     SVIB as RNNSVIB,
     VIB as RNNVIB,
@@ -91,10 +95,10 @@ def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None
     recon 为 DVCCA 的输入重建损失（损失中同样乘以 beta），其余模型为 None。
     batch 为图批的节点→图索引（仅 ZINC 图级任务传入，GNN 分支按图读出）。
     """
-    if isinstance(model, (VIB, CEB, NIB, CNNVIB, CNNCEB, CNNNIB, RNNVIB, RNNCEB, RNNNIB)):
+    if isinstance(model, (VIB, CEB, NIB, OPB, CNNVIB, CNNCEB, CNNNIB, CNNOPB, RNNVIB, RNNCEB, RNNNIB, RNNOPB)):
         logits, kl = model(images, labels, stochastic=stochastic)
         return logits, kl, None
-    if isinstance(model, (GNNVIB, GNNCEB, GNNNIB)):
+    if isinstance(model, (GNNVIB, GNNCEB, GNNNIB, GNNOPB)):
         logits, kl = model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask, batch=batch)
         return logits, kl, None
     if isinstance(model, (DVCCA, CNNDVCCA, RNNDVCCA)):
@@ -328,6 +332,10 @@ MODEL_CLASSES = {
     ("fgib", "cnn"): CNNFGIB,
     ("fgib", "gnn"): GNNFGIB,
     ("fgib", "rnn"): RNNFGIB,
+    ("opb", "mlp"): OPB,
+    ("opb", "cnn"): CNNOPB,
+    ("opb", "gnn"): GNNOPB,
+    ("opb", "rnn"): RNNOPB,
 }
 
 
@@ -348,11 +356,11 @@ def get_dataset_name(task: str) -> str:
 
 def build_parser():
     """构建 argparse 解析器（train.py 与 tune.py 共享，tune.py 会覆盖部分参数）。"""
-    parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / CEB / FGIB variants")
+    parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / CEB / FGIB / OPB variants")
     parser.add_argument(
         "--model",
         type=str,
-        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca"],
+        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca"],
         default="mlp",
         help="svib is Squared-IB (ICLR 2019 Caveats): a VIB subclass whose forward "
         "returns the squared KL (loss becomes CE + β·KL²), mainly for classification; "
@@ -361,7 +369,10 @@ def build_parser():
         "pairwise-distance upper bound on I(X;M) (loss = CE + β·Î); "
         "dvcca is supervised beta-DVCCA (DVMIB, JMLR 2025): VIB plus an input "
         "reconstruction decoder (loss = CE + β·KL + β·MSE_recon), "
-        "not available for the RNN backbone",
+        "not available for the RNN backbone; "
+        "opb is Orthogonal-Prior Bottleneck (paper/OPB.txt): a CEB variant whose "
+        "prior means are the QR-orthonormalized per-class outputs of the prior net "
+        "(classification tasks only)",
     )
     parser.add_argument(
         "--backbone",
@@ -407,10 +418,11 @@ def build_parser():
         "--anchor-scale",
         type=float,
         default=4.0,
-        help="scale of the fixed anchor prior means in fgib (classification: "
+        help="scale of the anchor prior means in fgib/opb. fgib classification: "
         "orthogonal per-class directions scaled by this value, 0 = identical N(0,I) "
-        "anchors; regression: anchors lie on a sphere of this radius via fixed "
-        "random Fourier features, 0 = N(0,I) prior)",
+        "anchors; fgib regression: anchors lie on a sphere of this radius via fixed "
+        "random Fourier features, 0 = N(0,I) prior; opb: scale of the QR-orthonormal "
+        "per-class prior means (classification only)",
     )
     parser.add_argument(
         "--max-len",
@@ -477,22 +489,26 @@ def main():
 
     if args.task == "housing" and (args.model == "cnn" or args.backbone == "cnn"):
         parser.error("CNN backbone is not supported for housing")
+    if args.task in ("housing", "stsb", "zinc", "agedb") and args.model == "opb":
+        parser.error(
+            "OPB 仅支持分类任务（v1 定义需要有限 K 个类别构造正交锚点表，见 paper/OPB.txt）"
+        )
     if args.task in ("cora", "zinc"):
         ok = args.model == "gcn" or (
-            args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca")
+            args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca")
         )
         if not ok:
-            parser.error("Cora/ZINC 任务仅支持 --model gcn 或 --backbone gnn 加 vib/ceb/fgib/svib/nib/dvcca")
+            parser.error("Cora/ZINC 任务仅支持 --model gcn 或 --backbone gnn 加 vib/ceb/fgib/opb/svib/nib/dvcca")
     elif args.model == "gcn" or args.backbone == "gnn":
         parser.error("GNN backbone is only supported for cora/zinc")
     if args.task in ("imdb", "agnews", "stsb"):
         ok = args.model == "rnn" or (
-            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "svib", "nib", "dvcca")
+            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca")
         )
         if not ok:
             parser.error(
                 f"{args.task} task only supports --model rnn or "
-                "--backbone rnn with vib/ceb/fgib/svib/nib/dvcca"
+                "--backbone rnn with vib/ceb/fgib/opb/svib/nib/dvcca"
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews/stsb")
@@ -605,7 +621,7 @@ def main():
         model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
     if args.model not in ("mlp", "cnn", "gcn", "rnn"):
         model_kwargs["z_dim"] = args.z_dim
-    if args.model == "fgib":
+    if args.model in ("fgib", "opb"):
         model_kwargs["anchor_scale"] = args.anchor_scale
     if args.task == "housing":
         model_kwargs["input_dim"] = 8

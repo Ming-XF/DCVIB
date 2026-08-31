@@ -81,6 +81,21 @@ def build_anchor_prior(
     return prior_mu, prior_logvar
 
 
+def qr_anchor_table(M: torch.Tensor, anchor_scale: float) -> torch.Tensor:
+    """对 (d, K) 均值矩阵做 QR 分解得到缩放正交锚点均值表 (K, d)。
+
+    M 为 d×K 满列秩矩阵（要求 K ≤ d）；Q 取 reduced QR 的正交因子并做
+    符号规范化（R 对角取正，防止训练中列符号翻转导致锚点跳变，见
+    paper/OPB.txt §11.5），缩放 anchor_scale 后转置为按类别索引的锚点
+    表。梯度经 Q 回传到 M（torch.linalg.qr 可微，满列秩时反向稳定）。
+    OPB 每前向对先验编码器的全类别均值矩阵调用本函数（无状态、无 EMA）。
+    """
+    assert M.size(0) >= M.size(1), "正交锚点表要求类别数不超过 z 维度"
+    q, r = torch.linalg.qr(M)
+    sign = torch.where(r.diagonal() == 0, 1.0, r.diagonal().sign())
+    return (q * sign * anchor_scale).t().contiguous()  # (K, d)
+
+
 class ContinuousAnchorPrior(nn.Module):
     """FGIB 回归用的固定连续锚点先验（随机傅里叶特征，零参数）。
 

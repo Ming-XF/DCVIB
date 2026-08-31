@@ -4,7 +4,7 @@
 - --model / --beta / --anchor-scale 接受多个值（空格分隔）：
   - 基础模型（mlp/cnn/gcn/rnn）没有 beta 与 anchor-scale 维度，每个模型只训练一次；
   - vib/ceb/svib/nib/dvcca 只有 beta 维度；
-  - fgib 有 beta × anchor-scale 两个维度；
+  - fgib/opb 有 beta × anchor-scale 两个维度；
   总试验数 = 各模型组合数之和；
 - --parallel 指定**每张 GPU** 上的并行训练进程数；脚本自动检测可用 GPU
   （可用 `CUDA_VISIBLE_DEVICES` 环境变量限制），组合按轮转进入各 GPU 的独立队列
@@ -58,10 +58,10 @@ def build_tune_parser():
     parser = build_parser()
     replace_arg(
         parser, "model", ["--model"],
-        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "svib", "nib", "dvcca"],
+        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca"],
         default=["mlp"],
         help="模型列表，调参网格的一维；基础模型无 beta/anchor 维度，"
-        "vib/ceb/svib/nib/dvcca 仅 beta 维度，fgib 为 beta × anchor-scale 两维（默认 [mlp]）",
+        "vib/ceb/svib/nib/dvcca 仅 beta 维度，fgib/opb 为 beta × anchor-scale 两维（默认 [mlp]）",
     )
     replace_arg(
         parser, "beta", ["--beta"],
@@ -71,7 +71,7 @@ def build_tune_parser():
     replace_arg(
         parser, "anchor_scale", ["--anchor-scale"],
         type=float, nargs="+", default=[4.0],
-        help="fgib 锚点尺度列表，调参网格的一维；仅 fgib 使用（默认 [4.0]）",
+        help="fgib/opb 锚点尺度列表，调参网格的一维；仅 fgib/opb 使用（默认 [4.0]）",
     )
     parser.add_argument(
         "--parallel", type=int, default=2,
@@ -375,11 +375,25 @@ def main():
     parser = build_tune_parser()
     args = parser.parse_args()
 
+    # --log-path / --save-path 继承自 train.py 解析器但在调参中被有意忽略：
+    # 每个组合的日志固定写到 --results-dir 下（HTML 生成依赖该路径），且恒传
+    # --no-save 不保存 checkpoint。用户显式传入时提示改用 --results-dir。
+    ignored = []
+    if args.log_path is not None:
+        ignored.append("--log-path")
+    if args.save_path is not None:
+        ignored.append("--save-path")
+    if ignored:
+        print(
+            f"警告：tune.py 忽略 {'/'.join(ignored)}（每个组合的日志固定写入 "
+            f"--results-dir 下、且不保存 checkpoint），结果目录请用 --results-dir 指定"
+        )
+
     models = args.model
     betas = args.beta
     anchors = args.anchor_scale
-    if "fgib" not in models and len(anchors) > 1:
-        print(f"警告：模型列表中没有 fgib，--anchor-scale 列表不会被使用")
+    if "fgib" not in models and "opb" not in models and len(anchors) > 1:
+        print(f"警告：模型列表中没有 fgib/opb，--anchor-scale 列表不会被使用")
 
     results_root = ROOT / args.results_dir
     results_root.mkdir(parents=True, exist_ok=True)
@@ -388,7 +402,7 @@ def main():
     for model in models:
         if model in BASELINES:
             combos.append((model, None, None))
-        elif model == "fgib":
+        elif model in ("fgib", "opb"):
             combos.extend((model, b, a) for b in betas for a in anchors)
         else:
             combos.extend((model, b, None) for b in betas)

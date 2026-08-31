@@ -59,13 +59,13 @@ def build_combos(args):
     models = args.model
     betas = args.beta
     anchors = args.anchor_scale
-    if "fgib" not in models and len(anchors) > 1:
-        print(f"警告：模型列表中没有 fgib，--anchor-scale 列表不会被使用")
+    if "fgib" not in models and "opb" not in models and len(anchors) > 1:
+        print(f"警告：模型列表中没有 fgib/opb，--anchor-scale 列表不会被使用")
     combos = []
     for model in models:
         if model in BASELINES:
             combos.append((model, None, None))
-        elif model == "fgib":
+        elif model in ("fgib", "opb"):
             combos.extend((model, b, a) for b in betas for a in anchors)
         else:
             combos.extend((model, b, None) for b in betas)
