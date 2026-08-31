@@ -36,9 +36,11 @@
     python train.py --task cora --backbone gnn --model fgib    # GNN 版 FGIB
     python train.py --task imdb --backbone rnn --model fgib    # RNN 版 FGIB
     python train.py --task agnews --backbone rnn --model fgib  # AG News 版 FGIB
-    python train.py --model opb     # OPB（正交先验信息瓶颈：先验编码器全类别均值每前向 QR 正交化，仅分类任务）
-    python train.py --model opb --anchor-scale 8   # 自定义锚点尺度
+    python train.py --model opb     # OPB（正交先验信息瓶颈：分类为全类别均值每前向 QR 正交化，回归为等距轴先验）
+    python train.py --model opb --anchor-scale 8   # 自定义锚点尺度（分类正交锚点 / 回归等距尺度 rho）
     python train.py --backbone cnn --model opb     # CNN 版 OPB（gnn/rnn 同理）
+    python train.py --task housing --model opb     # OPB-R 回归（等距轴先验，MLP 骨干）
+    python train.py --task zinc --backbone gnn --model opb    # GNN 版 OPB-R 图级回归
     python train.py --model ceb     # CEB（标签条件先验 r(z|y)，对角高斯实现）
     python train.py --model svib    # SVIB（平方信息瓶颈：基于 VIB 的模型变体，CE + β·KL²）
     python train.py --backbone cnn --model svib   # CNN 版 SVIB（其他骨干同理）
@@ -354,6 +356,92 @@ def get_dataset_name(task: str) -> str:
     )
 
 
+def resolve_backbone(args) -> str:
+    """mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干。"""
+    if args.model in ("mlp", "cnn", "rnn"):
+        return args.model
+    if args.model == "gcn":
+        return "gnn"
+    return args.backbone
+
+
+def build_model(parser, args, vocab_size=None, glove_matrix=None,
+                imagenet100_input_dim=None, imagenet100_feature_pool=None,
+                zinc_input_dim=None, agnews_input_dim=None):
+    """按 --task/--backbone/--model 构建模型；数据集相关维度经关键字传入。
+
+    train.py 主流程与 adv_eval.py 共用（adv_eval 只跑 mnist、无需数据集维度）。
+    返回未挂载设备的模型实例（调用方自行 .to(device)）。
+    """
+    backbone = resolve_backbone(args)
+    model_cls = MODEL_CLASSES[(args.model, backbone)]
+    model_kwargs = dict(dropout=args.dropout)
+    if backbone in ("mlp", "gnn", "rnn"):
+        model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
+    if args.model not in ("mlp", "cnn", "gcn", "rnn"):
+        model_kwargs["z_dim"] = args.z_dim
+    if args.model in ("fgib", "opb"):
+        model_kwargs["anchor_scale"] = args.anchor_scale
+    if args.task == "housing":
+        model_kwargs["input_dim"] = 8
+        model_kwargs["num_classes"] = 1
+        if args.model in ("ceb", "fgib", "opb"):
+            model_kwargs["continuous_y"] = True
+    elif args.task == "stsb":
+        model_kwargs["vocab_size"] = vocab_size
+        model_kwargs["num_classes"] = 1
+        model_kwargs["pretrained_emb"] = glove_matrix
+        model_kwargs["pooling"] = "max"
+        # 词嵌入维度取自 GloVe 矩阵（100），--hidden-dims 仅作逐层 LSTM 隐层
+        # 维度（模型内对 pretrained_emb 自动解耦嵌入维度与层维度）；
+        # 未显式指定时 stsb 默认单层 LSTM 256（多层在小数据集上过拟合，
+        # 实验验证：单层 val R²≈0.27 vs 两层 0.07）
+        if tuple(args.hidden_dims) == tuple(parser.get_default("hidden_dims")):
+            model_kwargs["hidden_dims"] = (256,)
+        if args.model in ("ceb", "fgib", "opb"):
+            model_kwargs["continuous_y"] = True
+    elif args.task == "imagenet100":
+        model_kwargs["num_classes"] = 100
+        if backbone == "cnn":
+            # CNN 需要保留空间结构的池化特征；回退到全局池化（1×1）文件时无法卷积
+            if imagenet100_feature_pool == 1:
+                parser.error(
+                    "imagenet100 CNN 骨干需要空间池化特征文件（缺失 "
+                    "imagenet100_resnet50_layer3_pool4_features.npz，"
+                    "当前回退为全局池化特征），请先运行 "
+                    "datasets/extract_imagenet100_features.py --pool 4"
+                )
+            model_kwargs["input_channels"] = imagenet100_input_dim // (imagenet100_feature_pool ** 2)
+            model_kwargs["input_size"] = imagenet100_feature_pool
+        else:
+            model_kwargs["input_dim"] = imagenet100_input_dim
+    elif args.task == "cora":
+        model_kwargs["input_dim"] = 1433
+        model_kwargs["num_classes"] = 7
+    elif args.task == "zinc":
+        model_kwargs["input_dim"] = zinc_input_dim
+        model_kwargs["num_classes"] = 1
+        model_kwargs["pooling"] = "mean"  # 图级读出（编码器后 mean 池化）
+        if args.model in ("ceb", "fgib", "opb"):
+            model_kwargs["continuous_y"] = True
+    elif args.task == "agedb":
+        model_kwargs["num_classes"] = 1
+        if backbone == "mlp":
+            model_kwargs["input_dim"] = 3 * 64 * 64  # RGB 64×64 展平
+        else:  # backbone == "cnn"（gnn/rnn 已被约束块拒绝）
+            model_kwargs["input_channels"] = 3
+            model_kwargs["input_size"] = 64
+        if args.model in ("ceb", "fgib", "opb"):
+            model_kwargs["continuous_y"] = True
+    elif args.task == "imdb":
+        model_kwargs["vocab_size"] = vocab_size
+        model_kwargs["num_classes"] = 2
+    elif args.task == "agnews":
+        model_kwargs["input_dim"] = agnews_input_dim
+        model_kwargs["num_classes"] = 4
+    return model_cls(**model_kwargs)
+
+
 def build_parser():
     """构建 argparse 解析器（train.py 与 tune.py 共享，tune.py 会覆盖部分参数）。"""
     parser = argparse.ArgumentParser(description="Train MNIST MLP/CNN baseline and VIB / CEB / FGIB / OPB variants")
@@ -370,9 +458,10 @@ def build_parser():
         "dvcca is supervised beta-DVCCA (DVMIB, JMLR 2025): VIB plus an input "
         "reconstruction decoder (loss = CE + β·KL + β·MSE_recon), "
         "not available for the RNN backbone; "
-        "opb is Orthogonal-Prior Bottleneck (paper/OPB.txt): a CEB variant whose "
-        "prior means are the QR-orthonormalized per-class outputs of the prior net "
-        "(classification tasks only)",
+        "opb is Orthogonal-Prior Bottleneck: classification (paper/OPB.txt) — prior "
+        "means are the QR-orthonormalized per-class outputs of the prior net; "
+        "regression (OPB-R, paper/OPB-R.txt) — prior means lie on an isometric axis "
+        "rho·y_tilde·normalize(W) with learnable label-conditional logvar",
     )
     parser.add_argument(
         "--backbone",
@@ -421,8 +510,9 @@ def build_parser():
         help="scale of the anchor prior means in fgib/opb. fgib classification: "
         "orthogonal per-class directions scaled by this value, 0 = identical N(0,I) "
         "anchors; fgib regression: anchors lie on a sphere of this radius via fixed "
-        "random Fourier features, 0 = N(0,I) prior; opb: scale of the QR-orthonormal "
-        "per-class prior means (classification only)",
+        "random Fourier features, 0 = N(0,I) prior; opb: classification = scale of the "
+        "QR-orthonormal per-class prior means, regression (OPB-R) = isometric axis "
+        "scale rho (latent prior distance = rho × label distance)",
     )
     parser.add_argument(
         "--max-len",
@@ -489,10 +579,6 @@ def main():
 
     if args.task == "housing" and (args.model == "cnn" or args.backbone == "cnn"):
         parser.error("CNN backbone is not supported for housing")
-    if args.task in ("housing", "stsb", "zinc", "agedb") and args.model == "opb":
-        parser.error(
-            "OPB 仅支持分类任务（v1 定义需要有限 K 个类别构造正交锚点表，见 paper/OPB.txt）"
-        )
     if args.task in ("cora", "zinc"):
         ok = args.model == "gcn" or (
             args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca")
@@ -523,12 +609,7 @@ def main():
         args.lr = 0.01 if args.task == "cora" else 1e-3
 
     # mlp/cnn/gcn/rnn 为自带骨干的基线；变体由 --backbone 指定骨干
-    if args.model in ("mlp", "cnn", "rnn"):
-        backbone = args.model
-    elif args.model == "gcn":
-        backbone = "gnn"
-    else:
-        backbone = args.backbone
+    backbone = resolve_backbone(args)
 
     # 输出目录按 {dataset}_{backbone}_{model} 命名（基线为 {dataset}_{model}），
     # 如 mnist_mlp_vib、mnist_cnn_vib、california_mlp_ceb、cora_gnn_vib、imdb_rnn_vib
@@ -561,6 +642,9 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Device: {device}")
     logging.info(f"Args: {vars(args)}")
+
+    # 数据集相关维度（build_model 经关键字接收；仅部分任务的分支会赋值）
+    vocab_size = glove_matrix = imagenet100_input_dim = imagenet100_feature_pool = zinc_input_dim = agnews_input_dim = None
 
     if args.task == "cora":
         # 图任务为全图批（转导式），无 DataLoader；数据只需加载一次（划分固定）
@@ -615,72 +699,6 @@ def main():
             )
         target_scaler = None
 
-    model_cls = MODEL_CLASSES[(args.model, backbone)]
-    model_kwargs = dict(dropout=args.dropout)
-    if backbone in ("mlp", "gnn", "rnn"):
-        model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
-    if args.model not in ("mlp", "cnn", "gcn", "rnn"):
-        model_kwargs["z_dim"] = args.z_dim
-    if args.model in ("fgib", "opb"):
-        model_kwargs["anchor_scale"] = args.anchor_scale
-    if args.task == "housing":
-        model_kwargs["input_dim"] = 8
-        model_kwargs["num_classes"] = 1
-        if args.model in ("ceb", "fgib"):
-            model_kwargs["continuous_y"] = True
-    elif args.task == "stsb":
-        model_kwargs["vocab_size"] = vocab_size
-        model_kwargs["num_classes"] = 1
-        model_kwargs["pretrained_emb"] = glove_matrix
-        model_kwargs["pooling"] = "max"
-        # 词嵌入维度取自 GloVe 矩阵（100），--hidden-dims 仅作逐层 LSTM 隐层
-        # 维度（模型内对 pretrained_emb 自动解耦嵌入维度与层维度）；
-        # 未显式指定时 stsb 默认单层 LSTM 256（多层在小数据集上过拟合，
-        # 实验验证：单层 val R²≈0.27 vs 两层 0.07）
-        if tuple(args.hidden_dims) == tuple(parser.get_default("hidden_dims")):
-            model_kwargs["hidden_dims"] = (256,)
-        if args.model in ("ceb", "fgib"):
-            model_kwargs["continuous_y"] = True
-    elif args.task == "imagenet100":
-        model_kwargs["num_classes"] = 100
-        if backbone == "cnn":
-            # CNN 需要保留空间结构的池化特征；回退到全局池化（1×1）文件时无法卷积
-            if imagenet100_feature_pool == 1:
-                parser.error(
-                    "imagenet100 CNN 骨干需要空间池化特征文件（缺失 "
-                    "imagenet100_resnet50_layer3_pool4_features.npz，"
-                    "当前回退为全局池化特征），请先运行 "
-                    "datasets/extract_imagenet100_features.py --pool 4"
-                )
-            model_kwargs["input_channels"] = imagenet100_input_dim // (imagenet100_feature_pool ** 2)
-            model_kwargs["input_size"] = imagenet100_feature_pool
-        else:
-            model_kwargs["input_dim"] = imagenet100_input_dim
-    elif args.task == "cora":
-        model_kwargs["input_dim"] = 1433
-        model_kwargs["num_classes"] = 7
-    elif args.task == "zinc":
-        model_kwargs["input_dim"] = zinc_input_dim
-        model_kwargs["num_classes"] = 1
-        model_kwargs["pooling"] = "mean"  # 图级读出（编码器后 mean 池化）
-        if args.model in ("ceb", "fgib"):
-            model_kwargs["continuous_y"] = True
-    elif args.task == "agedb":
-        model_kwargs["num_classes"] = 1
-        if backbone == "mlp":
-            model_kwargs["input_dim"] = 3 * 64 * 64  # RGB 64×64 展平
-        else:  # backbone == "cnn"（gnn/rnn 已被约束块拒绝）
-            model_kwargs["input_channels"] = 3
-            model_kwargs["input_size"] = 64
-        if args.model in ("ceb", "fgib"):
-            model_kwargs["continuous_y"] = True
-    elif args.task == "imdb":
-        model_kwargs["vocab_size"] = vocab_size
-        model_kwargs["num_classes"] = 2
-    elif args.task == "agnews":
-        model_kwargs["input_dim"] = agnews_input_dim
-        model_kwargs["num_classes"] = 4
-
     criterion = nn.MSELoss() if args.task in ("housing", "stsb", "zinc", "agedb") else nn.CrossEntropyLoss()
     test_results = []
     run_train_accs = []
@@ -693,7 +711,13 @@ def main():
 
         logging.info(f"===== Run {run}/{args.runs} (seed {seed}) =====")
 
-        model = model_cls(**model_kwargs).to(device)
+        model = build_model(
+            parser, args,
+            vocab_size=vocab_size, glove_matrix=glove_matrix,
+            imagenet100_input_dim=imagenet100_input_dim,
+            imagenet100_feature_pool=imagenet100_feature_pool,
+            zinc_input_dim=zinc_input_dim, agnews_input_dim=agnews_input_dim,
+        ).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
         stem, ext = os.path.splitext(args.save_path)

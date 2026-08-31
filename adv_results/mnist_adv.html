@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=mnist pgd_steps=20 n_test=1000 | 2 个配置（每行跨 5 run 的均值±标准差；Acc 为 clean acc，Linf/L2 为对应 ε 的鲁棒精度）（绿色高亮 = 各模型默认指标 Acc 的最佳行）</div>
+
+<h2>mnist_mlp_opb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-mnist_mlp_opb">
+<option value="Acc" selected>Acc</option><option value="Linf0.1">Linf0.1</option><option value="Linf0.2">Linf0.2</option><option value="Linf0.3">Linf0.3</option><option value="L20.5">L20.5</option><option value="L21">L21</option><option value="L21.5">L21.5</option><option value="L22">L22</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-mnist_mlp_opb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Acc</th><th>Linf0.1</th><th>Linf0.2</th><th>Linf0.3</th><th>L20.5</th><th>L21</th><th>L21.5</th><th>L22</th></tr></thead>
+<tbody>
+<tr class="best" data-acc="0.9706" data-linf0.1="0.7486" data-linf0.2="0.2906" data-linf0.3="0.1026" data-l20.5="0.9472" data-l21="0.9132" data-l21.5="0.8496" data-l22="0.7624"><td>-</td><td>-</td><td>0.9706±0.0090</td><td>0.7486±0.0624</td><td>0.2906±0.0596</td><td>0.1026±0.0244</td><td>0.9472±0.0149</td><td>0.9132±0.0359</td><td>0.8496±0.0486</td><td>0.7624±0.0548</td></tr>
+</tbody>
+</table>
+
+<h2>mnist_mlp_ceb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-mnist_mlp_ceb">
+<option value="Acc" selected>Acc</option><option value="Linf0.1">Linf0.1</option><option value="Linf0.2">Linf0.2</option><option value="Linf0.3">Linf0.3</option><option value="L20.5">L20.5</option><option value="L21">L21</option><option value="L21.5">L21.5</option><option value="L22">L22</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-mnist_mlp_ceb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Acc</th><th>Linf0.1</th><th>Linf0.2</th><th>Linf0.3</th><th>L20.5</th><th>L21</th><th>L21.5</th><th>L22</th></tr></thead>
+<tbody>
+<tr class="best" data-acc="0.9776" data-linf0.1="0.7028" data-linf0.2="0.2396" data-linf0.3="0.07" data-l20.5="0.9562" data-l21="0.9182" data-l21.5="0.8544" data-l22="0.7302"><td>-</td><td>-</td><td>0.9776±0.0028</td><td>0.7028±0.0313</td><td>0.2396±0.0262</td><td>0.0700±0.0049</td><td>0.9562±0.0029</td><td>0.9182±0.0045</td><td>0.8544±0.0122</td><td>0.7302±0.0277</td></tr>
+</tbody>
+</table>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

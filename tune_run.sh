@@ -5,6 +5,10 @@ python tune.py --task mnist --backbone mlp --model opb --beta 10 1 0.1 0.01 0.00
 
 python rebuild_tune_html.py --task mnist --backbone mlp --model mlp vib nib svib ceb dvcca fgib opb --beta 10 1 0.1 0.01 0.001 0.0001 --anchor-scale 1 2 4 6 8 10 12 14 16 --parallel 8
 
+python tune.py --task housing --backbone mlp --model opb --beta 10 1 0.1 0.01 0.001 0.0001 --anchor-scale 1 2 4 6 8 10 12 14 16 --parallel 8
+
+python rebuild_tune_html.py --task housing --backbone mlp --model mlp vib nib svib ceb dvcca fgib opb --beta 10 1 0.1 0.01 0.001 0.0001 --anchor-scale 1 2 4 6 8 10 12 14 16 --parallel 8
+
 
 python train.py --task mnist --backbone mlp --model opb --beta 10 --anchor-scale 1
 
