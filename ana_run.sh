@@ -18,3 +18,11 @@ python prior_geometry.py --model-dirs output/mnist_mlp_ceb output/mnist_mlp_opb 
 
 #加载模型参数，使用数据集部分数据，验证后验分布几何
 python posterior_geometry.py --model-dirs output/mnist_mlp_ceb output/mnist_mlp_opb --runs 5 --n-test 2000 --anchor-scale 10
+
+
+#能量分类器消融试验，验证几何真正参与预测
+python train.py --model opb --energy-classifier --beta 10 --anchor-scale 10
+
+
+#最近锚点分类准确率（两个不同的分类器），分类器权重-锚点对齐，验证几何真正参与预测
+python geometry_usage.py --model-dirs output/ablation/mnist_mlp_opb_ec_a10 --anchor-scale 10 --energy-classifier --results-dir geo_results_ec

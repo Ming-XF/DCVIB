@@ -374,6 +374,15 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
     返回未挂载设备的模型实例（调用方自行 .to(device)）。
     """
     backbone = resolve_backbone(args)
+    if args.energy_classifier:
+        if args.model != "opb":
+            parser.error("--energy-classifier 仅 opb 模型支持")
+        if backbone != "mlp":
+            parser.error("--energy-classifier 仅实现 mlp 版 OPB（v1）")
+        if args.task in ("housing", "stsb", "zinc", "agedb"):
+            parser.error(
+                "--energy-classifier 仅分类任务（回归为等距轴先验，无类别锚点表）"
+            )
     model_cls = MODEL_CLASSES[(args.model, backbone)]
     model_kwargs = dict(dropout=args.dropout)
     if backbone in ("mlp", "gnn", "rnn"):
@@ -382,6 +391,8 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
         model_kwargs["z_dim"] = args.z_dim
     if args.model in ("fgib", "opb"):
         model_kwargs["anchor_scale"] = args.anchor_scale
+    if args.model == "opb" and args.energy_classifier:
+        model_kwargs["energy_classifier"] = True
     if args.task == "housing":
         model_kwargs["input_dim"] = 8
         model_kwargs["num_classes"] = 1
@@ -513,6 +524,13 @@ def build_parser():
         "random Fourier features, 0 = N(0,I) prior; opb: classification = scale of the "
         "QR-orthonormal per-class prior means, regression (OPB-R) = isometric axis "
         "scale rho (latent prior distance = rho × label distance)",
+    )
+    parser.add_argument(
+        "--energy-classifier",
+        action="store_true",
+        help="opb 消融（paper/OPB.txt §12）：分类器改为锚点能量分类器 "
+        "logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)，与 KL 共用同一套锚点、无法绕过"
+        "正交几何；仅 mlp 骨干的分类 opb 支持",
     )
     parser.add_argument(
         "--max-len",

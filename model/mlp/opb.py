@@ -44,6 +44,11 @@ class OPB(nn.Module):
     （QR 反向需满列秩，整个网络不能置零）、回归 prior_direction 置为
     e_1（非零、‖W‖=1 可归一化），方差网络与 logvar 头仍置零
     （起点 sigma = sigma_p = 1，KL ≈ 0.5·anchor_scale²）。
+
+    消融（energy_classifier=True，仅分类）：分类器改为锚点能量分类器
+    logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)（paper/OPB.txt §12），τ² 取
+    prior_net 方差块的逐类可学习 exp(logvar)，与 KL 共用同一套锚点和方差、
+    无法绕过正交几何；self.classifier 保留为死参数（state_dict 键不变）。
     """
 
     def __init__(
@@ -55,12 +60,19 @@ class OPB(nn.Module):
         dropout: float = 0.2,
         anchor_scale: float = 4.0,
         continuous_y: bool = False,
+        energy_classifier: bool = False,
     ):
         super().__init__()
         assert num_classes <= z_dim, "OPB 正交先验要求类别数不超过 z 维度"
+        if energy_classifier and continuous_y:
+            raise ValueError(
+                "能量分类器是分类方案（paper/OPB.txt §12）的消融，回归"
+                "（continuous_y）无类别锚点表，不支持 energy_classifier"
+            )
         self.num_classes = num_classes
         self.anchor_scale = anchor_scale
         self.continuous_y = continuous_y
+        self.energy_classifier = energy_classifier
 
         self.encoder = nn.Sequential(
             *build_hidden_layers(input_dim, hidden_dims, dropout)
@@ -104,32 +116,62 @@ class OPB(nn.Module):
                 self.prior_net.weight[:num_classes, :num_classes] = torch.eye(num_classes)
                 self.prior_net.bias.zero_()
 
+    def _prior_table(self):
+        """分类分支的全类别先验表：QR 正交锚点表 (K, d) + 逐类 logvar 表 (K, d)。
+
+        QR 只作用于均值（符号规范化），logvar 表直接按类别索引。能量分类器
+        模式下评估时（labels=None）也需调用本方法构造锚点。
+        """
+        prior_out = self.prior_net(self.class_eye)  # (K, 2*z_dim)
+        prior_mu_raw, prior_logvar_table = prior_out.chunk(2, dim=1)
+        prior_mu = qr_anchor_table(prior_mu_raw.t(), self.anchor_scale)  # (K, z_dim)
+        return prior_mu, prior_logvar_table
+
+    def _energy_logits(self, z, prior_mu, prior_logvar_table):
+        """锚点能量分类器：logit_k = −‖z − a·Q_p[:,k]‖² / (2·τ²)（paper/OPB.txt §12 消融）。
+
+        τ² 取 prior_net 方差块的逐类可学习 exp(logvar)——与 KL 共用同一套锚点
+        与方差、零新参数；分类器无法绕过正交几何。
+        """
+        tau2 = prior_logvar_table.exp()  # (K, d)
+        diff2 = (z.unsqueeze(1) - prior_mu.unsqueeze(0)).pow(2)  # (B, K, d)
+        return -(diff2 / (2.0 * tau2)).sum(dim=2)  # (B, K)
+
     def forward(self, x, labels=None, stochastic=True):
         """返回 (logits, kl)，labels 为 None 时 kl 为 None。
 
         stochastic=True 时 z 由重参数化采样得到（训练）；
         stochastic=False 时 z = mu（确定性评估）。
+        energy_classifier=True 时 logits 为锚点能量分类器（§12 消融），评估时
+        （labels=None）同样构造先验表计算能量 logits——这是对"无标签跳过 QR"
+        约定的有意例外；普通模式维持原路径不变。
         """
         h = self.encoder(flatten(x))
         mu = self.mu_head(h)
         logvar = self.logvar_head(h)
         z = reparameterize(mu, logvar, stochastic)
-        logits = self.classifier(z)
-
-        if labels is None:
-            return logits, None
 
         if self.continuous_y:
+            logits = self.classifier(z)
+            if labels is None:
+                return logits, None
             # 回归：等距轴先验（复用训练管道已 MinMax 归一化的连续标签）
             y_feat = labels.float().unsqueeze(-1)  # (B, 1)
             u = F.normalize(self.prior_direction.weight.squeeze(-1), dim=0)  # (d,)
             mu_p = self.anchor_scale * y_feat * u  # (B, d)
             logvar_p = self.prior_logvar_net(y_feat)
+        elif self.energy_classifier:
+            prior_mu, prior_logvar_table = self._prior_table()
+            logits = self._energy_logits(z, prior_mu, prior_logvar_table)
+            if labels is None:
+                return logits, None
+            mu_p = prior_mu[labels]
+            logvar_p = prior_logvar_table[labels]
         else:
-            # 分类：全类别先验表：QR 只作用于均值，logvar 表直接按类别索引
-            prior_out = self.prior_net(self.class_eye)  # (K, 2*z_dim)
-            prior_mu_raw, prior_logvar_table = prior_out.chunk(2, dim=1)
-            prior_mu = qr_anchor_table(prior_mu_raw.t(), self.anchor_scale)  # (K, z_dim)
+            logits = self.classifier(z)
+            if labels is None:
+                return logits, None
+            prior_mu, prior_logvar_table = self._prior_table()
             mu_p = prior_mu[labels]
             logvar_p = prior_logvar_table[labels]
 

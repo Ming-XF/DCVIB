@@ -164,8 +164,8 @@ def build_analysis_parser():
         help="测试集前 N 张用于后验均值统计（默认 1000）",
     )
     parser.add_argument(
-        "--results-dir", type=str, default="pri_results",
-        help="结果输出目录（默认 pri_results）",
+        "--results-dir", type=str, default="pos_results",
+        help="结果输出目录（默认 pos_results）",
     )
     return parser
 
