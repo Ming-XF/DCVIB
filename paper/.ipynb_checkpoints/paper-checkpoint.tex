@@ -1,0 +1,734 @@
+% paper.tex —— "Geometry by Construction: A Prior-Geometry-Constrained Information Bottleneck"
+% 基于 paper/OPB.txt（分类）、paper/OPB-R.txt（回归）、paper/theory.tex（理论）撰写；
+% 结构参照 paper/template.tex（ICLR 2027 投稿格式）。本仓库未随附 iclr2027_conference.sty
+% 与 math_commands.tex，故 preamble 自带最小等价设置（拿到样式文件后替换即可）。
+% 当前包含：题目、Intro、方法（2.1 背景与记号 / 2.2 关键理论 / 2.3 模型变体）、
+% 附录（其余理论结果）。实验与相关工作为占位，后续填充。
+
+\documentclass{article}
+
+% ---------- 最小等效 ICLR 样式（原模板为 \usepackage{iclr2027_conference,times}） ----------
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{url}
+
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{corollary}{Corollary}[section]
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator{\KL}{KL}
+\DeclareMathOperator{\CE}{CE}
+
+\title{Geometry by Construction: A Prior-Geometry-Constrained Information Bottleneck}
+
+% 匿名投稿：作者信息隐藏（同 template.tex 约定）
+\author{Anonymous authors}
+%\iclrfinalcopy % 相机版时取消注释
+
+\begin{document}
+
+\maketitle
+
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+
+The information bottleneck (IB) principle \citep{tishby2000information} seeks a
+representation $Z$ of an input $X$ that retains the information necessary to predict a
+label $Y$ while discarding the rest. Because the mutual information terms are
+intractable for deep networks, the variational information bottleneck (VIB)
+\citep{alemi2017deep} bounds the compression term $I(X;Z)$ with a fixed marginal prior
+$\mathcal{N}(0, I)$; the conditional entropy bottleneck (CEB) \citep{fischer2020conditional}
+replaces the marginal prior with a trainable label-conditional backward encoder
+$b(z|y)$ and thereby sharpens the bound from the full rate to the \emph{residual}
+information $I(X;Z|Y)$, certified by the gap
+$\mathrm{ReX} = \E[\KL(q(z|x)\|b(z|y))] \ge I(X;Z|Y)$.
+Nonlinear IB \citep{kolchinsky2017nonlinear} and the multivariate variational
+formulation of \citep{abdelaleem2025deep} complete the deep-variational lineage.
+The certificate is the central object of this paper, and its failure modes are our
+starting point.
+
+\textbf{Two failure channels.} In the deterministic scenario $Y = f(X)$ --- the regime
+of classification benchmarks --- the conditional bottleneck degenerates in two
+independent ways. First, \emph{the knob is dead}: as shown by \citet{kolchinsky2019caveats}
+(their Caveat~1), every $\gamma > 0$ of the CEB objective selects the same corner of the
+information plane, $I(Y;Z) = H(Y)$ with $I(X;Z|Y) = 0$, because the CEB weight is
+$\beta_{\mathrm{IB}} = 1 + \gamma > 1$ and the deterministic IB curve is linear. We
+restate this in our notation in Proposition~\ref{prop:dead} and cite the proof.
+Second, and less recognized, \emph{the certificate is blind}: on the family
+$T_\alpha = B_\alpha \cdot Y$ that interpolates between the collapsed code and the exact
+copy of the label, $\mathrm{ReX}$ reads zero at \emph{every} $\alpha$, and the objective
+trades label information against certified residual at a fixed exchange rate of
+$1{:}\beta$ nats. We prove this channel in Proposition~\ref{prop:flat}; its consequence
+is that the certificate can be tight while the representation retains all, part, or none
+of the label --- tightness of the bound says nothing about compression of the deployed
+code.
+
+\textbf{The missing ingredient.} Both channels share a single root cause: CEB's
+backward encoder is an \emph{unconstrained trainable map}. It can eliminate the gap on
+its own by chasing the posterior ($b_\theta \to q(z|y)$ with the encoder held fixed),
+which is what blinds the certificate; and because nothing constrains the geometry of
+its class means, the class-conditional priors $\{b(z|y=k)\}$ carry no explicit
+relationship to one another --- two class means may sit arbitrarily close, in arbitrary
+directions, and the objective never distinguishes these cases. CEB therefore compresses
+\emph{against a reference with no declared structure}: the target of the matching is
+whatever the optimizer finds convenient, and the certificate measures proximity to that
+moving target rather than a property of the representation itself. What a
+representation should look like when it is properly compressed --- class means
+separated, ordered, or laid out on a frame --- is exactly what the objective leaves
+unspecified. The empirical literature points the same way: deep classifiers trained
+to the terminal phase collapse their class means onto an orthogonal simplex frame
+\citep{papyan2020prevalence} --- a separation geometry that \emph{emerges} late in
+training as a byproduct, rather than being imposed by the objective. Our framework
+turns exactly this structure into a declared prior. This is the gap the present paper
+closes.
+
+\textbf{A prior-geometry-constrained information bottleneck.} We propose a framework in
+which the label-conditional prior is \emph{confined to a geometric family by
+construction}. The general principle is simple: the prior $p(z|y)$ must encode, through
+its geometry alone, the structure of the label space, and it must do so in a way the
+optimizer cannot undo. For discrete labels the structure to encode is \emph{class
+equality} --- classes are either identical or distinct, nothing else --- and for
+continuous labels it is \emph{order and numerical distance}. Concretely, the prior is
+computed at every forward pass by a stateless geometric operation on the prior
+encoder's output: the resulting prior family cannot merge two labels, cannot collapse
+to a point, and cannot inflate its covariance, because these degenerations are
+excluded by geometry rather than by the optimizer's good behavior. The sample-level
+posterior, the single-KL objective, and the residual-certificate structure of CEB are
+kept unchanged, so the entire analysis of the certificate transfers pointwise.
+We call this family of objectives a \emph{prior-geometry-constrained information
+bottleneck} (PG-IB). Two instantiations realize the principle.
+
+For classification, the prior encoder is evaluated on \emph{all} class one-hot vectors
+at each step, the resulting class-mean matrix is orthonormalized by a reduced QR
+factorization with a fixed sign convention, and the prior means become the scaled
+orthogonal frame $a\,q_{\theta,k}$: every pair of distinct classes sits at distance
+$\sqrt{2}\,a$, with a class-mean Gram matrix equal to $a^2 I_K$ \emph{by construction}.
+We call this variant the \emph{orthogonal-prior bottleneck} (OPB). For regression, the
+prior is a line: the prior means are $\rho\,\tilde{y}\,u$ for a unit direction $u$
+normalized from a trainable vector at every step, so that latent distances are exactly
+$\rho$ times standardized label distances. We call this variant the \emph{isometric
+regression prior} (OPB-R). Both variants are stateless --- no EMA, no prototypes, no
+per-batch statistics --- and both keep a single KL term.
+
+The geometric prior earns its keep analytically. We prove three guarantees for the
+classification variant: (i) the stateless construction \emph{preserves the CEB
+certificate} --- the residual bound $I(X;Z|Y)$ remains valid at every parameter value,
+with a caveat that a batch-dependent QR would break it
+(Proposition~\ref{prop:opb-certificate}); (ii) a class-independent posterior mean pays a
+\emph{positive compression cost} of at least $a^2(1-\sum_k \pi_k^2)/(2\tau^2)$ --- the
+VIB corner $\mu \equiv 0$ is a penalized configuration rather than a free optimum
+(Proposition~\ref{prop:opb-collapse}); and (iii) whenever the class-wise anchor mismatch
+is small, the posterior class centers inherit the separation of the frame:
+$\|m_i - m_j\| \ge \sqrt{2}\,a - \sqrt{2\tau^2 D_i} - \sqrt{2\tau^2 D_j}$
+(Proposition~\ref{prop:opb-separation}). The last is the transfer guarantee that turns
+the prior's geometry into a property of the deployed representation. Further results ---
+the KL decomposition, the anchor-energy classifier equivalence, a Fano-type
+label-information lower bound, and the strict-convexity of the $\beta$-sweep --- are
+collected in the appendix.
+
+We evaluate the framework empirically across nine datasets and four backbones, and we
+verify the mechanism itself rather than only end-to-end accuracy: we measure the
+geometry of the learned priors and of the posterior class centers, test whether a
+parameter-free nearest-anchor rule can replace the trained classifier, and ablate the
+classifier with an anchor-energy rule that cannot bypass the frame. The experiments
+show that the orthogonal geometry transfers from the prior to the posterior, that the
+anchor scale directly controls the separation and cross-seed consistency of the
+representation, and that prediction quality survives when the classifier is forced to
+use the frame alone.
+
+Our contributions are: (1) the prior-geometry-constrained IB framework, in which the
+label-conditional prior encodes the structure of the label space by construction; (2)
+the OPB and OPB-R variants --- a stateless orthogonal frame for classification and a
+strictly isometric axis for regression --- with a single KL and a preserved CEB
+certificate; (3) a theory of the two failure channels (one cited, one proven here) and
+the three guarantees above; (4) a mechanism-level empirical validation that the
+constructed geometry is transferred to the posterior and is sufficient for prediction.
+
+% =====================================================================
+\section{Method}
+% =====================================================================
+
+\subsection{Background and setup}
+\label{sec:background}
+
+Let $X$ be the input and $Y$ the label with $K$ classes; the encoder induces the Markov
+chain $Y - X - Z$. Following \citet{fischer2020conditional}, the variational CEB
+objective is
+\begin{equation}
+\mathrm{VCEB}
+= \min_{e,b,c}\ \bigl\langle \log e(z|x)\bigr\rangle
+- \bigl\langle \log b(z|y)\bigr\rangle
+- \gamma\,\bigl\langle \log c(y|z)\bigr\rangle ,
+\label{eq:vceb}
+\end{equation}
+where $e(z|x)$ is the stochastic encoder, $b(z|y)$ the backward encoder, $c(y|z)$ the
+classifier, and the expectations are over $p(x,y)\,e(z|x)$. We write the encoder as the
+diagonal Gaussian posterior $q_\phi(z|x) = \mathcal{N}(\mu_\phi(x),
+\operatorname{diag}(\sigma_\phi^2(x)))$ and use the loss convention
+$\CE + \beta\,\KL$, with $\beta = 1/\gamma$; at evaluation the deterministic code
+$z = \mu_\phi(x)$ is used. The central object is the residual certificate: for any
+conditional prior $r(z|y)$,
+\begin{equation}
+\E\bigl[\KL(q_\phi(z|x)\,\|\,r(z|y))\bigr]
+= I(X;Z|Y) + \E_y\bigl[\KL(q_\phi(z|y)\,\|\,r(z|y))\bigr]
+\;\ge\; I(X;Z|Y) ,
+\label{eq:gap}
+\end{equation}
+by Fischer's chain-rule identity (their Eqs.~4 and 9--11, 20). CEB instantiates
+$r(z|y) = b_\theta(z|y)$ with a trainable linear map of the one-hot label; VIB fixes
+$r(z|y) = \mathcal{N}(0, I)$ for all $y$. Our framework replaces $r$ with a geometric
+prior family, defined in Section~\ref{sec:construction}.
+
+\subsection{Key theory: two failure channels and the guarantees of a geometric prior}
+\label{sec:theory}
+
+\subsubsection{Channel 1 (dead knob): every $\gamma$ selects the same corner}
+
+\begin{proposition}[Dead knob, following Caveat~1 of \citet{kolchinsky2019caveats}]
+\label{prop:dead}
+Assume $Y = f(X)$. For every $\gamma > 0$, the CEB objective
+$L_\gamma(Z) := I(X;Z|Y) - \gamma I(Y;Z)$ is minimized exactly on the corner family
+$\{Z : I(Y;Z) = H(Y),\; I(X;Z|Y) = 0\}$, and the map
+$\gamma \mapsto \bigl(I(X;Z^*|Y),\, I(Y;Z^*)\bigr)$ is constant. Consequently no
+interior point of the IB curve is ever a Lagrangian minimizer of CEB, over the entire
+parameter range.
+\end{proposition}
+
+\begin{proof}[Proof sketch (see \citet{kolchinsky2019caveats} for the full argument)]
+By the chain rule, $L_\gamma(Z) = I(X;Z) - (1+\gamma)I(Y;Z)$; the data-processing
+inequality gives $L_\gamma \ge -\gamma H(Y)$, attained exactly at the corner
+$Z = Y$. In the Caveats paper's maximizing convention this is their Eq.~7 with
+$\beta' = 1/(1+\gamma) \in (0,1)$, the range in which every maximizer is pinned at the
+copy corner.
+\end{proof}
+
+The corner is a single point of the information plane and an entire equivalence class
+of representations; the objective is exactly indifferent within the class, and neither
+the objective nor the certificate records which member the optimizer reaches. In the
+deterministic scenario this corner \emph{is} the MNI point, so CEB's declared target
+and the degenerate attractor coincide; the $\gamma$ knob acts on the optimization
+trajectory, not on the optimum.
+
+\subsubsection{Channel 2 (blind certificate): tight at every retention level, with a $1{:}\beta$ exchange rate}
+
+\begin{proposition}[Blind certificate and the $1{:}\beta$ exchange rate]
+\label{prop:flat}
+On the manifold $T_\alpha = B_\alpha \cdot Y$ of \citet{kolchinsky2019caveats}
+(their Eq.~6), $I(X;T_\alpha|Y) = 0$ for every $\alpha$, and with the optimal backward
+encoder and classifier,
+\begin{equation}
+\mathrm{ReX}(T_\alpha) = 0,
+\qquad
+\CE(T_\alpha) = H(Y) - I(Y;T_\alpha) =: \delta_\alpha,
+\qquad
+\mathrm{VCEB}(T_\alpha) = \gamma\,\delta_\alpha .
+\label{eq:vceb-flat}
+\end{equation}
+Consequently: \emph{(a)} the certificate is blind to label retention --- $\mathrm{ReX}$
+reads $0$ from the total collapse ($\alpha = 0$) to the full copy ($\alpha = 1$), so
+tightness is compatible with retaining all, part, or none of $Y$; \emph{(b)} the
+objective exchanges $1$~nat of label information against $\beta$~nats of certified
+residual --- on $T_\alpha$, $L = \CE + \beta\,\mathrm{ReX} = \delta_\alpha$, so in the
+heavy-regularization regime the entire label axis, up to $H(Y)$ nats, is purchasable
+for $H(Y)/\beta$ nats of certified compression.
+\end{proposition}
+
+\begin{proof}
+$T_\alpha$ is a function of $Y$ alone, hence $T_\alpha \perp X \mid Y$ and
+$I(X;T_\alpha|Y) = 0$. With the true backward encoder ($b = p(z|y)$) the certificate
+is tight: $\mathrm{ReX} = I(X;T_\alpha|Y) = 0$. The optimal classifier attains
+$\langle \log c(y|z)\rangle = -H(Y|T_\alpha)$, i.e.\ $\CE = H(Y|T_\alpha) = \delta_\alpha$,
+and $\mathrm{VCEB} = \gamma\,\delta_\alpha$ follows from Eq.~\eqref{eq:vceb}.
+Part~(b) is the definition of the objective evaluated at $\CE = \delta_\alpha$.
+\end{proof}
+
+\begin{remark}[The flatness is an exchange rate, not literal flatness]
+\label{rem:flatness}
+The prediction term is weaker than the compression term by exactly the factor $\beta$,
+so \emph{in units of the compression term} the whole manifold lies within
+$H(Y)/\beta$ of optimal. Under a scale-invariant optimizer (Adam) only the ratio
+matters. The operative statement is that the label axis is \emph{cheap and unmetered}:
+dropping $\delta$ nats of label information buys $\delta/\beta$ nats of certified
+residual, and no value of the certificate can expose the trade.
+\end{remark}
+
+The two channels locate the disease precisely: the reference of the matching --- CEB's
+backward encoder --- is an unconstrained trainable map, so it can eliminate the gap
+alone (Channel~2) and its class geometry carries no declared structure (the root cause
+of both). The construction below removes the mechanism by replacing the reference with
+a geometric prior that cannot chase the posterior and cannot merge classes.
+
+\subsubsection{A geometric prior by construction}
+\label{sec:construction}
+
+For classification, let $K \le d$. The prior encoder is evaluated on all $K$ one-hot
+labels at the current parameter value $\theta$, producing the raw class-mean matrix
+\begin{equation}
+M_\theta = [m_\theta(1), \ldots, m_\theta(K)] \in \R^{d \times K} .
+\label{eq:opb-raw}
+\end{equation}
+Assume $M_\theta$ has full column rank and take its reduced QR factorization with a
+fixed positive-diagonal sign convention,
+\begin{equation}
+M_\theta = Q_\theta R_\theta, \qquad Q_\theta^{\top} Q_\theta = I_K .
+\label{eq:opb-qr}
+\end{equation}
+The geometric prior replaces the raw means by the scaled orthogonal frame
+\begin{equation}
+p_\theta^{\mathrm{OPB}}(z|y=k)
+= \mathcal{N}\bigl(a\,q_{\theta,k},\, \tau^2 I_d\bigr),
+\qquad q_{\theta,k} := Q_\theta[:,k],
+\label{eq:opb-prior}
+\end{equation}
+where $a \ge 0$ is the anchor scale and $\tau^2 > 0$ the shared prior variance. The QR
+factor is recomputed from the current prior encoder at every training step: there is
+no EMA prototype, no persistent anchor variable, and, for fixed $\theta$, $Q_\theta$
+depends only on the class set --- not on the input $x$, and not on the batch.
+
+\begin{proposition}[Orthogonal class-prior geometry by construction]
+\label{prop:opb-frame}
+Under Eqs.~\eqref{eq:opb-qr}--\eqref{eq:opb-prior}, the class means
+$a_k = a\,q_{\theta,k}$ satisfy
+\begin{equation}
+a_i^{\top} a_j = a^2 \delta_{ij},
+\qquad
+\|a_k\| = a,
+\qquad
+\|a_i - a_j\|^2 = 2a^2 \ \ (i \ne j) .
+\label{eq:opb-geometry}
+\end{equation}
+Equivalently, the class-mean Gram matrix is $a^2 I_K$: the prior supplies a
+class-separated spherical code at every training step, whatever the optimizer does.
+\end{proposition}
+
+\begin{proof}
+Eq.~\eqref{eq:opb-geometry} follows from $Q_\theta^{\top}Q_\theta = I_K$ after scaling
+by $a$; in particular
+$\|a_i - a_j\|^2 = \|a_i\|^2 + \|a_j\|^2 - 2a_i^{\top}a_j = 2a^2$.
+\end{proof}
+
+The single objective of the variant is
+\begin{equation}
+\mathcal{L}_{\mathrm{OPB}}
+= \E_{(x,y)}\Bigl[
+\CE\bigl(c_\psi(z), y\bigr)
++ \beta\, \KL\bigl(q_\phi(z|x) \,\|\, p_\theta^{\mathrm{OPB}}(z|y)\bigr)
+\Bigr],
+\qquad z \sim q_\phi(z|x) .
+\label{eq:opb-objective}
+\end{equation}
+The defining change from CEB is the prior of Eq.~\eqref{eq:opb-prior}, not a second
+latent variable or a second KL term.
+
+\subsubsection{Three guarantees}
+
+\begin{proposition}[The stateless prior preserves the CEB certificate]
+\label{prop:opb-certificate}
+For every fixed parameter value $\theta$ for which Eq.~\eqref{eq:opb-qr} is defined,
+$p_\theta^{\mathrm{OPB}}(z|y)$ is a conditional prior independent of $x$, and the gap
+identity of Eq.~\eqref{eq:gap} applies pointwise in $\theta$:
+\begin{equation}
+\E\Bigl[ \KL\bigl(q_\phi(z|x) \,\|\, p_\theta^{\mathrm{OPB}}(z|y)\bigr) \Bigr]
+= I_{q_\phi}(X;Z|Y)
++ \E_Y\Bigl[ \KL\bigl(q_\phi(z|Y) \,\|\, p_\theta^{\mathrm{OPB}}(z|Y)\bigr) \Bigr]
+\;\ge\; I_{q_\phi}(X;Z|Y) .
+\label{eq:opb-certificate}
+\end{equation}
+The fact that $Q_\theta$ is recomputed after parameter updates does not invalidate
+this identity: at each fixed $\theta$ it remains a function of the class set only.
+If $Q$ were computed from the current input batch, this conditional-prior argument
+would no longer apply without a new analysis.
+\end{proposition}
+
+\begin{proof}
+For fixed $\theta$, apply the gap identity of Eq.~\eqref{eq:gap} to the conditional
+distribution $p_\theta^{\mathrm{OPB}}(z|y)$ and the posterior $q_\phi$.
+\end{proof}
+
+\begin{proposition}[Positive rate cost of class-independent means]
+\label{prop:opb-collapse}
+Let $\pi_k = \Pr(Y = k)$ and suppose the posterior mean is class-independent,
+$\E[\mu_\phi(X) | Y = k] = c$ for every $k$. Then the mean-mismatch part of the rate
+satisfies
+\begin{equation}
+\E\Bigl[ \tfrac{1}{2\tau^2} \|\mu_\phi(X) - a\,q_{\theta,Y}\|^2 \Bigr]
+\;\ge\; \frac{a^2}{2\tau^2}\Bigl( 1 - \sum_{k=1}^{K} \pi_k^2 \Bigr) ,
+\label{eq:opb-collapse}
+\end{equation}
+with equality at the optimal constant mean $c = a \sum_k \pi_k q_{\theta,k}$. For
+uniform classes the bound is $a^2(1 - 1/K)/(2\tau^2)$. Unlike a zero-mean marginal
+prior, the geometric prior assigns every class-independent posterior a strictly
+positive mean-matching cost whenever $a > 0$ and two classes have positive
+probability.
+\end{proposition}
+
+\begin{proof}
+By Jensen's inequality the left side is at least
+$\tfrac{1}{2\tau^2}\sum_k \pi_k \|c - a q_{\theta,k}\|^2
+= \tfrac{1}{2\tau^2}\bigl(\|c\|^2 - 2a\,c^{\top}\!\sum_k\pi_k q_{\theta,k} + a^2\bigr)$.
+Minimizing over $c$ gives $c = a\sum_k\pi_k q_{\theta,k}$; by orthonormality
+$\|\sum_k\pi_k q_{\theta,k}\|^2 = \sum_k \pi_k^2$, yielding Eq.~\eqref{eq:opb-collapse}.
+\end{proof}
+
+\begin{proposition}[KL-controlled separation of posterior class centers]
+\label{prop:opb-separation}
+Let $m_k := \E[\mu_\phi(X) | Y = k]$ be the posterior class centers and
+\begin{equation}
+D_k := \frac{1}{2\tau^2}\,
+\E\Bigl[ \|\mu_\phi(X) - a\,q_{\theta,k}\|^2 \;\Big|\; Y = k \Bigr]
+\label{eq:opb-class-rate}
+\end{equation}
+the class-wise anchor mismatch. Then for every pair $i \ne j$,
+\begin{equation}
+\|m_i - m_j\| \;\ge\; \sqrt{2}\,a
+- \sqrt{2\tau^2 D_i} - \sqrt{2\tau^2 D_j} .
+\label{eq:opb-separation}
+\end{equation}
+In particular, sufficiently small class-wise anchor mismatch guarantees non-zero
+separation of the posterior class centers: the frame geometry transfers to the
+deployed representation.
+\end{proposition}
+
+\begin{proof}
+Jensen gives $\|m_k - a q_{\theta,k}\| \le \sqrt{2\tau^2 D_k}$. Apply the triangle
+inequality to
+$m_i - m_j = (m_i - a q_{\theta,i}) + (a q_{\theta,i} - a q_{\theta,j})
++ (a q_{\theta,j} - m_j)$ and use Proposition~\ref{prop:opb-frame}.
+\end{proof}
+
+Propositions~\ref{prop:opb-certificate}--\ref{prop:opb-separation} are the core of the
+theory. The remaining results --- the pointwise KL decomposition, the anchor-energy
+classifier equivalence (which removes the free classifier scale identified in
+Appendix~\ref{app:sweep}), a Fano-type label-information lower bound, the strict
+convexity of the $\beta$-sweep, and the scope and limitations of the framework --- are
+given in the appendix.
+
+\subsection{Model variants}
+\label{sec:variants}
+
+The framework has two concrete instantiations, one per label-space structure. Both keep
+the CEB posterior, the single-KL objective, and the residual certificate unchanged;
+they differ only in the geometric family that constrains the prior.
+
+\subsubsection{OPB: an orthogonal class frame (classification)}
+\label{sec:opb}
+
+\emph{Posterior.} The encoder computes $h = f_{\mathrm{enc}}(x)$; two heads produce the
+diagonal posterior $q_\phi(z|x) = \mathcal{N}(\mu_\phi(x),
+\operatorname{diag}(\sigma_\phi^2(x)))$; the code $z$ is sampled at training and set to
+$z = \mu_\phi(x)$ at evaluation. The classifier consumes $z$.
+
+\emph{Geometric prior.} The prior encoder is a single unactivated linear layer mapping
+one-hot labels to $(m_\theta(k), \log \sigma_{\theta}^2(k))$. At every forward pass the
+\emph{full} class one-hot matrix is passed through it, the mean matrix
+$M_\theta \in \R^{d\times K}$ of Eq.~\eqref{eq:opb-raw} is orthonormalized by reduced
+QR with a positive-diagonal sign convention (Eq.~\eqref{eq:opb-qr}, preventing column
+sign flips across steps), and the prior becomes the scaled frame of
+Eq.~\eqref{eq:opb-prior}. The loss is Eq.~\eqref{eq:opb-objective}: a single KL.
+
+\emph{Statelessness.} $Q_\theta$ is an immediate function of the current prior encoder:
+the next step recomputes it. There is no EMA, no prototype table, and no dependence on
+the batch composition --- the property that makes
+Proposition~\ref{prop:opb-certificate} exact.
+
+\emph{Initialization.} The variance network and the posterior logvar head are
+zero-initialized ($\sigma^2 = \tau^2 = 1$ at initialization, so training starts at
+$\KL \approx \tfrac{1}{2\tau^2} a^2$); the mean block of the prior encoder is
+identity-initialized, so that the initial frame $Q_\theta = [e_1, \dots, e_K]$ is full
+column rank and the QR backward is stable.
+
+\emph{Theory--code layering.} The theory states the prior with the shared variance
+$\tau^2 I_d$; the released implementation uses the per-class learnable
+$\sigma_{\theta}^2(k)$ output by the prior encoder (the diagonal of the variance
+block). All propositions are stated for the shared-$\tau^2$ prior; the learnable
+variance is a strictly more flexible family within which the shared case is the
+initialization, and the experiments use the learnable version. The QR backward is
+well-defined while $M_\theta$ has full column rank, which the identity initialization
+and the sign convention maintain throughout the runs we report.
+
+\subsubsection{OPB-R: an isometric regression axis (regression)}
+\label{sec:opbr}
+
+\emph{Setup.} For a one-dimensional continuous label, standardize once on the training
+set: $\tilde y = (y - y_{\mathrm{center}})/y_{\mathrm{scale}}$, with the statistics
+frozen for validation and test. Let $W \in \R^{d \times 1}$ be a trainable direction
+and $u = W/\|W\|$ its per-step normalization. The isometric prior is
+\begin{equation}
+p^{\mathrm{OPB-R}}(z|y)
+= \mathcal{N}\bigl(\rho\, \tilde y\, u,\; \tau^2 I_d\bigr),
+\qquad
+\| \mu_p(y_i) - \mu_p(y_j) \| = \rho\, |\tilde y_i - \tilde y_j| ,
+\label{eq:opbr-prior}
+\end{equation}
+where $\rho > 0$ is the isometric scale. The isometry is exact and global: any nonzero
+linear map of a scalar label is isometric up to its norm, and the normalization fixes
+that norm to $\rho$ --- unlike fixed random-feature anchors, whose pairwise distances
+grow nonlinearly and saturate, the isometric axis preserves label distances at every
+scale (with the price that anchor norms grow with $|\tilde y|$; a line and a fixed-radius
+sphere intersect in at most two points, so isometry and equal norms cannot both hold).
+All prior means lie on one line; for $y_i < y_j < y_k$ the distances add,
+$\|\mu_p(y_i)-\mu_p(y_k)\| = \|\mu_p(y_i)-\mu_p(y_j)\| + \|\mu_p(y_j)-\mu_p(y_k)\|$:
+order and magnitude of label differences are encoded exactly.
+
+\emph{Axis choices.} Three variants of the direction: (A) \emph{fixed axis},
+$u = [1, 0, \dots, 0]$, with no trainable prior direction --- the theoretically
+cleanest ablation, at the price of prespecifying a latent coordinate; (B)
+\emph{trainable normalized axis}, $u = W/\|W\|$ with $W$ trained and normalized at
+every step --- our main variant, which keeps the scale $\rho$ exact while allowing the
+model to choose the axis; (C) \emph{unconstrained linear axis}, $\mu_p(y) = W \tilde y$
+--- the simplest ablation, still isometric by linearity but with a free scale that can
+shrink and weaken the geometry. We recommend (B), use (A) to test whether the trainable
+rotation carries the benefit, and keep (C) as a diagnostic. The main variant uses no
+bias: an affine offset cancels in pairwise distances but is a free extra degree of
+matching, and $\tilde y$ is already centered.
+
+\emph{Prediction head.} Two choices: the \emph{tied projection head}, which predicts on
+the same axis the KL uses,
+$\hat{\tilde y} = u^{\top} z / \rho$, then rescales
+$\hat y = y_{\mathrm{center}} + y_{\mathrm{scale}}\, \hat{\tilde y}$ --- geometrically
+consistent, with no free direction or scale that could bypass the prior; and the
+\emph{ordinary regression head} $\hat y = \mathrm{regressor}(z)$, kept for a fair
+comparison against CEB. The tied head is the recommended configuration; the ordinary
+head is the comparability ablation (and is the one currently used by the released
+implementation). The total objective is
+$\mathcal{L}_{\mathrm{OPB-R}} = L_{\mathrm{reg}}(\hat y, y)
++ \beta\,\KL\bigl(q_\phi(z|x)\,\|\,p^{\mathrm{OPB-R}}(z|y)\bigr)$ --- a single KL, no
+EMA, no label bucketing, no batch-level QR.
+
+\emph{Relation to the classification variant.} OPB expresses the discrete structure of
+the label space --- every pair of distinct classes at the same distance $\sqrt2 a$;
+OPB-R expresses the continuous structure --- latent distance proportional to label
+distance, $\rho |\Delta \tilde y|$. Both replace CEB's unconstrained reference with a
+geometry that encodes the label space by construction, and both preserve the
+posterior, the single KL, and the certificate.
+
+\subsubsection{Positioning and extensions}
+\label{sec:positioning}
+
+The framework is built on CEB and inherits its residual certificate; the difference is
+exclusively in the reference. CEB's backward encoder is an unconstrained trainable map
+that can chase the posterior and merge classes --- the two failure channels of
+Section~\ref{sec:theory}. The geometric prior is also trainable --- the frame rotates
+and the axis turns --- but its degenerations are excluded by construction: it cannot
+merge classes, collapse to a point, inflate its covariance, or rescale its geometry,
+because orthonormality, scale, and covariance are fixed by the construction itself.
+This is the sense in which the compression term measures distance to a \emph{declared}
+target. The certificate of Eq.~\eqref{eq:opb-certificate} remains the usual CEB
+residual bound for this particular prior family --- we do not claim a tighter mutual
+information bound --- and the isometric axis likewise trades a general conditional
+prior for a checkable label-metric structure. For multi-dimensional regression labels
+$y \in \R^m$ ($m \le d$), the same construction extends verbatim: take
+$W \in \R^{d \times m}$, its reduced QR $W = QR$, and the prior
+$\mu_p(y) = \rho\, Q\, \tilde y$, which is isometric in the label metric; the scalar
+case is $m = 1$ with $Q = u$. The label metric must be declared before
+standardization, otherwise ``isometric'' has no unique meaning.
+
+% =====================================================================
+\section{Experiments}
+\label{sec:experiments}
+% =====================================================================
+
+% 占位：后续填充实验部分。计划包含：
+%   - 主扫参（baseline 对比，9 数据集 × 4 骨干）；
+%   - 机制验证：先验几何分析（prior_geometry）、后验几何传递（posterior_geometry）、
+%     最近锚点分类与能量分类器消融（geometry_usage + OPB-EC，§附录 prop:opb-energy）；
+%   - 锚点尺度扫描（a ∈ {1,...,10}，半径跟随率 / Fisher / 跨 seed 一致性）；
+%   - RandomLabel 记忆实验与对抗鲁棒性（adv_eval）。
+
+% =====================================================================
+\section{Related work}
+\label{sec:related}
+% =====================================================================
+
+% 占位：后续填充相关工作（VIB / CEB / NIB / DVCCA / Caveats 已在前文引用，
+% 此处补充神经坍缩、几何先验、分类头约束等邻近工作）。
+
+% =====================================================================
+\appendix
+\section{Deferred proofs and further results}
+\label{app:deferred}
+% =====================================================================
+
+The following results support the main text: the pointwise KL decomposition
+(Lemma~\ref{lem:opb-kl-decomposition}), the anchor-energy classifier equivalence
+(Proposition~\ref{prop:opb-energy}), a Fano-type label-information lower bound
+(Corollary~\ref{cor:opb-fano}), the strict convexity of the $\beta$-sweep on the
+aligned family (Proposition~\ref{prop:opb-sweep}), and the scope and limitations
+(Remark~\ref{rem:opb-scope}).
+
+\begin{lemma}[OPB KL decomposition]
+\label{lem:opb-kl-decomposition}
+For a diagonal posterior covariance and the isotropic prior of
+Eq.~\eqref{eq:opb-prior},
+\begin{equation}
+\KL\bigl(q_\phi(z|x)\,\|\,p_\theta^{\mathrm{OPB}}(z|y)\bigr)
+= \frac{1}{2\tau^2}\|\mu_\phi(x) - a\,q_{\theta,y}\|^2
++ \frac12 \sum_{r=1}^{d}\Bigl[
+\frac{\sigma_{\phi,r}^2(x)}{\tau^2} - 1 - \log\frac{\sigma_{\phi,r}^2(x)}{\tau^2}
+\Bigr],
+\label{eq:opb-kl-decomposition}
+\end{equation}
+a class-anchor mismatch term plus a variance mismatch term that is non-negative and
+vanishes exactly at $\sigma_{\phi,r}^2(x) = \tau^2$ for all $r$. The mismatch term is
+quadratic in the displacement to a reference whose scale and covariance cannot move:
+this is the mechanism behind the strict convexity of
+Proposition~\ref{prop:opb-sweep} below.
+\end{lemma}
+
+\begin{proof}
+Apply the diagonal-Gaussian KL formula with posterior mean $\mu_\phi(x)$, prior mean
+$a\,q_{\theta,y}$, posterior variances $\sigma_{\phi,r}^2(x)$, and prior variances
+$\tau^2$.
+\end{proof}
+
+\begin{proposition}[Anchor-energy classifier equivalence]
+\label{prop:opb-energy}
+Suppose the classifier uses the anchor energy
+\begin{equation}
+s_k(z) = -\frac{\|z - a\,q_{\theta,k}\|^2}{2\tau^2} + \log \pi_k .
+\label{eq:opb-energy}
+\end{equation}
+Then $s_k(z)$ is the class-$k$ Gaussian log posterior up to a class-independent term;
+equivalently, for uniform classes the equivalent linear classifier has weights
+$w_k = (a/\tau^2)\,q_{\theta,k}$ --- equal norms and pairwise orthogonal rows. An
+anchor-energy classifier therefore makes the prediction rule use exactly the same
+geometry as the prior, and removes the free classifier scale by construction.
+\end{proposition}
+
+\begin{proof}
+Expand the squared norm in Eq.~\eqref{eq:opb-energy}; the terms
+$-\|z\|^2/(2\tau^2)$ and $-a^2/(2\tau^2)$ are common to all classes, and the
+class-dependent remainder is the Gaussian discriminant score.
+\end{proof}
+
+\begin{corollary}[Label-information lower bound in the aligned Gaussian model]
+\label{cor:opb-fano}
+Assume uniform classes and exact alignment
+$q(z|Y=k) = \mathcal{N}(a\,q_{\theta,k}, \tau^2 I_d)$. The pairwise error probability
+of the nearest-anchor classifier is
+$P_{\mathrm{pair}} = \Phi\bigl(-\frac{a}{\sqrt{2}\,\tau}\bigr)$, with
+$P_e \le \min\{1, (K-1)P_{\mathrm{pair}}\}$, and whenever the displayed bound
+$\bar P_e \le 1 - 1/K$, Fano's inequality gives
+$I(Y;Z) \ge \log K - h_2(\bar P_e) - \bar P_e \log(K-1)$. This links the anchor
+scale-to-noise ratio $a/\tau$ to the retained label information, conditionally on the
+aligned Gaussian model.
+\end{corollary}
+
+\begin{proof}
+Two anchors have distance $\sqrt{2}a$ by Proposition~\ref{prop:opb-frame}; the
+equal-covariance binary decision boundary is halfway between them, giving
+$\Phi(-\sqrt{2}a/(2\tau))$. The union bound and Fano's inequality on
+$[0, 1-1/K]$ conclude.
+\end{proof}
+
+\begin{proposition}[Strictly convex $\beta$-sweep on the aligned family]
+\label{prop:opb-sweep}
+Consider the class-symmetric aligned family: every input of class $y$ is mapped to the
+posterior mean $\mu_y = s\,q_{\theta,y}$ ($s \ge 0$), the classifier is held at
+$w_j = c\,q_{\theta,j}$, $b_j = 0$ with fixed scale $c > 0$, and the posterior is
+$q_y = \mathcal{N}(s\,q_{\theta,y}, \sigma^2 I)$. On the evaluation code ($z = \mu$),
+\begin{equation}
+\KL(s, \sigma^2) = \tfrac{d}{2}\bigl(\sigma^2/\tau^2 - 1 - \ln(\sigma^2/\tau^2)\bigr)
++ \tfrac{1}{2\tau^2}(s-a)^2,
+\qquad
+\CE(s) = \ln\bigl(1 + (K-1)e^{-cs}\bigr),
+\label{eq:opb-kl-ce}
+\end{equation}
+and for every $\beta > 0$ the Lagrangian
+$L_\beta(s) = \CE(s) + \tfrac{\beta}{2\tau^2}(s-a)^2$ is strictly convex in $s$ with a
+unique minimizer $s^*(\beta) > a$ given by
+$\tfrac{\beta}{\tau^2}(s-a) = c\,\varphi(cs)$ with
+$\varphi(u) = (K-1)e^{-u}/(1+(K-1)e^{-u})$. The map $\beta \mapsto s^*$ is strictly
+decreasing with $s^* \to a$ as $\beta \to \infty$ and $s^* \to \infty$ as
+$\beta \to 0$, so $\beta \mapsto (\KL(s^*), \CE(s^*))$ is one-to-one onto the entire
+trade-off curve: no two $\beta$ share an optimum, and every interior point is attained.
+The fixed-scale condition is load-bearing: with $c$ free, the pair
+$(s, c) = (a, c)$ with $c \to \infty$ drives both terms to zero and the infimum is $0$
+for every $\beta$.
+\end{proposition}
+
+\begin{proof}
+$\CE'(s) = -c\varphi(cs)$ and
+$\CE''(s) = c^2(K-1)e^{-cs}/(1+(K-1)e^{-cs})^2 > 0$, and the compression term is
+quadratic in $s-a$, so $L_\beta''(s) > 0$. The stationarity condition is exactly
+$\tfrac{\beta}{\tau^2}(s-a) = c\varphi(cs)$; the left side increases from
+$-\beta a/\tau^2$ through $0$ to $+\infty$ while the right side decreases within
+$(0, c)$, giving a unique crossing with $s^* > a$. Differentiating with respect to
+$\beta$ gives $s' = -(s-a)/(\beta - c^2\tau^2\varphi'(cs)) < 0$ since $\varphi' < 0$;
+the limits follow by monotonicity. With $c$ free,
+$\KL = \tfrac{1}{2\tau^2}(s-a)^2$ vanishes at $s = a$ while
+$\CE = \ln(1+(K-1)e^{-ca}) \to 0$ as $c \to \infty$.
+\end{proof}
+
+\begin{remark}[The sweep is a KL--CE surrogate curve; scope and limitations]
+\label{rem:opb-scope}
+Proposition~\ref{prop:opb-sweep} proves strict convexity and one-to-one
+parameterization in the KL--CE plane on the aligned family at fixed classifier scale,
+not on the information plane of the Caveats paper; the results of the main text
+establish a structured conditional prior, an exact KL geometry, and conditional
+separation guarantees, and they do \emph{not} establish a mutual information upper
+bound tighter than CEB's --- Eq.~\eqref{eq:opb-certificate} is the usual CEB gap
+identity for a particular prior family. The QR construction fixes all pairwise anchor
+distances, so the framework should not claim to recover arbitrary semantic class
+similarities. The stateless construction is well-defined and locally differentiable
+only while $M_\theta$ has full column rank (with a consistent sign convention); near
+rank deficiency the frame can vary sharply. If the QR were computed from the current
+input batch rather than from the all-class prior matrix, the prior would become
+batch-dependent and Proposition~\ref{prop:opb-certificate} would no longer follow
+directly. Finally, the free-scale caveat of Proposition~\ref{prop:opb-sweep} is
+precisely what the anchor-energy classifier of Proposition~\ref{prop:opb-energy}
+removes by construction --- the basis of the classifier ablation in the experiments.
+\end{remark}
+
+% =====================================================================
+\bibliographystyle{plainnat}
+\begin{thebibliography}{10}
+
+\bibitem[Alemi et al.(2017)]{alemi2017deep}
+A.~A.~Alemi, I.~Fischer, J.~V.~Dillon, and K.~Murphy.
+\newblock Deep variational information bottleneck.
+\newblock In \emph{ICLR}, 2017.
+
+\bibitem[Fischer(2020)]{fischer2020conditional}
+I.~Fischer.
+\newblock The conditional entropy bottleneck.
+\newblock \emph{Entropy}, 22(9):999, 2020.
+
+\bibitem[Kolchinsky and Tracey(2019)]{kolchinsky2019caveats}
+A.~Kolchinsky and B.~D.~Tracey.
+\newblock Caveats for information bottleneck in deterministic scenarios.
+\newblock In \emph{ICLR}, 2019.
+
+\bibitem[Kolchinsky et al.(2017)]{kolchinsky2017nonlinear}
+A.~Kolchinsky, B.~D.~Tracey, and D.~H.~Wolpert.
+\newblock Nonlinear information bottleneck.
+\newblock \emph{Entropy}, 21(12):1181, 2019.
+
+\bibitem[Tishby et al.(2000)]{tishby2000information}
+N.~Tishby, F.~C.~Pereira, and W.~Bialek.
+\newblock The information bottleneck method.
+\newblock In \emph{Proc.\ 37th Allerton Conference}, 2000.
+
+\bibitem[Abdelaleem et al.(2025)]{abdelaleem2025deep}
+E.~Abdelaleem, I.~Ndiour, and A.~Bhattacharyya.
+\newblock Deep variational multivariate information bottleneck.
+\newblock \emph{JMLR}, 2025.
+
+\bibitem[Papyan et al.(2020)]{papyan2020prevalence}
+V.~Papyan, X.~Y.~Han, and D.~L.~Donoho.
+\newblock Prevalence of neural collapse during the terminal phase of deep learning
+training.
+\newblock \emph{PNAS}, 117(40):24652--24663, 2020.
+
+\end{thebibliography}
+
+\end{document}

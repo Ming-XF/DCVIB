@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=stsb backbone=rnn model=rnn+vib+nib+svib+ceb+dvcca+fgib+opb runs=5 epochs=100 | 139 组组合（绿色高亮 = 各模型默认指标 R2 的最佳行）</div>
+
+<h2>rnn</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-rnn">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-rnn">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0645" data-mae="1.03" data-r2="0.2899"><td>-</td><td>-</td><td>0.0645±0.0010</td><td>1.0300±0.0106</td><td>0.2899±0.0113</td></tr>
+</tbody>
+</table>
+
+<h2>vib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-vib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-vib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.086" data-mae="1.0608" data-r2="0.2719"><td>0.01</td><td>-</td><td>0.0860±0.0056</td><td>1.0608±0.0154</td><td>0.2719±0.0164</td></tr><tr data-loss="0.075" data-mae="1.0499" data-r2="0.2689"><td>0.001</td><td>-</td><td>0.0750±0.0025</td><td>1.0499±0.0162</td><td>0.2689±0.0205</td></tr><tr data-loss="0.0735" data-mae="1.067" data-r2="0.2359"><td>0.0001</td><td>-</td><td>0.0735±0.0009</td><td>1.0670±0.0075</td><td>0.2359±0.0097</td></tr><tr data-loss="0.0931" data-mae="1.3199" data-r2="-0.0136"><td>10</td><td>-</td><td>0.0931±0.0008</td><td>1.3199±0.0097</td><td>-0.0136±0.0098</td></tr><tr data-loss="0.1657" data-mae="1.3744" data-r2="-0.1286"><td>0.1</td><td>-</td><td>0.1657±0.0117</td><td>1.3744±0.0184</td><td>-0.1286±0.0321</td></tr><tr data-loss="0.3166" data-mae="2.0367" data-r2="-1.5635"><td>1</td><td>-</td><td>0.3166±0.0372</td><td>2.0367±0.1039</td><td>-1.5635±0.2486</td></tr>
+</tbody>
+</table>
+
+<h2>nib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-nib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-nib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0979" data-mae="1.0684" data-r2="0.2417"><td>0.01</td><td>-</td><td>0.0979±0.0022</td><td>1.0684±0.0270</td><td>0.2417±0.0221</td></tr><tr data-loss="0.0721" data-mae="1.0631" data-r2="0.2407"><td>0.001</td><td>-</td><td>0.0721±0.0019</td><td>1.0631±0.0158</td><td>0.2407±0.0213</td></tr><tr data-loss="3.1274" data-mae="1.0675" data-r2="0.2369"><td>1</td><td>-</td><td>3.1274±0.3244</td><td>1.0675±0.0207</td><td>0.2369±0.0242</td></tr><tr data-loss="29.21" data-mae="1.0723" data-r2="0.2319"><td>10</td><td>-</td><td>29.2100±2.4525</td><td>1.0723±0.0159</td><td>0.2319±0.0223</td></tr><tr data-loss="0.3566" data-mae="1.0752" data-r2="0.2289"><td>0.1</td><td>-</td><td>0.3566±0.0310</td><td>1.0752±0.0174</td><td>0.2289±0.0211</td></tr><tr data-loss="0.071" data-mae="1.0918" data-r2="0.2213"><td>0.0001</td><td>-</td><td>0.0710±0.0019</td><td>1.0918±0.0237</td><td>0.2213±0.0217</td></tr>
+</tbody>
+</table>
+
+<h2>svib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-svib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-svib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0732" data-mae="1.0588" data-r2="0.2697"><td>0.001</td><td>-</td><td>0.0732±0.0021</td><td>1.0588±0.0153</td><td>0.2697±0.0202</td></tr><tr data-loss="0.0709" data-mae="1.0544" data-r2="0.268"><td>0.0001</td><td>-</td><td>0.0709±0.0029</td><td>1.0544±0.0200</td><td>0.2680±0.0207</td></tr><tr data-loss="0.0919" data-mae="1.3175" data-r2="-0.0108"><td>10</td><td>-</td><td>0.0919±0.0007</td><td>1.3175±0.0088</td><td>-0.0108±0.0080</td></tr><tr data-loss="0.1177" data-mae="1.2998" data-r2="-0.0332"><td>0.01</td><td>-</td><td>0.1177±0.0044</td><td>1.2998±0.0072</td><td>-0.0332±0.0081</td></tr><tr data-loss="0.1373" data-mae="1.434" data-r2="-0.2341"><td>0.1</td><td>-</td><td>0.1373±0.0096</td><td>1.4340±0.0494</td><td>-0.2341±0.0941</td></tr><tr data-loss="0.2079" data-mae="1.7586" data-r2="-0.9085"><td>1</td><td>-</td><td>0.2079±0.0246</td><td>1.7586±0.0924</td><td>-0.9085±0.2103</td></tr>
+</tbody>
+</table>
+
+<h2>ceb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-ceb">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-ceb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0759" data-mae="1.0628" data-r2="0.2668"><td>0.01</td><td>-</td><td>0.0759±0.0019</td><td>1.0628±0.0106</td><td>0.2668±0.0127</td></tr><tr data-loss="0.0693" data-mae="1.0545" data-r2="0.2659"><td>0.001</td><td>-</td><td>0.0693±0.0018</td><td>1.0545±0.0180</td><td>0.2659±0.0217</td></tr><tr data-loss="0.0715" data-mae="1.0699" data-r2="0.2374"><td>0.0001</td><td>-</td><td>0.0715±0.0007</td><td>1.0699±0.0143</td><td>0.2374±0.0073</td></tr><tr data-loss="0.1257" data-mae="1.0993" data-r2="0.2353"><td>0.1</td><td>-</td><td>0.1257±0.0111</td><td>1.0993±0.0171</td><td>0.2353±0.0169</td></tr><tr data-loss="0.1177" data-mae="1.2618" data-r2="0.0582"><td>1</td><td>-</td><td>0.1177±0.0106</td><td>1.2618±0.0143</td><td>0.0582±0.0155</td></tr><tr data-loss="0.093" data-mae="1.3193" data-r2="-0.0114"><td>10</td><td>-</td><td>0.0930±0.0003</td><td>1.3193±0.0027</td><td>-0.0114±0.0027</td></tr>
+</tbody>
+</table>
+
+<h2>dvcca</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-dvcca">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-dvcca">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0895" data-mae="1.0613" data-r2="0.2713"><td>0.01</td><td>-</td><td>0.0895±0.0052</td><td>1.0613±0.0167</td><td>0.2713±0.0218</td></tr><tr data-loss="0.0754" data-mae="1.046" data-r2="0.2705"><td>0.001</td><td>-</td><td>0.0754±0.0022</td><td>1.0460±0.0174</td><td>0.2705±0.0167</td></tr><tr data-loss="0.0727" data-mae="1.0615" data-r2="0.2448"><td>0.0001</td><td>-</td><td>0.0727±0.0015</td><td>1.0615±0.0159</td><td>0.2448±0.0144</td></tr><tr data-loss="2.3006" data-mae="1.3199" data-r2="-0.0136"><td>10</td><td>-</td><td>2.3006±0.0443</td><td>1.3199±0.0096</td><td>-0.0136±0.0098</td></tr><tr data-loss="0.2066" data-mae="1.3799" data-r2="-0.1382"><td>0.1</td><td>-</td><td>0.2066±0.0096</td><td>1.3799±0.0153</td><td>-0.1382±0.0275</td></tr><tr data-loss="0.9108" data-mae="2.0386" data-r2="-1.5692"><td>1</td><td>-</td><td>0.9108±0.0353</td><td>2.0386±0.1192</td><td>-1.5692±0.2845</td></tr>
+</tbody>
+</table>
+
+<h2>fgib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-fgib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-fgib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.1197" data-mae="1.0216" data-r2="0.2936"><td>0.001</td><td>12</td><td>0.1197±0.0026</td><td>1.0216±0.0114</td><td>0.2936±0.0112</td></tr><tr data-loss="0.0704" data-mae="1.0263" data-r2="0.2935"><td>0.001</td><td>4</td><td>0.0704±0.0011</td><td>1.0263±0.0129</td><td>0.2935±0.0102</td></tr><tr data-loss="0.1629" data-mae="1.024" data-r2="0.2935"><td>0.001</td><td>16</td><td>0.1629±0.0039</td><td>1.0240±0.0090</td><td>0.2935±0.0096</td></tr><tr data-loss="0.0782" data-mae="1.0212" data-r2="0.2929"><td>0.001</td><td>6</td><td>0.0782±0.0014</td><td>1.0212±0.0090</td><td>0.2929±0.0109</td></tr><tr data-loss="0.0719" data-mae="1.0269" data-r2="0.292"><td>0.0001</td><td>14</td><td>0.0719±0.0013</td><td>1.0269±0.0136</td><td>0.2920±0.0116</td></tr><tr data-loss="0.0699" data-mae="1.0265" data-r2="0.2915"><td>0.0001</td><td>12</td><td>0.0699±0.0008</td><td>1.0265±0.0135</td><td>0.2915±0.0075</td></tr><tr data-loss="0.14" data-mae="1.0236" data-r2="0.2912"><td>0.001</td><td>14</td><td>0.1400±0.0034</td><td>1.0236±0.0140</td><td>0.2912±0.0133</td></tr><tr data-loss="0.103" data-mae="1.0275" data-r2="0.2911"><td>0.001</td><td>10</td><td>0.1030±0.0023</td><td>1.0275±0.0155</td><td>0.2911±0.0132</td></tr><tr data-loss="0.0683" data-mae="1.0293" data-r2="0.2902"><td>0.0001</td><td>10</td><td>0.0683±0.0012</td><td>1.0293±0.0159</td><td>0.2902±0.0124</td></tr><tr data-loss="0.0651" data-mae="1.0282" data-r2="0.2898"><td>0.0001</td><td>4</td><td>0.0651±0.0010</td><td>1.0282±0.0153</td><td>0.2898±0.0106</td></tr><tr data-loss="0.0661" data-mae="1.0293" data-r2="0.2894"><td>0.001</td><td>2</td><td>0.0661±0.0011</td><td>1.0293±0.0146</td><td>0.2894±0.0120</td></tr><tr data-loss="0.065" data-mae="1.0294" data-r2="0.2885"><td>0.001</td><td>1</td><td>0.0650±0.0014</td><td>1.0294±0.0197</td><td>0.2885±0.0156</td></tr><tr data-loss="0.0648" data-mae="1.0284" data-r2="0.2882"><td>0.0001</td><td>2</td><td>0.0648±0.0009</td><td>1.0284±0.0128</td><td>0.2882±0.0094</td></tr><tr data-loss="0.0686" data-mae="1.0274" data-r2="0.2879"><td>0.01</td><td>1</td><td>0.0686±0.0006</td><td>1.0274±0.0065</td><td>0.2879±0.0054</td></tr><tr data-loss="0.0896" data-mae="1.0324" data-r2="0.2867"><td>0.001</td><td>8</td><td>0.0896±0.0015</td><td>1.0324±0.0129</td><td>0.2867±0.0098</td></tr><tr data-loss="0.0804" data-mae="1.0328" data-r2="0.2862"><td>0.01</td><td>2</td><td>0.0804±0.0010</td><td>1.0328±0.0091</td><td>0.2862±0.0063</td></tr><tr data-loss="0.0673" data-mae="1.0348" data-r2="0.2862"><td>0.0001</td><td>8</td><td>0.0673±0.0004</td><td>1.0348±0.0029</td><td>0.2862±0.0034</td></tr><tr data-loss="0.1271" data-mae="1.0336" data-r2="0.2858"><td>0.01</td><td>4</td><td>0.1271±0.0021</td><td>1.0336±0.0132</td><td>0.2858±0.0065</td></tr><tr data-loss="0.0664" data-mae="1.0354" data-r2="0.2844"><td>0.0001</td><td>6</td><td>0.0664±0.0014</td><td>1.0354±0.0176</td><td>0.2844±0.0145</td></tr><tr data-loss="0.205" data-mae="1.0324" data-r2="0.2839"><td>0.01</td><td>6</td><td>0.2050±0.0041</td><td>1.0324±0.0094</td><td>0.2839±0.0070</td></tr><tr data-loss="0.075" data-mae="1.0334" data-r2="0.2833"><td>0.0001</td><td>16</td><td>0.0750±0.0014</td><td>1.0334±0.0117</td><td>0.2833±0.0121</td></tr><tr data-loss="0.3148" data-mae="1.0389" data-r2="0.2814"><td>0.01</td><td>8</td><td>0.3148±0.0075</td><td>1.0389±0.0054</td><td>0.2814±0.0028</td></tr><tr data-loss="0.6249" data-mae="1.0456" data-r2="0.2794"><td>0.01</td><td>12</td><td>0.6249±0.0202</td><td>1.0456±0.0144</td><td>0.2794±0.0097</td></tr><tr data-loss="0.0656" data-mae="1.0463" data-r2="0.2785"><td>0.0001</td><td>1</td><td>0.0656±0.0012</td><td>1.0463±0.0173</td><td>0.2785±0.0134</td></tr><tr data-loss="0.4554" data-mae="1.0404" data-r2="0.2782"><td>0.01</td><td>10</td><td>0.4554±0.0129</td><td>1.0404±0.0063</td><td>0.2782±0.0049</td></tr><tr data-loss="0.827" data-mae="1.0463" data-r2="0.2753"><td>0.01</td><td>14</td><td>0.8270±0.0248</td><td>1.0463±0.0054</td><td>0.2753±0.0062</td></tr><tr data-loss="0.1065" data-mae="1.0482" data-r2="0.2656"><td>0.1</td><td>1</td><td>0.1065±0.0019</td><td>1.0482±0.0089</td><td>0.2656±0.0083</td></tr><tr data-loss="1.0601" data-mae="1.0596" data-r2="0.2644"><td>0.01</td><td>16</td><td>1.0601±0.0325</td><td>1.0596±0.0067</td><td>0.2644±0.0062</td></tr><tr data-loss="0.2301" data-mae="1.0617" data-r2="0.2489"><td>0.1</td><td>2</td><td>0.2301±0.0041</td><td>1.0617±0.0101</td><td>0.2489±0.0065</td></tr><tr data-loss="0.7112" data-mae="1.0848" data-r2="0.2309"><td>0.1</td><td>4</td><td>0.7112±0.0229</td><td>1.0848±0.0134</td><td>0.2309±0.0147</td></tr><tr data-loss="1.5057" data-mae="1.0878" data-r2="0.2296"><td>0.1</td><td>6</td><td>1.5057±0.0517</td><td>1.0878±0.0060</td><td>0.2296±0.0099</td></tr><tr data-loss="2.6156" data-mae="1.0947" data-r2="0.2205"><td>0.1</td><td>8</td><td>2.6156±0.0883</td><td>1.0947±0.0106</td><td>0.2205±0.0135</td></tr><tr data-loss="0.491" data-mae="1.0962" data-r2="0.2116"><td>1</td><td>1</td><td>0.4910±0.0146</td><td>1.0962±0.0042</td><td>0.2116±0.0072</td></tr><tr data-loss="4.1338" data-mae="1.096" data-r2="0.2094"><td>0.1</td><td>10</td><td>4.1338±0.1584</td><td>1.0960±0.0072</td><td>0.2094±0.0096</td></tr><tr data-loss="5.8261" data-mae="1.1006" data-r2="0.2046"><td>0.1</td><td>12</td><td>5.8261±0.2192</td><td>1.1006±0.0072</td><td>0.2046±0.0054</td></tr><tr data-loss="8.0169" data-mae="1.1028" data-r2="0.2027"><td>0.1</td><td>14</td><td>8.0169±0.2986</td><td>1.1028±0.0151</td><td>0.2027±0.0160</td></tr><tr data-loss="10.2475" data-mae="1.1185" data-r2="0.1906"><td>0.1</td><td>16</td><td>10.2475±0.3281</td><td>1.1185±0.0087</td><td>0.1906±0.0093</td></tr><tr data-loss="26.4336" data-mae="1.1235" data-r2="0.1787"><td>1</td><td>8</td><td>26.4336±0.7892</td><td>1.1235±0.0164</td><td>0.1787±0.0162</td></tr><tr data-loss="15.0065" data-mae="1.1284" data-r2="0.1751"><td>1</td><td>6</td><td>15.0065±0.5464</td><td>1.1284±0.0191</td><td>0.1751±0.0288</td></tr><tr data-loss="40.7548" data-mae="1.1254" data-r2="0.1734"><td>1</td><td>10</td><td>40.7548±1.5369</td><td>1.1254±0.0189</td><td>0.1734±0.0163</td></tr><tr data-loss="1.781" data-mae="1.129" data-r2="0.171"><td>1</td><td>2</td><td>1.7810±0.0655</td><td>1.1290±0.0074</td><td>0.1710±0.0157</td></tr><tr data-loss="58.5556" data-mae="1.1295" data-r2="0.1708"><td>1</td><td>12</td><td>58.5556±2.3859</td><td>1.1295±0.0120</td><td>0.1708±0.0124</td></tr><tr data-loss="410.954" data-mae="1.1296" data-r2="0.1694"><td>10</td><td>10</td><td>410.9537±17.4571</td><td>1.1296±0.0175</td><td>0.1694±0.0234</td></tr><tr data-loss="6.8022" data-mae="1.1289" data-r2="0.1675"><td>1</td><td>4</td><td>6.8022±0.2802</td><td>1.1289±0.0089</td><td>0.1675±0.0162</td></tr><tr data-loss="79.6867" data-mae="1.1276" data-r2="0.167"><td>1</td><td>14</td><td>79.6867±3.1512</td><td>1.1276±0.0167</td><td>0.1670±0.0144</td></tr><tr data-loss="103.17" data-mae="1.1316" data-r2="0.1658"><td>1</td><td>16</td><td>103.1703±3.2601</td><td>1.1316±0.0167</td><td>0.1658±0.0147</td></tr><tr data-loss="266.098" data-mae="1.1308" data-r2="0.1634"><td>10</td><td>8</td><td>266.0983±10.8962</td><td>1.1308±0.0253</td><td>0.1634±0.0265</td></tr><tr data-loss="584.157" data-mae="1.1358" data-r2="0.1602"><td>10</td><td>12</td><td>584.1569±24.8136</td><td>1.1358±0.0249</td><td>0.1602±0.0209</td></tr><tr data-loss="152.27" data-mae="1.1282" data-r2="0.1601"><td>10</td><td>6</td><td>152.2696±5.7057</td><td>1.1282±0.0204</td><td>0.1601±0.0319</td></tr><tr data-loss="1046" data-mae="1.1372" data-r2="0.1578"><td>10</td><td>16</td><td>1046.0027±54.0307</td><td>1.1372±0.0071</td><td>0.1578±0.0100</td></tr><tr data-loss="803.148" data-mae="1.1394" data-r2="0.1531"><td>10</td><td>14</td><td>803.1481±40.5678</td><td>1.1394±0.0187</td><td>0.1531±0.0210</td></tr><tr data-loss="68.4883" data-mae="1.143" data-r2="0.1489"><td>10</td><td>4</td><td>68.4883±2.2760</td><td>1.1430±0.0157</td><td>0.1489±0.0269</td></tr><tr data-loss="4.561" data-mae="1.148" data-r2="0.1449"><td>10</td><td>1</td><td>4.5610±0.1557</td><td>1.1480±0.0176</td><td>0.1449±0.0170</td></tr><tr data-loss="17.8389" data-mae="1.1452" data-r2="0.1436"><td>10</td><td>2</td><td>17.8389±0.6616</td><td>1.1452±0.0104</td><td>0.1436±0.0167</td></tr>
+</tbody>
+</table>
+
+<h2>opb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-opb">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-opb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0809" data-mae="1.0516" data-r2="0.2755"><td>0.01</td><td>1</td><td>0.0809±0.0028</td><td>1.0516±0.0124</td><td>0.2755±0.0134</td></tr><tr data-loss="0.0795" data-mae="1.0554" data-r2="0.274"><td>0.01</td><td>2</td><td>0.0795±0.0007</td><td>1.0554±0.0091</td><td>0.2740±0.0065</td></tr><tr data-loss="0.0709" data-mae="1.0491" data-r2="0.27"><td>0.001</td><td>4</td><td>0.0709±0.0020</td><td>1.0491±0.0177</td><td>0.2700±0.0217</td></tr><tr data-loss="0.0725" data-mae="1.0522" data-r2="0.2684"><td>0.001</td><td>2</td><td>0.0725±0.0013</td><td>1.0522±0.0173</td><td>0.2684±0.0175</td></tr><tr data-loss="7.1455" data-mae="1.0681" data-r2="0.2678"><td>10</td><td>6</td><td>7.1455±0.2672</td><td>1.0681±0.0128</td><td>0.2678±0.0143</td></tr><tr data-loss="0.0708" data-mae="1.0507" data-r2="0.2678"><td>0.001</td><td>6</td><td>0.0708±0.0015</td><td>1.0507±0.0176</td><td>0.2678±0.0160</td></tr><tr data-loss="0.0743" data-mae="1.0528" data-r2="0.2674"><td>0.001</td><td>1</td><td>0.0743±0.0014</td><td>1.0528±0.0174</td><td>0.2674±0.0169</td></tr><tr data-loss="0.0801" data-mae="1.0551" data-r2="0.2657"><td>0.01</td><td>4</td><td>0.0801±0.0013</td><td>1.0551±0.0077</td><td>0.2657±0.0094</td></tr><tr data-loss="0.9276" data-mae="1.0738" data-r2="0.2573"><td>1</td><td>6</td><td>0.9276±0.0461</td><td>1.0738±0.0153</td><td>0.2573±0.0159</td></tr><tr data-loss="0.0701" data-mae="1.0583" data-r2="0.2552"><td>0.0001</td><td>4</td><td>0.0701±0.0021</td><td>1.0583±0.0202</td><td>0.2552±0.0228</td></tr><tr data-loss="0.0733" data-mae="1.0589" data-r2="0.255"><td>0.001</td><td>10</td><td>0.0733±0.0007</td><td>1.0589±0.0124</td><td>0.2550±0.0096</td></tr><tr data-loss="0.07" data-mae="1.0591" data-r2="0.2543"><td>0.0001</td><td>6</td><td>0.0700±0.0021</td><td>1.0591±0.0204</td><td>0.2543±0.0236</td></tr><tr data-loss="0.0725" data-mae="1.0607" data-r2="0.2536"><td>0.001</td><td>8</td><td>0.0725±0.0016</td><td>1.0607±0.0206</td><td>0.2536±0.0185</td></tr><tr data-loss="0.0702" data-mae="1.0606" data-r2="0.253"><td>0.0001</td><td>10</td><td>0.0702±0.0016</td><td>1.0606±0.0146</td><td>0.2530±0.0167</td></tr><tr data-loss="0.0709" data-mae="1.0608" data-r2="0.2526"><td>0.0001</td><td>1</td><td>0.0709±0.0022</td><td>1.0608±0.0231</td><td>0.2526±0.0256</td></tr><tr data-loss="11.9323" data-mae="1.0739" data-r2="0.2525"><td>10</td><td>8</td><td>11.9323±0.5121</td><td>1.0739±0.0119</td><td>0.2525±0.0136</td></tr><tr data-loss="0.0708" data-mae="1.0621" data-r2="0.2523"><td>0.0001</td><td>16</td><td>0.0708±0.0016</td><td>1.0621±0.0129</td><td>0.2523±0.0163</td></tr><tr data-loss="0.0705" data-mae="1.0624" data-r2="0.2493"><td>0.0001</td><td>8</td><td>0.0705±0.0021</td><td>1.0624±0.0214</td><td>0.2493±0.0223</td></tr><tr data-loss="0.0852" data-mae="1.0697" data-r2="0.249"><td>0.01</td><td>6</td><td>0.0852±0.0020</td><td>1.0697±0.0102</td><td>0.2490±0.0145</td></tr><tr data-loss="4.1497" data-mae="1.0897" data-r2="0.2487"><td>10</td><td>4</td><td>4.1497±0.2059</td><td>1.0897±0.0138</td><td>0.2487±0.0125</td></tr><tr data-loss="0.5198" data-mae="1.0928" data-r2="0.2471"><td>1</td><td>4</td><td>0.5198±0.0089</td><td>1.0928±0.0129</td><td>0.2471±0.0153</td></tr><tr data-loss="0.0711" data-mae="1.0668" data-r2="0.247"><td>0.0001</td><td>14</td><td>0.0711±0.0016</td><td>1.0668±0.0161</td><td>0.2470±0.0165</td></tr><tr data-loss="0.0709" data-mae="1.0639" data-r2="0.2466"><td>0.0001</td><td>12</td><td>0.0709±0.0017</td><td>1.0639±0.0145</td><td>0.2466±0.0185</td></tr><tr data-loss="0.0769" data-mae="1.0665" data-r2="0.2451"><td>0.001</td><td>14</td><td>0.0769±0.0012</td><td>1.0665±0.0163</td><td>0.2451±0.0146</td></tr><tr data-loss="0.0715" data-mae="1.0682" data-r2="0.2439"><td>0.0001</td><td>2</td><td>0.0715±0.0019</td><td>1.0682±0.0210</td><td>0.2439±0.0228</td></tr><tr data-loss="1.4096" data-mae="1.0848" data-r2="0.2406"><td>1</td><td>8</td><td>1.4096±0.0663</td><td>1.0848±0.0133</td><td>0.2406±0.0151</td></tr><tr data-loss="0.0759" data-mae="1.0751" data-r2="0.2401"><td>0.001</td><td>12</td><td>0.0759±0.0011</td><td>1.0751±0.0111</td><td>0.2401±0.0131</td></tr><tr data-loss="0.1283" data-mae="1.0979" data-r2="0.2353"><td>0.1</td><td>4</td><td>0.1283±0.0025</td><td>1.0979±0.0163</td><td>0.2353±0.0200</td></tr><tr data-loss="17.1701" data-mae="1.0851" data-r2="0.2352"><td>10</td><td>10</td><td>17.1701±0.8616</td><td>1.0851±0.0075</td><td>0.2352±0.0113</td></tr><tr data-loss="0.2146" data-mae="1.0847" data-r2="0.234"><td>0.1</td><td>8</td><td>0.2146±0.0130</td><td>1.0847±0.0116</td><td>0.2340±0.0088</td></tr><tr data-loss="0.1732" data-mae="1.0952" data-r2="0.2308"><td>0.1</td><td>6</td><td>0.1732±0.0045</td><td>1.0952±0.0086</td><td>0.2308±0.0155</td></tr><tr data-loss="0.0941" data-mae="1.0833" data-r2="0.2286"><td>0.01</td><td>8</td><td>0.0941±0.0014</td><td>1.0833±0.0073</td><td>0.2286±0.0088</td></tr><tr data-loss="0.0801" data-mae="1.089" data-r2="0.2239"><td>0.001</td><td>16</td><td>0.0801±0.0011</td><td>1.0890±0.0109</td><td>0.2239±0.0102</td></tr><tr data-loss="0.1025" data-mae="1.0919" data-r2="0.2186"><td>0.01</td><td>10</td><td>0.1025±0.0020</td><td>1.0919±0.0102</td><td>0.2186±0.0066</td></tr><tr data-loss="2.0394" data-mae="1.1022" data-r2="0.2136"><td>1</td><td>10</td><td>2.0394±0.1581</td><td>1.1022±0.0199</td><td>0.2136±0.0243</td></tr><tr data-loss="0.2606" data-mae="1.1076" data-r2="0.2016"><td>0.1</td><td>10</td><td>0.2606±0.0131</td><td>1.1076±0.0084</td><td>0.2016±0.0087</td></tr><tr data-loss="0.1131" data-mae="1.1095" data-r2="0.1976"><td>0.01</td><td>12</td><td>0.1131±0.0030</td><td>1.1095±0.0078</td><td>0.1976±0.0090</td></tr><tr data-loss="0.1197" data-mae="1.1091" data-r2="0.1973"><td>0.01</td><td>14</td><td>0.1197±0.0019</td><td>1.1091±0.0213</td><td>0.1973±0.0243</td></tr><tr data-loss="24.708" data-mae="1.1152" data-r2="0.1953"><td>10</td><td>12</td><td>24.7080±1.3569</td><td>1.1152±0.0212</td><td>0.1953±0.0270</td></tr><tr data-loss="0.1293" data-mae="1.1214" data-r2="0.1854"><td>0.01</td><td>16</td><td>0.1293±0.0038</td><td>1.1214±0.0178</td><td>0.1854±0.0216</td></tr><tr data-loss="0.2341" data-mae="1.176" data-r2="0.1691"><td>1</td><td>2</td><td>0.2341±0.0059</td><td>1.1760±0.0078</td><td>0.1691±0.0085</td></tr><tr data-loss="0.3073" data-mae="1.1335" data-r2="0.1689"><td>0.1</td><td>12</td><td>0.3073±0.0160</td><td>1.1335±0.0126</td><td>0.1689±0.0163</td></tr><tr data-loss="2.7026" data-mae="1.137" data-r2="0.1648"><td>1</td><td>12</td><td>2.7026±0.1926</td><td>1.1370±0.0254</td><td>0.1648±0.0366</td></tr><tr data-loss="33.2196" data-mae="1.1443" data-r2="0.1497"><td>10</td><td>14</td><td>33.2196±3.3362</td><td>1.1443±0.0219</td><td>0.1497±0.0259</td></tr><tr data-loss="1.3535" data-mae="1.199" data-r2="0.1419"><td>10</td><td>2</td><td>1.3535±0.0672</td><td>1.1990±0.0072</td><td>0.1419±0.0081</td></tr><tr data-loss="3.587" data-mae="1.1629" data-r2="0.1276"><td>1</td><td>14</td><td>3.5870±0.2020</td><td>1.1629±0.0210</td><td>0.1276±0.0340</td></tr><tr data-loss="0.4629" data-mae="1.1745" data-r2="0.1136"><td>0.1</td><td>14</td><td>0.4629±0.1354</td><td>1.1745±0.0288</td><td>0.1136±0.0356</td></tr><tr data-loss="47.4686" data-mae="1.1792" data-r2="0.1034"><td>10</td><td>16</td><td>47.4686±5.7786</td><td>1.1792±0.0293</td><td>0.1034±0.0267</td></tr><tr data-loss="5.4234" data-mae="1.201" data-r2="0.0827"><td>1</td><td>16</td><td>5.4234±1.7397</td><td>1.2010±0.0247</td><td>0.0827±0.0217</td></tr><tr data-loss="0.7243" data-mae="1.2169" data-r2="0.0634"><td>0.1</td><td>16</td><td>0.7243±0.0983</td><td>1.2169±0.0062</td><td>0.0634±0.0057</td></tr><tr data-loss="0.127" data-mae="1.2642" data-r2="0.0612"><td>1</td><td>1</td><td>0.1270±0.0032</td><td>1.2642±0.0039</td><td>0.0612±0.0031</td></tr><tr data-loss="0.395" data-mae="1.2839" data-r2="0.0358"><td>10</td><td>1</td><td>0.3950±0.0398</td><td>1.2839±0.0022</td><td>0.0358±0.0039</td></tr><tr data-loss="0.1573" data-mae="1.2966" data-r2="-0.0159"><td>0.1</td><td>2</td><td>0.1573±0.0360</td><td>1.2966±0.1101</td><td>-0.0159±0.1486</td></tr><tr data-loss="0.1635" data-mae="1.3614" data-r2="-0.1082"><td>0.1</td><td>1</td><td>0.1635±0.0122</td><td>1.3614±0.0161</td><td>-0.1082±0.0272</td></tr>
+</tbody>
+</table>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>
