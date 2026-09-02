@@ -2,22 +2,25 @@
 % 基于 paper/OPB.txt（分类）、paper/OPB-R.txt（回归）、paper/theory.tex（理论）撰写；
 % 结构参照 paper/template.tex（ICLR 2027 投稿格式）。本仓库未随附 iclr2027_conference.sty
 % 与 math_commands.tex，故 preamble 自带最小等价设置（拿到样式文件后替换即可）。
-% 当前包含：题目、Intro、方法（2.1 背景与记号 / 2.2 关键理论 / 2.3 模型变体）、
-% 实验（3.1 设置 / 3.2 主结果，\input{main_result}；压缩-精度扫参与机制验证小节待补）、
-% 附录（其余理论结果）。相关工作为占位，后续填充。
+% 当前包含：题目、abstract、Intro、方法（2.1 背景与记号 / 2.2 关键理论 / 2.3 模型变体）、
+% 实验（3.1 设置 / 3.2 主结果 \input{main_result} / 3.3 压缩-精度扫参 \input{result1} /
+% 3.4 对抗鲁棒性 \input{result2}；其余机制验证小节待补）、语句小节、参考文献、
+% 附录（\input{appendix.tex}）。相关工作为占位。
 
-\documentclass{article}
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2027_conference,times}
 
-% ---------- 最小等效 ICLR 样式（原模板为 \usepackage{iclr2027_conference,times}） ----------
-\usepackage[T1]{fontenc}
-\usepackage{times}
-\usepackage{amsmath,amssymb,amsthm}
-\usepackage{natbib}
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
 \usepackage{hyperref}
 \usepackage{url}
-% 行溢出兜底：断行困难时允许行内额外拉伸（消除轻度 Overfull \hbox，避免文字越出版心）
-\emergencystretch=1.5em
 
+% 本文所需扩展（不影响模板版式参数）：amsmath 用于 multline/gathered，
+% 定理环境、emergencystretch 兜底行溢出、\KL 覆写为本文的 KL(·‖·) 记法
+% （math_commands.tex 默认定义为 D_KL 形式）。
+\usepackage{amsmath,amssymb,amsthm}
+\emergencystretch=1.5em
 \theoremstyle{plain}
 \newtheorem{proposition}{Proposition}[section]
 \newtheorem{lemma}{Lemma}[section]
@@ -25,21 +28,44 @@
 \newtheorem{assumption}{Assumption}[section]
 \theoremstyle{remark}
 \newtheorem{remark}{Remark}[section]
-
-\newcommand{\R}{\mathbb{R}}
-\newcommand{\E}{\mathbb{E}}
-\DeclareMathOperator{\KL}{KL}
+\renewcommand{\KL}{\operatorname{KL}}
 \DeclareMathOperator{\CE}{CE}
 
 \title{Geometry by Construction: A Geometric Prior Bottleneck}
 
-% 匿名投稿：作者信息隐藏（同 template.tex 约定）
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \iclrfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
 \author{Anonymous authors}
-%\iclrfinalcopy % 相机版时取消注释
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
 
 \begin{document}
 
 \maketitle
+
+\begin{abstract}
+The conditional entropy bottleneck (CEB) compresses representations against a
+label-conditional reference whose geometry is left entirely to the optimizer. We
+show that this reference has two failure channels: in deterministic settings the
+CEB knob is dead (a known Caveat), and, more fundamentally, the certificate is
+blind to the relationships between labels --- no cross-class term constrains the
+geometry among the class priors. We close this channel by declaring the geometry:
+the prior is confined to a qualified geometric family computed statelessly at
+every training step --- an orthogonal class frame (OPB) for classification and an
+isometric regression axis (EPB) for regression --- both with prediction rules tied
+to the geometry by construction (the zero-parameter anchor-energy classifier and
+the tied projection head). The framework preserves the CEB certificate, transfers
+the prior's separation to the posterior under $\beta$-controlled anchor-alignment
+bounds, and removes the unspecified inter-class geometry of the reference. Across
+nine datasets and four backbones, GPB is best or tied-best in $7$ of $12$ settings
+and dominates CEB everywhere, and the anchor scale converts the $\beta$-knob from
+a collapse dial into a plateau dial.
+\end{abstract}
+
 
 % =====================================================================
 \section{Introduction}
@@ -470,12 +496,12 @@ D(y) := \frac{1}{2\tau^2_{\max}}\,
 \end{equation}
 both well-defined for $P_Y$-almost every $y$. Then for $P_Y$-almost every pair
 $y \ne y'$,
-\begin{equation}
+\begin{multline}
 \|m(y) - m(y')\| \;\ge\; \|m_\theta(y) - m_\theta(y')\|
-- \sqrt{2\tau^2_{\max} D(y)} - \sqrt{2\tau^2_{\max} D(y')}
+- \sqrt{2\tau^2_{\max} D(y)} - \sqrt{2\tau^2_{\max} D(y')} \\
 \;\ge\; \rho_{\min}\, d_Y(y, y') - \sqrt{2\tau^2_{\max} D(y)} - \sqrt{2\tau^2_{\max} D(y')} ,
 \label{eq:pgib-separation-continuous}
-\end{equation}
+\end{multline}
 using Eq.~\eqref{eq:pgib-lipschitz}; no global positive minimum separation is
 required. Small pointwise anchor mismatch therefore guarantees that the posterior
 centers inherit the prior's separation for \emph{any} qualified member of
@@ -1020,9 +1046,10 @@ settings? Second, does prediction survive when the prediction rule is tied to th
 geometry by construction --- the anchor-energy classifier and the tied projection
 head --- so that the free head's degrees of freedom are removed? The main sweep
 answers both on twelve dataset--backbone settings; the compression--accuracy sweep
-over $\beta$ and the anchor scale, and the mechanism-level validation (prior
-geometry, posterior transfer, nearest-anchor sufficiency, memorization, adversarial
-robustness), are reported in the supplementary analysis.
+over $\beta$ and the anchor scale is reported in Section~\ref{sec:sweep},
+adversarial robustness in Section~\ref{sec:robustness}, and the remaining
+mechanism-level validation (prior geometry, posterior transfer, nearest-anchor
+sufficiency, memorization) in the supplementary analysis.
 
 \subsection{Experimental setup}
 \label{sec:setup}
@@ -1134,6 +1161,88 @@ prediction rule to the prior's geometry removes both escape routes, consistent w
 the fixed-scale condition under which the aligned surrogate of
 Proposition~\ref{prop:opb-sweep} has a unique interior optimum per $\beta$.
 
+\subsection{Compression--accuracy sweep}
+\label{sec:sweep}
+
+The main table selects the best $(\beta, a)$ per method; the sweep below opens the
+grid and reports the full $\beta$ curve on one classification and one regression
+setting (ImageNet-100 with the MLP backbone and AgeDB with the MLP backbone; the
+curves for all twelve settings are in the release). Each cell is the test metric of
+the corresponding configuration, averaged over five runs.
+
+\input{result1}
+
+Table~\ref{tab:compression} exhibits the two roles of the anchor scale. \emph{(i)
+Without a scale, the reference collapses.} On ImageNet-100, CEB's accuracy erodes to
+$71.5$ at $\beta = 0.1$ and collapses to chance ($1.03\%$, whose chance level is
+$1\%$) at $\beta = 1$; on AgeDB its $R^2$ drops to zero at $\beta = 1$. OPB at
+$a = 1$ replicates the collapse almost exactly ($1.00\%$ and $-0.003$).
+Orthogonality alone therefore does not prevent the collapse --- the frame is fixed
+up to rotation, but the anchor-energy classifier's margin is $a^2/\tau^2$
+(Proposition~\ref{prop:opb-energy}), and at $a = 1$ that margin is too small to
+carry a solution at strong compression. \emph{(ii) The anchor scale controls where
+the collapse sets in.} On ImageNet-100, OPB at $a = 6$ still attains $68.5\%$ at
+$\beta = 10$; at $a = 12$ it never collapses, reaching $84.22\%$ at $\beta = 1$
+--- above the best CEB value anywhere in the table ($82.77\%$) --- and $80.4\%$ at
+$\beta = 10$. On AgeDB, OPB at $a = 12$ holds a plateau of $0.23$--$0.27$ across
+four orders of magnitude of $\beta$, and $a = 6$ peaks at $0.3536$
+($\beta = 0.1$), the largest $R^2$ in the table.
+
+The mechanism is the one the theory predicts. At strong $\beta$ the posterior is
+pinned near the aligned solution --- Proposition~\ref{prop:pgib-alignment} bounds
+the expected anchor mismatch by $(\ln K + \varepsilon)/\beta$ --- and the accuracy
+achievable at alignment is the aligned Gaussian mixture's accuracy, governed by the
+scale-to-noise ratio $a/\tau$ (the nearest-anchor error probability is
+$\Phi(-a/(\sqrt{2}\tau))$; appendix). With the classifier scale
+fixed at $a/\tau^2$ by construction, the only remaining lever at full compression is
+$a$ itself: the anchor scale converts the compression knob from a collapse dial into
+a plateau dial. This is the empirical counterpart of the separation-transfer
+guarantees (Proposition~\ref{prop:pgib-separation};
+corollaries in the appendix) and of the fixed-scale condition of
+Proposition~\ref{prop:opb-sweep}; consistent with that proposition's scope, we do
+not claim that the map $\beta \mapsto$ accuracy is monotone, only that the
+constructed scale keeps the plateau from collapsing.
+
+A visible cost remains in the weak-compression regime: for $\beta \le 10^{-2}$ on
+ImageNet-100, OPB trails CEB by one to three points, and the gap grows with $a$
+($a = 6$: $81.0$ vs.\ $82.8$; $a = 12$: $79.8$ vs.\ $82.6$) --- the price of the
+fixed-scale energy rule when compression is weak. The construction pays for itself
+in the strong-compression regime, where CEB is at chance.
+
+\subsection{Adversarial robustness}
+\label{sec:robustness}
+
+We evaluate robustness to white-box attacks following the protocol of the CEB
+paper: untargeted projected gradient descent (PGD, $20$ steps, step size
+$2.5\varepsilon/\mathrm{steps}$, random start) in the $L_\infty$ and $L_2$ norms,
+with $\varepsilon$ defined in the normalized pixel space (MNIST mean/std), and the
+model evaluated on its deterministic path ($z = \mu_\phi(x)$). We attack
+$1{,}000$ test images and average over five runs. The compared configurations are
+the plain backbone, CEB at $\beta = 0.1$, and OPB at $\beta = 0.1$, $a = 12$ ---
+the strong-compression regime of Section~\ref{sec:sweep}, where the reference
+geometry is in force.
+
+\input{result2}
+
+Table~\ref{tab:robustness} exhibits the same margin structure the sweep predicts.
+OPB is the most robust configuration in $11$ of $13$ attack strengths, and its
+advantage \emph{grows} with the attack: at clean inputs the gap is within
+$0.6$ points ($98.3$ vs.\ $97.8$ for CEB), while at
+$\varepsilon_\infty = 0.2$ it is $+3.9$ ($27.9$ vs.\ $24.0$) and at
+$\varepsilon_2 = 4$ it is $+3.4$ ($27.3$ vs.\ $23.9$) --- the robustness gain is
+not a side effect of a clean-accuracy difference. The mechanism is the one the
+theory identifies: at strong $\beta$ the posterior class centers are pinned near
+the aligned solution (Proposition~\ref{prop:pgib-alignment}) and inherit the
+prior's separation $\sqrt{2}\,a$ (Proposition~\ref{prop:pgib-separation}), so the
+anchor-energy classifier's decision boundaries sit midway between well-separated
+anchors with a margin governed by $a/\tau$ --- the same geometry that turns the
+compression knob into a plateau dial in Section~\ref{sec:sweep}. We do not
+over-claim: this is a single dataset with single hyperparameter configurations;
+at the largest $L_2$ strengths ($\varepsilon = 5, 6$), where every model is near
+chance, the ordering is noisy and the plain backbone happens to sit above the
+bottleneck models. Full $\varepsilon$ grids for all configurations are in the
+release.
+
 % =====================================================================
 \section{Related work}
 \label{sec:related}
@@ -1143,219 +1252,38 @@ Proposition~\ref{prop:opb-sweep} has a unique interior optimum per $\beta$.
 % 此处补充神经坍缩、几何先验、分类头约束等邻近工作）。
 
 % =====================================================================
+\section*{AI use statement}
+% =====================================================================
+
+(This section is \textbf{required} and does not count toward the page limit.)
+
+In this work, we used generative AI tools for drafting and editing portions of
+the code and of this manuscript. All AI-assisted content was manually reviewed
+and verified by the authors; experimental results and theoretical claims were
+produced and checked by our own code and analysis. We take responsibility for
+the final content of this work, including text, claims or artifacts produced
+with the aid of generative AI.
+
+\section*{Reproducibility statement}
+
+The code, hyperparameter grids, and evaluation protocol are described in
+Section~\ref{sec:setup}; the geometric prior is stateless (no EMA or prototypes)
+and the orthogonalization is exact wherever defined (Assumption~\ref{ass:fullrank}).
+All datasets are public, with preprocessing steps given in the release. Proofs
+of all statements are collected in the appendix.
+
+\section*{Acknowledgments}
+
+% 待填：经费与致谢信息（模板要求放在文末）
+
+\bibliography{paper_refs}
+\bibliographystyle{iclr2027_conference}
+
+
+% =====================================================================
 \appendix
-\section{Deferred proofs and further results}
-\label{app:deferred}
-% =====================================================================
+\input{appendix.tex}
 
-The following results support the main text: the pointwise KL decomposition
-(Lemma~\ref{lem:opb-kl-decomposition}), a Fano-type label-information lower bound
-(Corollary~\ref{cor:opb-fano}), the strict convexity of the $\beta$-sweep on the
-aligned family (Proposition~\ref{prop:opb-sweep}), and the scope and limitations
-(Remark~\ref{rem:opb-scope}).
 
-\begin{lemma}[OPB KL decomposition]
-\label{lem:opb-kl-decomposition}
-For a diagonal posterior covariance and the prior of Eq.~\eqref{eq:opb-prior},
-\begin{equation}
-\KL\bigl(q_\phi(z|x)\,\|\,p_\theta^{\mathrm{OPB}}(z|y)\bigr)
-= \frac{1}{2\tau^2}\|\mu_\phi(x) - a\,q_{\theta,y}\|^2
-+ \frac12 \sum_{r=1}^{d}\Bigl[
-\frac{\sigma_{\phi,r}^2(x)}{\tau^2} - 1 - \log\frac{\sigma_{\phi,r}^2(x)}{\tau^2}
-\Bigr],
-\label{eq:opb-kl-decomposition}
-\end{equation}
-a class-anchor mismatch term plus a variance mismatch term that is non-negative and
-vanishes exactly at $\sigma_{\phi,r}^2(x) = \tau^2$ for all $r$. The mismatch term is
-quadratic in the displacement to a reference whose scale and covariance cannot move:
-this is the mechanism behind the strict convexity of
-Proposition~\ref{prop:opb-sweep} below.
-\end{lemma}
-
-\begin{proof}
-Apply the diagonal-Gaussian KL formula with posterior mean $\mu_\phi(x)$, prior mean
-$a\,q_{\theta,y}$, posterior variances $\sigma_{\phi,r}^2(x)$, and the fixed prior
-variance $\tau^2$.
-\end{proof}
-
-\begin{corollary}[Label-information lower bound in the aligned Gaussian model]
-\label{cor:opb-fano}
-Assume uniform classes and exact alignment
-$q(z|Y=k) = \mathcal{N}(a\,q_{\theta,k}, \tau^2 I_d)$. The pairwise error probability
-of the nearest-anchor classifier is
-$P_{\mathrm{pair}} = \Phi\bigl(-\frac{a}{\sqrt{2}\,\tau}\bigr)$, with
-$P_e \le \min\{1, (K-1)P_{\mathrm{pair}}\}$, and whenever the displayed bound
-$\bar P_e \le 1 - 1/K$, Fano's inequality gives
-$I(Y;Z) \ge \log K - h_2(\bar P_e) - \bar P_e \log(K-1)$. This links the anchor
-scale-to-noise ratio $a/\tau$ to the retained label information, conditionally on the
-aligned Gaussian model.
-\end{corollary}
-
-\begin{proof}
-Two anchors have distance $\sqrt{2}a$ by Proposition~\ref{prop:opb-frame}; the
-equal-covariance binary decision boundary is halfway between them, giving
-$\Phi(-\sqrt{2}a/(2\tau))$. The union bound and Fano's inequality on
-$[0, 1-1/K]$ conclude.
-\end{proof}
-
-\begin{proposition}[Joint strict convexity and unique optimum on a restricted aligned surrogate]
-\label{prop:opb-sweep}
-Consider the class-symmetric aligned family: every input of class $y$ is mapped to the
-posterior $q_y = \mathcal{N}(s\,q_{\theta,y}, \sigma^2 I)$ ($s \ge 0$, $\sigma^2 > 0$;
-anchor scale $a > 0$), and the classifier is the anchor-energy classifier of
-Proposition~\ref{prop:opb-energy} (weights $w_j = c\,q_{\theta,j}$ with scale
-$c = a/\tau^2$ fixed by construction). With the \emph{stochastic training code}
-$z \sim q_y$ --- as in the actual objective, Eq.~\eqref{eq:opb-objective} --- the
-training cross-entropy is
-\begin{equation}
-g(s, \sigma^2) := \E_\eta\Bigl[
-\ln\Bigl(1 + \textstyle\sum_{j \ne y} e^{-cs + c\sigma(\eta_j - \eta_y)}\Bigr)
-\Bigr],
-\qquad \eta \sim \mathcal{N}(0, I_K),
-\label{eq:opb-ce-train}
-\end{equation}
-and the training Lagrangian is
-\begin{equation}
-L_\beta(s, \sigma^2) = g(s, \sigma^2)
-+ \beta\Bigl[
-\tfrac{1}{2\tau^2}(s-a)^2
-+ \tfrac{d}{2}\bigl(\sigma^2/\tau^2 - 1 - \ln(\sigma^2/\tau^2)\bigr)
-\Bigr].
-\label{eq:opb-lag-train}
-\end{equation}
-Then for every $\beta > 0$, $L_\beta$ is strictly convex jointly in $(s, \sigma)$ and
-has a unique joint minimizer $(s^*(\beta), \sigma^*(\beta))$, interior in $s$ since
-$a > 0$: the stochastic training objective has a well-defined optimum, in contrast to
-the deterministic IB Lagrangian, whose optimum is pinned at a corner for every $\beta$
-(Proposition~\ref{prop:dead}). This is a \emph{restricted surrogate result}: it
-analyzes two scalar variables on the class-symmetric aligned family, with the frame,
-the anchor scale, and the classifier scale held fixed; the full OPB objective --- with
-its nonlinear posterior, trainable frame, and non-convex degrees of freedom --- lies
-outside this analysis, and the result neither establishes $\beta$-tunability of the
-full objective nor makes any claim on the information plane.
-The deterministic evaluation code ($z = \mu$) is the $\sigma \to 0$ limit, and
-$g \ge \ln(1 + (K-1)e^{-cs})$ by Jensen (the log-sum-exp is convex), so the statement
-strictly generalizes the deterministic surrogate analysis. We do \emph{not} claim here
-that the map $\beta \mapsto s^*(\beta)$ is monotone or that the sweep is one-to-one:
-the minimizer $\sigma^*$ responds to $\beta$ through the cross-derivative
-$\partial^2 g/\partial s\,\partial\sigma$, and establishing the sign of
-$\mathrm{d}s^*/\mathrm{d}\beta$ requires the full two-dimensional stationarity
-analysis, which we leave open; the $\beta$-sweep is reported empirically in the
-experiments. The fixed-scale condition holds for the main model by construction
-(Proposition~\ref{prop:opb-energy}), so the statement describes the actual training
-objective up to the aligned-family idealization. We do not analyze the free-classifier
-variant on this surrogate: under the stochastic training code, a diverging classifier
-scale does not produce a degenerate solution --- at $\operatorname{KL} \to 0$ the
-posterior variance is pinned at $\sigma^2 = \tau^2 > 0$, so the class-conditional
-Gaussians overlap and the training cross-entropy of a free classifier diverges with
-its scale rather than vanishing (for $K = 2$ it contains
-$\E[\ln(1 + e^{-c(a + \tau\xi)})]$, whose integrand grows linearly in $c$ on the
-event $\xi < -a/\tau$, which has positive probability). An analysis of the free
-classifier would require an explicit classifier-norm constraint or regularizer and is
-left to future work.
-\end{proposition}
-
-\begin{proof}
-For each fixed $\eta$, the integrand of Eq.~\eqref{eq:opb-ce-train} is a log-sum-exp of
-functions affine in $(s, \sigma)$ (the constant $1$ has slope zero and each exponential
-has slope $(-c,\, c(\eta_j - \eta_y))$), hence jointly convex in $(s, \sigma)$, and the
-expectation $g$ is jointly convex. No strictness is claimed for $g$: for $K = 2$ the
-integrand depends on $(s, \sigma)$ only through the single linear combination
-$-cs + c\sigma(\eta_2 - \eta_1)$, so its Hessian has rank one. Write the KL term as
-$R(s, \sigma) := \tfrac{1}{2\tau^2}(s-a)^2
-+ \tfrac{d}{2}\bigl(\sigma^2/\tau^2 - 1 - \ln(\sigma^2/\tau^2)\bigr)$; its Hessian in
-$(s, \sigma)$ is
-$\nabla^2 R = \operatorname{diag}\bigl(\tau^{-2},\; d\,(\tau^{-2} + \sigma^{-2})\bigr)$,
-strictly positive definite for every $\sigma > 0$, so $\beta R$ is strictly convex in
-$(s, \sigma)$. Hence $L_\beta = g + \beta R$ is the sum of a jointly convex and a
-strictly convex function, and is strictly convex in $(s, \sigma)$. Since
-$R \to +\infty$ as $s \to \infty$, $\sigma \to 0^+$, or $\sigma \to \infty$, the
-sublevel sets of $L_\beta$ are compact, and the unique joint minimizer exists (by
-strict convexity it is unique). For $a > 0$ the minimizer is interior in $s$: at
-$s = 0$, $\partial L_\beta/\partial s = -c\,\E[p_{\mathrm{w}}] - \beta a/\tau^2 < 0$,
-where $p_{\mathrm{w}}$ is the error probability of the sampled code, so $s^* > 0$.
-\end{proof}
-
-\begin{remark}[The sweep is a KL--CE surrogate curve; scope and limitations]
-\label{rem:opb-scope}
-Proposition~\ref{prop:opb-sweep} proves joint strict convexity and uniqueness of the
-optimum for the stochastic training objective in the KL--CE plane on the aligned family
-at fixed classifier scale --- a restricted surrogate result, which does not establish
-$\beta$-tunability of the full OPB objective, and in any case not a statement on the
-information plane of the Caveats paper; the results of the main text
-establish a structured conditional prior, an exact KL geometry, and conditional
-separation guarantees, and they do \emph{not} establish a mutual information upper
-bound tighter than CEB's --- Eq.~\eqref{eq:opb-certificate} is the usual CEB gap
-identity for a particular prior family. The orthogonal-frame construction fixes all pairwise anchor
-distances, so the framework should not claim to recover arbitrary semantic class
-similarities. All geometric statements are conditional on
-Assumption~\ref{ass:fullrank}: orthonormality holds exactly by the polar construction
-wherever the factorization exists, and the condition is verified --- not imposed ---
-along the reported runs (Section~\ref{sec:opb}); the construction is exactly
-equivariant under relabeling of the classes by Eq.~\eqref{eq:opb-equivariance}, so
-no class index plays a distinguished role. If the frame were computed from the
-current input batch rather than from the all-class prior matrix, the prior would
-become batch-dependent and Proposition~\ref{prop:opb-certificate} would no longer
-follow directly. Finally, the
-anchor-energy classifier of Proposition~\ref{prop:opb-energy} fixes the classifier
-scale to $a/\tau^2$ by construction, removing the independent classifier-margin
-escape route in the aligned surrogate of Proposition~\ref{prop:opb-sweep}; whether a
-free classifier (with an explicit norm constraint or regularizer) admits its own
-degenerate route is left to future work, and the free linear classifier is kept in
-the experiments as a variant for comparison.
-Whether the joint optimum of Proposition~\ref{prop:opb-sweep} moves monotonically in
-$\beta$ is likewise open: it requires the full two-dimensional stationarity analysis,
-in which the optimal variance responds to $\beta$ through the cross-derivative
-$\partial^2 g/\partial s\,\partial\sigma$ of the stochastic cross-entropy.
-The trainable frame and axis constitute a rotation channel that this paper does not
-address: the certificate's zero set contains the full-retention orthogonal label codes
-at any frame rotation (the reference can rotate to meet them), and the framework pins
-the \emph{geometry of the code} --- it does not claim that the certificate reads off
-the retained label information. Quantifying how much of the anchor gap is absorbed by
-frame rotation rather than by posterior motion is left to future work (a frozen-frame
-ablation isolates it).
-\end{remark}
-
-% =====================================================================
-\bibliographystyle{plainnat}
-\begin{thebibliography}{10}
-
-\bibitem[Alemi et al.(2017)]{alemi2017deep}
-A.~A.~Alemi, I.~Fischer, J.~V.~Dillon, and K.~Murphy.
-\newblock Deep variational information bottleneck.
-\newblock In \emph{ICLR}, 2017.
-
-\bibitem[Fischer(2020)]{fischer2020conditional}
-I.~Fischer.
-\newblock The conditional entropy bottleneck.
-\newblock \emph{Entropy}, 22(9):999, 2020.
-
-\bibitem[Kolchinsky and Tracey(2019)]{kolchinsky2019caveats}
-A.~Kolchinsky and B.~D.~Tracey.
-\newblock Caveats for information bottleneck in deterministic scenarios.
-\newblock In \emph{ICLR}, 2019.
-
-\bibitem[Kolchinsky et al.(2017)]{kolchinsky2017nonlinear}
-A.~Kolchinsky, B.~D.~Tracey, and D.~H.~Wolpert.
-\newblock Nonlinear information bottleneck.
-\newblock \emph{Entropy}, 21(12):1181, 2019.
-
-\bibitem[Tishby et al.(2000)]{tishby2000information}
-N.~Tishby, F.~C.~Pereira, and W.~Bialek.
-\newblock The information bottleneck method.
-\newblock In \emph{Proc.\ 37th Allerton Conference}, 2000.
-
-\bibitem[Abdelaleem et al.(2025)]{abdelaleem2025deep}
-E.~Abdelaleem, I.~Ndiour, and A.~Bhattacharyya.
-\newblock Deep variational multivariate information bottleneck.
-\newblock \emph{JMLR}, 2025.
-
-\bibitem[Papyan et al.(2020)]{papyan2020prevalence}
-V.~Papyan, X.~Y.~Han, and D.~L.~Donoho.
-\newblock Prevalence of neural collapse during the terminal phase of deep learning
-training.
-\newblock \emph{PNAS}, 117(40):24652--24663, 2020.
-
-\end{thebibliography}
 
 \end{document}

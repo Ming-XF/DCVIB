@@ -13,8 +13,18 @@ R²（原始值），且只显示均值、不含标准差（表格较宽）；�
 （并列次优全部）加下划线；表尾两行统计各方法跨数据集行的平均排名（并列取
 平均名次，越低越好）与最优/并列最优次数（并列时各方法均计数）。输出可直接
 \input{} 的 table* 浮动体，保存到 paper/main_result.tex。
+
+同时生成压缩-精度表 paper/result1.tex（gen_result1）：仅 ImageNet-100 (MLP，
+分类 Acc ×100) 与 AgeDB (MLP，回归 R²) 两个任务，行 = CEB 与 OPB 的
+a ∈ {1, 6, 12} 三条线，列 = β 网格 {1e-4, ..., 10}。
+
+以及对抗鲁棒性表 paper/result2.tex（gen_result2）：读取
+output/adv_mnist/mnist_adv.csv（adv_eval.py 输出），行 = 攻击强度
+（clean + L∞/L2 各 ε，随 CSV 自适应），列 = CSV 中的模型配置（数量自适应），
+值为跨 run 平均鲁棒精度（%）。
 """
 
+import csv
 import re
 from html.parser import HTMLParser
 from pathlib import Path
@@ -22,6 +32,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "tune_results"
 OUT_PATH = Path(__file__).resolve().parent / "main_result.tex"
+RESULT1_PATH = Path(__file__).resolve().parent / "result1.tex"
+RESULT2_PATH = Path(__file__).resolve().parent / "result2.tex"
+# 对抗鲁棒性长表（adv_eval.py 输出）：config/run/norm/eps/acc
+ADV_CSV_PATH = ROOT / "output" / "adv_mnist" / "mnist_adv.csv"
+
+# 压缩-精度表（result1.tex）：仅这两个 (task, backbone) 与固定 β 网格，
+# 行 = CEB 与 OPB 的 a=1/6/12 三条线，列 = β
+COMPRESSION_TASKS = [("imagenet100", "mlp"), ("agedb", "mlp")]
+COMPRESSION_BETAS = [1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0]
+COMPRESSION_ANCHORS = [1.0, 6.0, 12.0]
+
+
+def _to_float(s):
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
 
 # 分类任务集合（决定行顺序中分类块与回归块的分界）
 CLASSIFICATION_TASKS = {"mnist", "imagenet100", "cora", "imdb", "agnews"}
@@ -151,7 +178,11 @@ class TuneHTMLParser(HTMLParser):
             mean, std = float(mean_s), float(std_s)
         except ValueError:
             return
-        self.rows.setdefault(self._model, []).append((self._tr_best, key, mean, std))
+        beta = _to_float(self._tr_cells[0])
+        anchor = _to_float(self._tr_cells[1]) if len(self._tr_cells) > 1 else None
+        self.rows.setdefault(self._model, []).append(
+            (self._tr_best, key, mean, std, beta, anchor)
+        )
 
     def best_values(self):
         """各模型取 best 行（缺失时回退指标最大行），返回 {model: (key, mean, std)}。"""
@@ -159,7 +190,7 @@ class TuneHTMLParser(HTMLParser):
         for model, entries in self.rows.items():
             bests = [e for e in entries if e[0]]
             pool = bests or entries
-            _, key, mean, std = max(pool, key=lambda e: e[2])
+            _, key, mean, std = max(pool, key=lambda e: e[2])[:4]
             out[model] = (key, mean, std)
         return out
 
@@ -175,6 +206,16 @@ def parse_file(path: Path):
     return task, backbone, parser.best_values()
 
 
+def parse_file_rows(path: Path):
+    """解析一个 html 文件，返回 (task, backbone, {model: [(is_best, key, mean, std, beta, anchor)]})。"""
+    parser = TuneHTMLParser()
+    parser.feed(path.read_text(encoding="utf-8"))
+    m = re.search(r"task=(\S+)\s+backbone=(\S+)", parser.meta)
+    if not m:
+        raise ValueError(f"{path.name}: meta 行无法解析: {parser.meta!r}")
+    return m.group(1), m.group(2), parser.rows
+
+
 def collect():
     """汇总全部 html：{(task, backbone): {列名: (key, mean, std)}}。"""
     grid = {}
@@ -187,6 +228,164 @@ def collect():
             cells[col] = (key, mean, std)
         grid[(task, backbone)] = cells
     return grid
+
+
+def collect_full(task_backbones):
+    """收集压缩-精度表的完整行：{(task, backbone): {model: [(is_best, key, mean, std, beta, anchor)]}}。
+
+    同一 (task, backbone) 存在多个 html（如 +opb+opbl+ 与 +opbl+ 两个版本）时，
+    按文件名排序，后者覆盖前者（模型行整体替换）。
+    """
+    out = {tb: {} for tb in task_backbones}
+    for path in sorted(RESULTS_DIR.glob("*.html")):
+        task, backbone, rows = parse_file_rows(path)
+        if (task, backbone) not in out:
+            continue
+        for model, entries in rows.items():
+            if entries:
+                out[(task, backbone)][model] = entries
+    return out
+
+
+def parse_adv_config(name):
+    """对抗试验配置名 → (显示标签, beta, anchor)。
+
+    mnist_mlp → ('Base', None, None)；
+    mnist_mlp_{model}_beta{b}[_scale_{a}] → 如
+    ('OPB ($\\beta=0.1$, $a=12$)', 0.1, 12.0)。无法解析时原样返回。
+    """
+    if name == "mnist_mlp":
+        return "Base", None, None
+    m = re.match(r"^mnist_mlp_([a-z]+)_beta([\d.]+)(?:_scale_?([\d.]+))?$", name)
+    if not m:
+        return name, None, None
+    model = m.group(1).upper()
+    beta = float(m.group(2))
+    anchor = float(m.group(3)) if m.group(3) else None
+    if anchor is not None:
+        return f"{model} ($\\beta={beta:g}$, $a={anchor:g}$)", beta, anchor
+    return f"{model} ($\\beta={beta:g}$)", beta, None
+
+
+def gen_result2():
+    r"""从 ADV_CSV_PATH 生成对抗鲁棒性表 result2.tex（CSV 缺失时返回 None）。
+
+    行 = 攻击强度（clean + L∞/L2 各 ε，网格随 CSV 自适应），列 = CSV 中的
+    模型配置（数量自适应、Base 居首其余按名排序）；值为跨 run 平均鲁棒精度
+    （Acc ×100），每行最优加粗。tab:robustness，可直接 \input{}。
+    """
+    if not ADV_CSV_PATH.exists():
+        return None
+    with open(ADV_CSV_PATH, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    configs = sorted({r["config"] for r in rows},
+                     key=lambda c: (c != "mnist_mlp", c))
+    combos = [("none", 0.0)] \
+        + [("linf", e) for e in sorted({float(r["eps"]) for r in rows if r["norm"] == "linf"})] \
+        + [("l2", e) for e in sorted({float(r["eps"]) for r in rows if r["norm"] == "l2"})]
+    accs = {}
+    for r in rows:
+        accs.setdefault((r["config"], r["norm"], float(r["eps"])), []).append(float(r["acc"]))
+
+    def fmt(c, norm, eps):
+        vals = accs.get((c, norm, eps))
+        return f"{sum(vals) / len(vals) * 100:.2f}" if vals else "--"
+
+    lines = [
+        "% 对抗鲁棒性表：由 paper/make_table.py 从 output/adv_mnist/mnist_adv.csv 自动生成，请勿手改。",
+        "% 值为跨 run 平均鲁棒精度（%），每行最优加粗；行 = 攻击强度，列 = 模型配置（数量自适应）。",
+        "\\begin{table*}[t]",
+        "\\centering",
+        "\\caption{Adversarial robustness on MNIST: test accuracy (\\%) under untargeted "
+        "projected gradient descent (PGD) attacks in $L_\\infty$ and $L_2$ norms, "
+        "evaluated on the deterministic ($z=\\mu$) path; means over runs.}",
+        "\\label{tab:robustness}",
+        "\\small",
+        "{",
+        "\\setlength{\\tabcolsep}{2pt}",
+        "\\begin{tabular}{l" + "c" * len(configs) + "}",
+        "\\hline",
+        " & " + " & ".join(parse_adv_config(c)[0] for c in configs) + " \\\\",
+        "\\hline",
+    ]
+    for norm, eps in combos:
+        if norm == "none":
+            label = "Clean"
+        else:
+            math_norm = "\\ell_\\infty" if norm == "linf" else "\\ell_2"
+            label = f"${math_norm}$ $\\varepsilon={eps:g}$"
+        cells = [fmt(c, norm, eps) for c in configs]
+        vals = [float(v) for v in cells if v != "--"]
+        best = max(vals) if vals else None
+        cells = [f"\\textbf{{{v}}}" if v != "--" and float(v) == best else v for v in cells]
+        lines.append(f"{label} & " + " & ".join(cells) + " \\\\")
+    lines.extend([
+        "\\hline",
+        "\\end{tabular}",
+        "}",
+        "\\end{table*}",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def gen_result1(full):
+    r"""生成压缩-精度表 result1.tex（table* 浮动体，可直接 \input{}）。
+
+    行 = CEB 与 OPB 在 a ∈ {1, 6, 12} 的三条线，列 = β 网格
+    （COMPRESSION_BETAS）；仅 ImageNet-100 (MLP，分类 Acc ×100) 与
+    AgeDB (MLP，回归 R²) 两个任务，各自成组、组间以横线分隔。
+    """
+    lines = [
+        "% 压缩-精度表：由 paper/make_table.py 自动生成，请勿手改。",
+        "% ImageNet-100 (MLP) 报告测试 Acc（%）、AgeDB (MLP) 报告测试 R²；均为 5 次运行均值。",
+        "% 行 = CEB 与 OPB 的 a=1/6/12 三条线；列 = β（对数网格）。",
+        "\\begin{table*}[t]",
+        "\\centering",
+        "\\caption{Compression--accuracy: test metric as a function of the compression "
+        "weight $\\beta$ for CEB and for OPB at anchor scales $a\\in\\{1,6,12\\}$. "
+        "ImageNet-100 (MLP) reports test accuracy (\\%); AgeDB (MLP) reports test $R^2$; "
+        "means over five runs.}",
+        "\\label{tab:compression}",
+        "\\small",
+        "{",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\begin{tabular}{l l c c c c c c}",
+        "\\hline",
+        " & & \\multicolumn{6}{c}{$\\beta$} \\\\",
+        " & & $10^{-4}$ & $10^{-3}$ & $10^{-2}$ & $10^{-1}$ & $1$ & $10$ \\\\",
+        "\\hline",
+    ]
+
+    def fmt(entry):
+        _, key, mean, _, _, _ = entry
+        return f"{mean * 100:.2f}" if key == "Acc" else f"{mean:.4f}"
+
+    def cell(entries, beta, anchor):
+        for e in entries:
+            if e[4] is not None and abs(e[4] - beta) < 1e-9 and (
+                anchor is None or (e[5] is not None and abs(e[5] - anchor) < 1e-9)
+            ):
+                return fmt(e)
+        return "--"
+
+    for tb in COMPRESSION_TASKS:
+        task, backbone = tb
+        label = TASK_NAMES.get(task, task)
+        rows = full.get(tb, {})
+        specs = [("CEB", rows.get("ceb", []), None)] + [
+            (f"OPB ($a={a:g}$)", rows.get("opb", []), a) for a in COMPRESSION_ANCHORS
+        ]
+        for i, (name, entries, anchor) in enumerate(specs):
+            first_col = label if i == 0 else ""
+            cells = " & ".join(cell(entries, b, anchor) for b in COMPRESSION_BETAS)
+            lines.append(f"{first_col} & {name} & {cells} \\\\")
+        lines.append("\\hline")
+    lines.extend([
+        "\\end{tabular}",
+        "}",
+        "\\end{table*}",
+    ])
+    return "\n".join(lines) + "\n"
 
 
 def rank_scores(scores):
@@ -311,6 +510,19 @@ def main():
         print(f"{task:12s} {backbone:8s} | {detail}")
     OUT_PATH.write_text(gen_table(grid), encoding="utf-8")
     print(f"\n已生成 {OUT_PATH}")
+
+    full = collect_full(COMPRESSION_TASKS)
+    RESULT1_PATH.write_text(gen_result1(full), encoding="utf-8")
+    print(f"已生成 {RESULT1_PATH}（压缩-精度表：CEB + OPB a=1/6/12 × β 网格，"
+          f"仅 {', '.join(f'{TASK_NAMES.get(t, t)} ({b})' for t, b in COMPRESSION_TASKS)}）")
+
+    result2 = gen_result2()
+    if result2 is None:
+        print(f"警告：{ADV_CSV_PATH} 不存在，跳过对抗鲁棒性表（先运行 adv_eval.py 生成）")
+    else:
+        RESULT2_PATH.write_text(result2, encoding="utf-8")
+        print(f"已生成 {RESULT2_PATH}（对抗鲁棒性表：行 = 攻击强度、列 = 模型配置（自适应），"
+              f"数据来自 {ADV_CSV_PATH}）")
 
 
 if __name__ == "__main__":

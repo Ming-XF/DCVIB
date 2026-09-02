@@ -1,0 +1,173 @@
+\section{Deferred proofs and further results}
+\label{app:deferred}
+% =====================================================================
+
+The following results support the main text: the pointwise KL decomposition
+(Lemma~\ref{lem:opb-kl-decomposition}), a Fano-type label-information lower bound
+(Corollary~\ref{cor:opb-fano}), the strict convexity of the $\beta$-sweep on the
+aligned family (Proposition~\ref{prop:opb-sweep}), and the scope and limitations
+(Remark~\ref{rem:opb-scope}).
+
+\begin{lemma}[OPB KL decomposition]
+\label{lem:opb-kl-decomposition}
+For a diagonal posterior covariance and the prior of Eq.~\eqref{eq:opb-prior},
+\begin{equation}
+\KL\bigl(q_\phi(z|x)\,\|\,p_\theta^{\mathrm{OPB}}(z|y)\bigr)
+= \frac{1}{2\tau^2}\|\mu_\phi(x) - a\,q_{\theta,y}\|^2
++ \frac12 \sum_{r=1}^{d}\Bigl[
+\frac{\sigma_{\phi,r}^2(x)}{\tau^2} - 1 - \log\frac{\sigma_{\phi,r}^2(x)}{\tau^2}
+\Bigr],
+\label{eq:opb-kl-decomposition}
+\end{equation}
+a class-anchor mismatch term plus a variance mismatch term that is non-negative and
+vanishes exactly at $\sigma_{\phi,r}^2(x) = \tau^2$ for all $r$. The mismatch term is
+quadratic in the displacement to a reference whose scale and covariance cannot move:
+this is the mechanism behind the strict convexity of
+Proposition~\ref{prop:opb-sweep} below.
+\end{lemma}
+
+\begin{proof}
+Apply the diagonal-Gaussian KL formula with posterior mean $\mu_\phi(x)$, prior mean
+$a\,q_{\theta,y}$, posterior variances $\sigma_{\phi,r}^2(x)$, and the fixed prior
+variance $\tau^2$.
+\end{proof}
+
+\begin{corollary}[Label-information lower bound in the aligned Gaussian model]
+\label{cor:opb-fano}
+Assume uniform classes and exact alignment
+$q(z|Y=k) = \mathcal{N}(a\,q_{\theta,k}, \tau^2 I_d)$. The pairwise error probability
+of the nearest-anchor classifier is
+$P_{\mathrm{pair}} = \Phi\bigl(-\frac{a}{\sqrt{2}\,\tau}\bigr)$, with
+$P_e \le \min\{1, (K-1)P_{\mathrm{pair}}\}$, and whenever the displayed bound
+$\bar P_e \le 1 - 1/K$, Fano's inequality gives
+$I(Y;Z) \ge \log K - h_2(\bar P_e) - \bar P_e \log(K-1)$. This links the anchor
+scale-to-noise ratio $a/\tau$ to the retained label information, conditionally on the
+aligned Gaussian model.
+\end{corollary}
+
+\begin{proof}
+Two anchors have distance $\sqrt{2}a$ by Proposition~\ref{prop:opb-frame}; the
+equal-covariance binary decision boundary is halfway between them, giving
+$\Phi(-\sqrt{2}a/(2\tau))$. The union bound and Fano's inequality on
+$[0, 1-1/K]$ conclude.
+\end{proof}
+
+\begin{proposition}[Joint strict convexity and unique optimum on a restricted aligned surrogate]
+\label{prop:opb-sweep}
+Consider the class-symmetric aligned family: every input of class $y$ is mapped to the
+posterior $q_y = \mathcal{N}(s\,q_{\theta,y}, \sigma^2 I)$ ($s \ge 0$, $\sigma^2 > 0$;
+anchor scale $a > 0$), and the classifier is the anchor-energy classifier of
+Proposition~\ref{prop:opb-energy} (weights $w_j = c\,q_{\theta,j}$ with scale
+$c = a/\tau^2$ fixed by construction). With the \emph{stochastic training code}
+$z \sim q_y$ --- as in the actual objective, Eq.~\eqref{eq:opb-objective} --- the
+training cross-entropy is
+\begin{equation}
+g(s, \sigma^2) := \E_\eta\Bigl[
+\ln\Bigl(1 + \textstyle\sum_{j \ne y} e^{-cs + c\sigma(\eta_j - \eta_y)}\Bigr)
+\Bigr],
+\qquad \eta \sim \mathcal{N}(0, I_K),
+\label{eq:opb-ce-train}
+\end{equation}
+and the training Lagrangian is
+\begin{equation}
+L_\beta(s, \sigma^2) = g(s, \sigma^2)
++ \beta\Bigl[
+\tfrac{1}{2\tau^2}(s-a)^2
++ \tfrac{d}{2}\bigl(\sigma^2/\tau^2 - 1 - \ln(\sigma^2/\tau^2)\bigr)
+\Bigr].
+\label{eq:opb-lag-train}
+\end{equation}
+Then for every $\beta > 0$, $L_\beta$ is strictly convex jointly in $(s, \sigma)$ and
+has a unique joint minimizer $(s^*(\beta), \sigma^*(\beta))$, interior in $s$ since
+$a > 0$: the stochastic training objective has a well-defined optimum, in contrast to
+the deterministic IB Lagrangian, whose optimum is pinned at a corner for every $\beta$
+(Proposition~\ref{prop:dead}). This is a \emph{restricted surrogate result}: it
+analyzes two scalar variables on the class-symmetric aligned family, with the frame,
+the anchor scale, and the classifier scale held fixed; the full OPB objective --- with
+its nonlinear posterior, trainable frame, and non-convex degrees of freedom --- lies
+outside this analysis, and the result neither establishes $\beta$-tunability of the
+full objective nor makes any claim on the information plane.
+The deterministic evaluation code ($z = \mu$) is the $\sigma \to 0$ limit, and
+$g \ge \ln(1 + (K-1)e^{-cs})$ by Jensen (the log-sum-exp is convex), so the statement
+strictly generalizes the deterministic surrogate analysis. We do \emph{not} claim here
+that the map $\beta \mapsto s^*(\beta)$ is monotone or that the sweep is one-to-one:
+the minimizer $\sigma^*$ responds to $\beta$ through the cross-derivative
+$\partial^2 g/\partial s\,\partial\sigma$, and establishing the sign of
+$\mathrm{d}s^*/\mathrm{d}\beta$ requires the full two-dimensional stationarity
+analysis, which we leave open; the $\beta$-sweep is reported empirically in the
+experiments. The fixed-scale condition holds for the main model by construction
+(Proposition~\ref{prop:opb-energy}), so the statement describes the actual training
+objective up to the aligned-family idealization. We do not analyze the free-classifier
+variant on this surrogate: under the stochastic training code, a diverging classifier
+scale does not produce a degenerate solution --- at $\operatorname{KL} \to 0$ the
+posterior variance is pinned at $\sigma^2 = \tau^2 > 0$, so the class-conditional
+Gaussians overlap and the training cross-entropy of a free classifier diverges with
+its scale rather than vanishing (for $K = 2$ it contains
+$\E[\ln(1 + e^{-c(a + \tau\xi)})]$, whose integrand grows linearly in $c$ on the
+event $\xi < -a/\tau$, which has positive probability). An analysis of the free
+classifier would require an explicit classifier-norm constraint or regularizer and is
+left to future work.
+\end{proposition}
+
+\begin{proof}
+For each fixed $\eta$, the integrand of Eq.~\eqref{eq:opb-ce-train} is a log-sum-exp of
+functions affine in $(s, \sigma)$ (the constant $1$ has slope zero and each exponential
+has slope $(-c,\, c(\eta_j - \eta_y))$), hence jointly convex in $(s, \sigma)$, and the
+expectation $g$ is jointly convex. No strictness is claimed for $g$: for $K = 2$ the
+integrand depends on $(s, \sigma)$ only through the single linear combination
+$-cs + c\sigma(\eta_2 - \eta_1)$, so its Hessian has rank one. Write the KL term as
+$R(s, \sigma) := \tfrac{1}{2\tau^2}(s-a)^2
++ \tfrac{d}{2}\bigl(\sigma^2/\tau^2 - 1 - \ln(\sigma^2/\tau^2)\bigr)$; its Hessian in
+$(s, \sigma)$ is
+$\nabla^2 R = \operatorname{diag}\bigl(\tau^{-2},\; d\,(\tau^{-2} + \sigma^{-2})\bigr)$,
+strictly positive definite for every $\sigma > 0$, so $\beta R$ is strictly convex in
+$(s, \sigma)$. Hence $L_\beta = g + \beta R$ is the sum of a jointly convex and a
+strictly convex function, and is strictly convex in $(s, \sigma)$. Since
+$R \to +\infty$ as $s \to \infty$, $\sigma \to 0^+$, or $\sigma \to \infty$, the
+sublevel sets of $L_\beta$ are compact, and the unique joint minimizer exists (by
+strict convexity it is unique). For $a > 0$ the minimizer is interior in $s$: at
+$s = 0$, $\partial L_\beta/\partial s = -c\,\E[p_{\mathrm{w}}] - \beta a/\tau^2 < 0$,
+where $p_{\mathrm{w}}$ is the error probability of the sampled code, so $s^* > 0$.
+\end{proof}
+
+\begin{remark}[The sweep is a KL--CE surrogate curve; scope and limitations]
+\label{rem:opb-scope}
+Proposition~\ref{prop:opb-sweep} proves joint strict convexity and uniqueness of the
+optimum for the stochastic training objective in the KL--CE plane on the aligned family
+at fixed classifier scale --- a restricted surrogate result, which does not establish
+$\beta$-tunability of the full OPB objective, and in any case not a statement on the
+information plane of the Caveats paper; the results of the main text
+establish a structured conditional prior, an exact KL geometry, and conditional
+separation guarantees, and they do \emph{not} establish a mutual information upper
+bound tighter than CEB's --- Eq.~\eqref{eq:opb-certificate} is the usual CEB gap
+identity for a particular prior family. The orthogonal-frame construction fixes all pairwise anchor
+distances, so the framework should not claim to recover arbitrary semantic class
+similarities. All geometric statements are conditional on
+Assumption~\ref{ass:fullrank}: orthonormality holds exactly by the polar construction
+wherever the factorization exists, and the condition is verified --- not imposed ---
+along the reported runs (Section~\ref{sec:opb}); the construction is exactly
+equivariant under relabeling of the classes by Eq.~\eqref{eq:opb-equivariance}, so
+no class index plays a distinguished role. If the frame were computed from the
+current input batch rather than from the all-class prior matrix, the prior would
+become batch-dependent and Proposition~\ref{prop:opb-certificate} would no longer
+follow directly. Finally, the
+anchor-energy classifier of Proposition~\ref{prop:opb-energy} fixes the classifier
+scale to $a/\tau^2$ by construction, removing the independent classifier-margin
+escape route in the aligned surrogate of Proposition~\ref{prop:opb-sweep}; whether a
+free classifier (with an explicit norm constraint or regularizer) admits its own
+degenerate route is left to future work, and the free linear classifier is kept in
+the experiments as a variant for comparison.
+Whether the joint optimum of Proposition~\ref{prop:opb-sweep} moves monotonically in
+$\beta$ is likewise open: it requires the full two-dimensional stationarity analysis,
+in which the optimal variance responds to $\beta$ through the cross-derivative
+$\partial^2 g/\partial s\,\partial\sigma$ of the stochastic cross-entropy.
+The trainable frame and axis constitute a rotation channel that this paper does not
+address: the certificate's zero set contains the full-retention orthogonal label codes
+at any frame rotation (the reference can rotate to meet them), and the framework pins
+the \emph{geometry of the code} --- it does not claim that the certificate reads off
+the retained label information. Quantifying how much of the anchor gap is absorbed by
+frame rotation rather than by posterior motion is left to future work (a frozen-frame
+ablation isolates it).
+\end{remark}
+
+% =====================================================================
