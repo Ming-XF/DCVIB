@@ -1,0 +1,35 @@
+% 主结果表：由 paper/make_table.py 从 tune_results/*.html 自动生成，请勿手改。
+% 分类任务为测试 Acc（%）、回归任务为测试 R²；均为 5 次运行均值（不含标准差）。
+% 每格取该模型在 β / anchor-scale 调参网格上的最优配置（tune_results 各表绿色高亮行），
+% 每行（数据集）的最优指标加粗、次优（并列次优全部）加下划线；表尾两行统计各方法跨行的平均排名（越低越好）与最优/并列最优次数。
+\begin{table*}[t]
+\centering
+\caption{Test accuracy (\%) on classification tasks and test $R^2$ on regression tasks (mean over 5 runs). Each entry reports the best configuration over the tuned $\beta$ (and anchor-scale) grid; the best entry per dataset is bolded.}
+\label{tab:main_result}
+\small
+{
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llcccccc|cc}
+\hline
+Dataset & Backbone & Base & VIB & SVIB & NIB & CEB & DVCCA & OPB & OPB-L \\
+\hline
+MNIST & MLP & 98.33 & 98.28 & 98.15 & 98.27 & \underline{98.43} & 98.24 & \textbf{98.54} & \underline{98.43} \\
+MNIST & CNN & 99.13 & 99.28 & 99.23 & 99.22 & 99.30 & 99.29 & \textbf{99.32} & \underline{99.31} \\
+ImageNet-100 & MLP & 83.12 & 82.84 & 83.02 & 82.35 & 82.77 & 82.99 & \textbf{84.40} & \underline{84.01} \\
+ImageNet-100 & CNN & 83.40 & 82.94 & 83.11 & 82.91 & 82.97 & 83.21 & \textbf{86.08} & \underline{84.88} \\
+Cora & GCN & 87.68 & 86.83 & 86.46 & 86.35 & 86.27 & 86.90 & \textbf{88.12} & \underline{87.86} \\
+IMDb & RNN & 84.85 & 85.50 & 85.99 & 86.14 & 85.55 & 85.69 & \underline{86.84} & \textbf{86.99} \\
+AG News & RNN & \textbf{92.94} & 92.72 & 92.86 & 92.91 & 92.83 & 92.78 & 92.87 & \underline{92.92} \\
+\hline\hline
+California Housing & MLP & 0.7618 & \underline{0.7901} & 0.7897 & 0.7862 & 0.7894 & 0.7878 & 0.7895 & \textbf{0.7914} \\
+STS-B & RNN & \textbf{0.2899} & 0.2719 & 0.2697 & 0.2417 & 0.2668 & 0.2713 & \underline{0.2762} & 0.2755 \\
+ZINC & GCN & \textbf{0.6348} & 0.6339 & 0.6325 & 0.6178 & 0.6257 & 0.6294 & \underline{0.6344} & 0.6323 \\
+AgeDB & MLP & 0.2180 & 0.3173 & \underline{0.3385} & 0.2710 & 0.3317 & 0.3180 & \textbf{0.3536} & 0.3320 \\
+AgeDB & CNN & 0.3914 & 0.3342 & 0.3323 & 0.3337 & 0.3882 & 0.3205 & \textbf{0.4700} & \underline{0.4388} \\
+\hline
+\multicolumn{2}{l}{Mean rank (of 12)} & 4.25 & 5.25 & 5.00 & 6.50 & 5.46 & 5.50 & 1.75 & 2.29 \\
+\multicolumn{2}{l}{Best or tied-best (of 12)} & 3 & 0 & 0 & 0 & 0 & 0 & 7 & 2 \\
+\hline
+\end{tabular}
+}
+\end{table*}

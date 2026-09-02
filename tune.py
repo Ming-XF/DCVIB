@@ -58,10 +58,11 @@ def build_tune_parser():
     parser = build_parser()
     replace_arg(
         parser, "model", ["--model"],
-        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca"],
+        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "opbl", "svib", "nib", "dvcca"],
         default=["mlp"],
         help="模型列表，调参网格的一维；基础模型无 beta/anchor 维度，"
-        "vib/ceb/svib/nib/dvcca 仅 beta 维度，fgib/opb 为 beta × anchor-scale 两维（默认 [mlp]）",
+        "vib/ceb/svib/nib/dvcca 仅 beta 维度，fgib/opb/opbl 为 beta × anchor-scale 两维"
+        "（opbl 为 opb 的结果显示别名，仅 tune/rebuild 层使用，train.py 不认识；默认 [mlp]）",
     )
     replace_arg(
         parser, "beta", ["--beta"],
@@ -268,10 +269,12 @@ def metric_mean(m, key):
     return float(m[key].split("±")[0])
 
 
-def gen_html(results, out_path: Path, meta: str):
+def gen_html(results, out_path: Path, meta: str, extra_html: str = ""):
     """生成调参结果 HTML：每个模型一张表格，各表可通过下拉框自由选择排序指标。
 
     results: [(model, beta, anchor, metrics_dict_or_None), ...]
+    extra_html: 可选，追加在全部表格区块之后的额外 HTML（如 adv_eval 的
+    对比曲线图），默认空串时行为与旧版完全一致。
     """
     metric_cols = next((list(m) for _, _, _, m in results if m), [])
     default_key = "Acc" if "Acc" in metric_cols else ("R2" if "R2" in metric_cols else None)
@@ -346,6 +349,7 @@ tr.best {{ background: #dfd; font-weight: bold; }}
 <h1>调参结果</h1>
 <div class="meta">{meta}（绿色高亮 = 各模型默认指标 {default_key or '-'} 的最佳行）</div>
 {''.join(sections)}
+{extra_html}
 <script>
 function sortTable(tableId, key) {{
   const tbody = document.getElementById(tableId).querySelector("tbody");
@@ -392,8 +396,8 @@ def main():
     models = args.model
     betas = args.beta
     anchors = args.anchor_scale
-    if "fgib" not in models and "opb" not in models and len(anchors) > 1:
-        print(f"警告：模型列表中没有 fgib/opb，--anchor-scale 列表不会被使用")
+    if "fgib" not in models and "opb" not in models and "opbl" not in models and len(anchors) > 1:
+        print(f"警告：模型列表中没有 fgib/opb/opbl，--anchor-scale 列表不会被使用")
 
     results_root = ROOT / args.results_dir
     results_root.mkdir(parents=True, exist_ok=True)
@@ -402,7 +406,7 @@ def main():
     for model in models:
         if model in BASELINES:
             combos.append((model, None, None))
-        elif model in ("fgib", "opb"):
+        elif model in ("fgib", "opb", "opbl"):
             combos.extend((model, b, a) for b in betas for a in anchors)
         else:
             combos.extend((model, b, None) for b in betas)
@@ -451,26 +455,23 @@ def main():
             f"总用时 {fmt_duration(tracker.elapsed())}"
         )
 
-    results = []
-    for model, b, a in combos:
-        d = results_root / combo_name(model_prefix(args, model), b, a)
-        m = parse_summary(d / "train.log") if status[(model, b, a)] else None
-        results.append((model, b, a, m))
-
-    meta = (
-        f"task={args.task} backbone={args.backbone} model={'+'.join(models)} "
-        f"runs={args.runs} epochs={args.epochs} | {len(combos)} 组组合"
+    # HTML 结果表不再由 tune.py 生成（统一交给 rebuild_tune_html.py：它负责扫描
+    # 各组合日志、按需 --rerun 补跑、生成表格与压缩-精度曲线图），此处打印等价命令。
+    rebuild_args = [
+        "--task", args.task,
+        "--backbone", args.backbone,
+        "--model", *models,
+        "--beta", *(str(b) for b in betas),
+        "--anchor-scale", *(str(a) for a in anchors),
+        "--results-dir", args.results_dir,
+        "--runs", str(args.runs),
+        "--epochs", str(args.epochs),
+        "--parallel", str(args.parallel),
+    ]
+    print(
+        "\n训练结果已写入各组合目录。生成/更新结果表请执行：\n"
+        f"  python rebuild_tune_html.py {' '.join(rebuild_args)}"
     )
-    if len(models) == 1:
-        html_name = f"{model_prefix(args, models[0])}_tune_results.html"
-    else:
-        html_name = (
-            f"{get_dataset_name(args.task)}_{args.backbone}_"
-            f"{'+'.join(models)}_tune_results.html"
-        )
-    html_path = results_root / html_name
-    gen_html(results, html_path, meta)
-    print(f"调参结果表格已生成：{html_path}")
 
 
 if __name__ == "__main__":

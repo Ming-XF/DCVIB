@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=imagenet100 backbone=cnn model=cnn+vib+nib+svib+ceb+dvcca+opb+opbl runs=5 epochs=100 | 139 组组合 | 表格后附最优精度汇总表与 ceb/opb 压缩-精度对比曲线（β 对数刻度；opb 各 a=1/6/12 一条线）（绿色高亮 = 各模型默认指标 Acc 的最佳行）</div>
+
+<h2>cnn</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-cnn">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-cnn">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.6091" data-acc="0.834" data-auc="0.9969" data-pre="0.8383" data-rec="0.8312"><td>-</td><td>-</td><td>0.6091±0.0127</td><td>0.8340±0.0013</td><td>0.9969±0.0001</td><td>0.8383±0.0017</td><td>0.8312±0.0017</td></tr>
+</tbody>
+</table>
+
+<h2>vib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-vib">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-vib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.668" data-acc="0.8294" data-auc="0.9966" data-pre="0.8337" data-rec="0.8271"><td>0.0001</td><td>-</td><td>0.6680±0.0150</td><td>0.8294±0.0037</td><td>0.9966±0.0002</td><td>0.8337±0.0028</td><td>0.8271±0.0030</td></tr><tr data-loss="1.0619" data-acc="0.8239" data-auc="0.9961" data-pre="0.8289" data-rec="0.8193"><td>0.01</td><td>-</td><td>1.0619±0.0155</td><td>0.8239±0.0036</td><td>0.9961±0.0001</td><td>0.8289±0.0026</td><td>0.8193±0.0035</td></tr><tr data-loss="0.7937" data-acc="0.8234" data-auc="0.9964" data-pre="0.8285" data-rec="0.8202"><td>0.001</td><td>-</td><td>0.7937±0.0090</td><td>0.8234±0.0050</td><td>0.9964±0.0001</td><td>0.8285±0.0036</td><td>0.8202±0.0053</td></tr><tr data-loss="1.6828" data-acc="0.8214" data-auc="0.9946" data-pre="0.8283" data-rec="0.8149"><td>0.1</td><td>-</td><td>1.6828±0.0262</td><td>0.8214±0.0042</td><td>0.9946±0.0001</td><td>0.8283±0.0052</td><td>0.8149±0.0049</td></tr><tr data-loss="4.5551" data-acc="0.6036" data-auc="0.9552" data-pre="0.635" data-rec="0.59"><td>1</td><td>-</td><td>4.5551±0.0024</td><td>0.6036±0.0326</td><td>0.9552±0.0047</td><td>0.6350±0.0306</td><td>0.5900±0.0319</td></tr><tr data-loss="4.6015" data-acc="0.0108" data-auc="0.7811" data-pre="0.0022" data-rec="0.0105"><td>10</td><td>-</td><td>4.6015±0.0000</td><td>0.0108±0.0011</td><td>0.7811±0.0293</td><td>0.0022±0.0047</td><td>0.0105±0.0011</td></tr>
+</tbody>
+</table>
+
+<h2>nib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-nib">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-nib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="6.8683" data-acc="0.8291" data-auc="0.9966" data-pre="0.8338" data-rec="0.8261"><td>1</td><td>-</td><td>6.8683±0.0136</td><td>0.8291±0.0035</td><td>0.9966±0.0001</td><td>0.8338±0.0036</td><td>0.8261±0.0034</td></tr><tr data-loss="0.709" data-acc="0.8272" data-auc="0.9966" data-pre="0.8321" data-rec="0.8242"><td>0.01</td><td>-</td><td>0.7090±0.0192</td><td>0.8272±0.0082</td><td>0.9966±0.0002</td><td>0.8321±0.0064</td><td>0.8242±0.0093</td></tr><tr data-loss="1.2721" data-acc="0.8268" data-auc="0.9965" data-pre="0.8309" data-rec="0.8241"><td>0.1</td><td>-</td><td>1.2721±0.0243</td><td>0.8268±0.0022</td><td>0.9965±0.0001</td><td>0.8309±0.0017</td><td>0.8241±0.0017</td></tr><tr data-loss="0.649" data-acc="0.8263" data-auc="0.9966" data-pre="0.8315" data-rec="0.8231"><td>0.001</td><td>-</td><td>0.6490±0.0214</td><td>0.8263±0.0079</td><td>0.9966±0.0001</td><td>0.8315±0.0064</td><td>0.8231±0.0088</td></tr><tr data-loss="0.6448" data-acc="0.8262" data-auc="0.9966" data-pre="0.8318" data-rec="0.8229"><td>0.0001</td><td>-</td><td>0.6448±0.0135</td><td>0.8262±0.0075</td><td>0.9966±0.0001</td><td>0.8318±0.0064</td><td>0.8229±0.0085</td></tr><tr data-loss="62.9575" data-acc="0.8255" data-auc="0.9966" data-pre="0.8311" data-rec="0.8223"><td>10</td><td>-</td><td>62.9575±0.0187</td><td>0.8255±0.0081</td><td>0.9966±0.0001</td><td>0.8311±0.0066</td><td>0.8223±0.0091</td></tr>
+</tbody>
+</table>
+
+<h2>svib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-svib">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-svib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.9592" data-acc="0.8311" data-auc="0.9955" data-pre="0.8367" data-rec="0.8259"><td>0.001</td><td>-</td><td>0.9592±0.0949</td><td>0.8311±0.0086</td><td>0.9955±0.0002</td><td>0.8367±0.0047</td><td>0.8259±0.0099</td></tr><tr data-loss="0.8175" data-acc="0.8261" data-auc="0.9961" data-pre="0.83" data-rec="0.8217"><td>0.0001</td><td>-</td><td>0.8175±0.0273</td><td>0.8261±0.0053</td><td>0.9961±0.0002</td><td>0.8300±0.0034</td><td>0.8217±0.0056</td></tr><tr data-loss="1.2748" data-acc="0.8237" data-auc="0.9944" data-pre="0.8191" data-rec="0.8153"><td>0.01</td><td>-</td><td>1.2748±0.0849</td><td>0.8237±0.0044</td><td>0.9944±0.0001</td><td>0.8191±0.0084</td><td>0.8153±0.0053</td></tr><tr data-loss="2.2776" data-acc="0.793" data-auc="0.9898" data-pre="0.7944" data-rec="0.7824"><td>0.1</td><td>-</td><td>2.2776±0.1302</td><td>0.7930±0.0052</td><td>0.9898±0.0003</td><td>0.7944±0.0076</td><td>0.7824±0.0051</td></tr><tr data-loss="4.1883" data-acc="0.7479" data-auc="0.9766" data-pre="0.7687" data-rec="0.7351"><td>1</td><td>-</td><td>4.1883±0.0430</td><td>0.7479±0.0099</td><td>0.9766±0.0006</td><td>0.7687±0.0138</td><td>0.7351±0.0095</td></tr><tr data-loss="4.5331" data-acc="0.6006" data-auc="0.9635" data-pre="0.6416" data-rec="0.5864"><td>10</td><td>-</td><td>4.5331±0.0034</td><td>0.6006±0.0254</td><td>0.9635±0.0027</td><td>0.6416±0.0325</td><td>0.5864±0.0248</td></tr>
+</tbody>
+</table>
+
+<h2>ceb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-ceb">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-ceb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.8557" data-acc="0.8297" data-auc="0.9961" data-pre="0.8352" data-rec="0.8262"><td>0.01</td><td>-</td><td>0.8557±0.0618</td><td>0.8297±0.0067</td><td>0.9961±0.0002</td><td>0.8352±0.0061</td><td>0.8262±0.0073</td></tr><tr data-loss="0.7199" data-acc="0.8297" data-auc="0.9966" data-pre="0.8337" data-rec="0.8269"><td>0.001</td><td>-</td><td>0.7199±0.0239</td><td>0.8297±0.0047</td><td>0.9966±0.0001</td><td>0.8337±0.0044</td><td>0.8269±0.0048</td></tr><tr data-loss="1.0303" data-acc="0.8242" data-auc="0.9947" data-pre="0.8267" data-rec="0.8175"><td>0.1</td><td>-</td><td>1.0303±0.0154</td><td>0.8242±0.0042</td><td>0.9947±0.0001</td><td>0.8267±0.0030</td><td>0.8175±0.0046</td></tr><tr data-loss="0.6721" data-acc="0.8233" data-auc="0.9966" data-pre="0.8309" data-rec="0.8203"><td>0.0001</td><td>-</td><td>0.6721±0.0078</td><td>0.8233±0.0038</td><td>0.9966±0.0001</td><td>0.8309±0.0042</td><td>0.8203±0.0041</td></tr><tr data-loss="3.0906" data-acc="0.3895" data-auc="0.951" data-pre="0.3642" data-rec="0.3822"><td>1</td><td>-</td><td>3.0906±0.0987</td><td>0.3895±0.0324</td><td>0.9510±0.0096</td><td>0.3642±0.0326</td><td>0.3822±0.0318</td></tr><tr data-loss="4.6028" data-acc="0.0103" data-auc="0.5207" data-pre="0.0001" data-rec="0.01"><td>10</td><td>-</td><td>4.6028±0.0011</td><td>0.0103±0.0000</td><td>0.5207±0.0450</td><td>0.0001±0.0000</td><td>0.0100±0.0000</td></tr>
+</tbody>
+</table>
+
+<h2>dvcca</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-dvcca">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-dvcca">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.7511" data-acc="0.8321" data-auc="0.9964" data-pre="0.8363" data-rec="0.8292"><td>0.001</td><td>-</td><td>0.7511±0.0274</td><td>0.8321±0.0070</td><td>0.9964±0.0001</td><td>0.8363±0.0055</td><td>0.8292±0.0075</td></tr><tr data-loss="1.0152" data-acc="0.8313" data-auc="0.9961" data-pre="0.8364" data-rec="0.8272"><td>0.01</td><td>-</td><td>1.0152±0.0422</td><td>0.8313±0.0058</td><td>0.9961±0.0001</td><td>0.8364±0.0059</td><td>0.8272±0.0066</td></tr><tr data-loss="0.6686" data-acc="0.8309" data-auc="0.9967" data-pre="0.8357" data-rec="0.828"><td>0.0001</td><td>-</td><td>0.6686±0.0065</td><td>0.8309±0.0017</td><td>0.9967±0.0001</td><td>0.8357±0.0024</td><td>0.8280±0.0014</td></tr><tr data-loss="1.7626" data-acc="0.8256" data-auc="0.9946" data-pre="0.826" data-rec="0.8191"><td>0.1</td><td>-</td><td>1.7626±0.0291</td><td>0.8256±0.0024</td><td>0.9946±0.0002</td><td>0.8260±0.0052</td><td>0.8191±0.0032</td></tr><tr data-loss="5.5549" data-acc="0.5933" data-auc="0.955" data-pre="0.6231" data-rec="0.5799"><td>1</td><td>-</td><td>5.5549±0.0049</td><td>0.5933±0.0271</td><td>0.9550±0.0015</td><td>0.6231±0.0283</td><td>0.5799±0.0261</td></tr><tr data-loss="14.5978" data-acc="0.0103" data-auc="0.7811" data-pre="0.0001" data-rec="0.01"><td>10</td><td>-</td><td>14.5978±0.0001</td><td>0.0103±0.0000</td><td>0.7811±0.0214</td><td>0.0001±0.0000</td><td>0.0100±0.0000</td></tr>
+</tbody>
+</table>
+
+<h2>opb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-opb">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-opb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="25.9715" data-acc="0.8608" data-auc="0.9906" data-pre="0.859" data-rec="0.8557"><td>1</td><td>16</td><td>25.9715±1.1287</td><td>0.8608±0.0021</td><td>0.9906±0.0003</td><td>0.8590±0.0037</td><td>0.8557±0.0020</td></tr><tr data-loss="21.2194" data-acc="0.8589" data-auc="0.9906" data-pre="0.8579" data-rec="0.8536"><td>1</td><td>14</td><td>21.2194±1.7026</td><td>0.8589±0.0050</td><td>0.9906±0.0002</td><td>0.8579±0.0036</td><td>0.8536±0.0055</td></tr><tr data-loss="15.7626" data-acc="0.8586" data-auc="0.9906" data-pre="0.8603" data-rec="0.854"><td>1</td><td>12</td><td>15.7626±1.3182</td><td>0.8586±0.0052</td><td>0.9906±0.0003</td><td>0.8603±0.0058</td><td>0.8540±0.0055</td></tr><tr data-loss="11.4863" data-acc="0.8552" data-auc="0.9905" data-pre="0.8605" data-rec="0.8502"><td>1</td><td>10</td><td>11.4863±1.0010</td><td>0.8552±0.0044</td><td>0.9905±0.0002</td><td>0.8605±0.0044</td><td>0.8502±0.0047</td></tr><tr data-loss="28.9997" data-acc="0.8536" data-auc="0.9892" data-pre="0.8503" data-rec="0.8473"><td>10</td><td>6</td><td>28.9997±1.1734</td><td>0.8536±0.0025</td><td>0.9892±0.0003</td><td>0.8503±0.0025</td><td>0.8473±0.0028</td></tr><tr data-loss="7.8297" data-acc="0.8525" data-auc="0.9903" data-pre="0.8533" data-rec="0.8477"><td>1</td><td>8</td><td>7.8297±1.2211</td><td>0.8525±0.0091</td><td>0.9903±0.0003</td><td>0.8533±0.0084</td><td>0.8477±0.0097</td></tr><tr data-loss="4.6791" data-acc="0.8509" data-auc="0.9904" data-pre="0.8511" data-rec="0.8456"><td>1</td><td>6</td><td>4.6791±0.2366</td><td>0.8509±0.0034</td><td>0.9904±0.0002</td><td>0.8511±0.0023</td><td>0.8456±0.0034</td></tr><tr data-loss="79.6213" data-acc="0.8489" data-auc="0.9908" data-pre="0.8708" data-rec="0.8437"><td>10</td><td>16</td><td>79.6213±12.4500</td><td>0.8489±0.0031</td><td>0.9908±0.0006</td><td>0.8708±0.0018</td><td>0.8437±0.0029</td></tr><tr data-loss="2.7823" data-acc="0.8414" data-auc="0.991" data-pre="0.8424" data-rec="0.8356"><td>1</td><td>4</td><td>2.7823±0.2358</td><td>0.8414±0.0072</td><td>0.9910±0.0004</td><td>0.8424±0.0052</td><td>0.8356±0.0078</td></tr><tr data-loss="13.373" data-acc="0.8406" data-auc="0.9912" data-pre="0.843" data-rec="0.8339"><td>10</td><td>4</td><td>13.3730±1.9630</td><td>0.8406±0.0056</td><td>0.9912±0.0004</td><td>0.8430±0.0139</td><td>0.8339±0.0048</td></tr><tr data-loss="0.9912" data-acc="0.8353" data-auc="0.996" data-pre="0.8403" data-rec="0.8323"><td>0.01</td><td>1</td><td>0.9912±0.0452</td><td>0.8353±0.0067</td><td>0.9960±0.0001</td><td>0.8403±0.0051</td><td>0.8323±0.0069</td></tr><tr data-loss="1.7051" data-acc="0.8345" data-auc="0.9945" data-pre="0.8366" data-rec="0.8289"><td>0.1</td><td>1</td><td>1.7051±0.1365</td><td>0.8345±0.0069</td><td>0.9945±0.0001</td><td>0.8366±0.0046</td><td>0.8289±0.0075</td></tr><tr data-loss="2.0513" data-acc="0.8345" data-auc="0.9947" data-pre="0.8383" data-rec="0.8312"><td>0.1</td><td>6</td><td>2.0513±0.1398</td><td>0.8345±0.0064</td><td>0.9947±0.0001</td><td>0.8383±0.0057</td><td>0.8312±0.0070</td></tr><tr data-loss="1.4382" data-acc="0.8341" data-auc="0.9946" data-pre="0.8375" data-rec="0.8306"><td>0.1</td><td>4</td><td>1.4382±0.0418</td><td>0.8341±0.0010</td><td>0.9946±0.0002</td><td>0.8375±0.0018</td><td>0.8306±0.0016</td></tr><tr data-loss="1.3473" data-acc="0.8328" data-auc="0.9949" data-pre="0.8357" data-rec="0.829"><td>0.1</td><td>2</td><td>1.3473±0.1102</td><td>0.8328±0.0119</td><td>0.9949±0.0003</td><td>0.8357±0.0109</td><td>0.8290±0.0123</td></tr><tr data-loss="0.9117" data-acc="0.8323" data-auc="0.9964" data-pre="0.8375" data-rec="0.8291"><td>0.01</td><td>2</td><td>0.9117±0.0167</td><td>0.8323±0.0037</td><td>0.9964±0.0001</td><td>0.8375±0.0029</td><td>0.8291±0.0030</td></tr><tr data-loss="0.7062" data-acc="0.832" data-auc="0.9966" data-pre="0.8366" data-rec="0.8297"><td>0.001</td><td>2</td><td>0.7062±0.0163</td><td>0.8320±0.0055</td><td>0.9966±0.0001</td><td>0.8366±0.0047</td><td>0.8297±0.0051</td></tr><tr data-loss="2.3142" data-acc="0.8319" data-auc="0.9925" data-pre="0.8263" data-rec="0.8251"><td>1</td><td>2</td><td>2.3142±0.1313</td><td>0.8319±0.0104</td><td>0.9925±0.0004</td><td>0.8263±0.0134</td><td>0.8251±0.0111</td></tr><tr data-loss="18.1082" data-acc="0.83" data-auc="0.9919" data-pre="0.8667" data-rec="0.8255"><td>10</td><td>12</td><td>18.1082±2.0225</td><td>0.8300±0.0051</td><td>0.9919±0.0004</td><td>0.8667±0.0102</td><td>0.8255±0.0053</td></tr><tr data-loss="0.7531" data-acc="0.8299" data-auc="0.9965" data-pre="0.8353" data-rec="0.8274"><td>0.001</td><td>1</td><td>0.7531±0.0291</td><td>0.8299±0.0059</td><td>0.9965±0.0001</td><td>0.8353±0.0050</td><td>0.8274±0.0058</td></tr><tr data-loss="27.9815" data-acc="0.8273" data-auc="0.9911" data-pre="0.8668" data-rec="0.8209"><td>10</td><td>14</td><td>27.9815±26.8035</td><td>0.8273±0.0092</td><td>0.9911±0.0003</td><td>0.8668±0.0079</td><td>0.8209±0.0092</td></tr><tr data-loss="0.9853" data-acc="0.8273" data-auc="0.9964" data-pre="0.8329" data-rec="0.8251"><td>0.01</td><td>4</td><td>0.9853±0.0218</td><td>0.8273±0.0046</td><td>0.9964±0.0002</td><td>0.8329±0.0050</td><td>0.8251±0.0046</td></tr><tr data-loss="3.0522" data-acc="0.8268" data-auc="0.9947" data-pre="0.8319" data-rec="0.8242"><td>0.1</td><td>8</td><td>3.0522±0.1931</td><td>0.8268±0.0085</td><td>0.9947±0.0002</td><td>0.8319±0.0062</td><td>0.8242±0.0089</td></tr><tr data-loss="1.1895" data-acc="0.8256" data-auc="0.9963" data-pre="0.8322" data-rec="0.8228"><td>0.01</td><td>6</td><td>1.1895±0.0254</td><td>0.8256±0.0050</td><td>0.9963±0.0001</td><td>0.8322±0.0045</td><td>0.8228±0.0056</td></tr><tr data-loss="0.6817" data-acc="0.8235" data-auc="0.9966" data-pre="0.831" data-rec="0.8207"><td>0.0001</td><td>4</td><td>0.6817±0.0118</td><td>0.8235±0.0051</td><td>0.9966±0.0002</td><td>0.8310±0.0049</td><td>0.8207±0.0052</td></tr><tr data-loss="1.4697" data-acc="0.8233" data-auc="0.9962" data-pre="0.8291" data-rec="0.821"><td>0.01</td><td>8</td><td>1.4697±0.0312</td><td>0.8233±0.0051</td><td>0.9962±0.0002</td><td>0.8291±0.0040</td><td>0.8210±0.0049</td></tr><tr data-loss="0.6775" data-acc="0.8223" data-auc="0.9965" data-pre="0.8301" data-rec="0.8193"><td>0.0001</td><td>1</td><td>0.6775±0.0129</td><td>0.8223±0.0051</td><td>0.9965±0.0001</td><td>0.8301±0.0038</td><td>0.8193±0.0052</td></tr><tr data-loss="0.7686" data-acc="0.8222" data-auc="0.9965" data-pre="0.8292" data-rec="0.8201"><td>0.001</td><td>4</td><td>0.7686±0.0218</td><td>0.8222±0.0069</td><td>0.9965±0.0002</td><td>0.8292±0.0052</td><td>0.8201±0.0069</td></tr><tr data-loss="0.6688" data-acc="0.8212" data-auc="0.9966" data-pre="0.8288" data-rec="0.8184"><td>0.0001</td><td>2</td><td>0.6688±0.0104</td><td>0.8212±0.0029</td><td>0.9966±0.0001</td><td>0.8288±0.0027</td><td>0.8184±0.0033</td></tr><tr data-loss="0.7237" data-acc="0.8211" data-auc="0.9964" data-pre="0.8295" data-rec="0.8182"><td>0.0001</td><td>6</td><td>0.7237±0.0116</td><td>0.8211±0.0040</td><td>0.9964±0.0001</td><td>0.8295±0.0018</td><td>0.8182±0.0049</td></tr><tr data-loss="4.556" data-acc="0.8205" data-auc="0.9948" data-pre="0.828" data-rec="0.8176"><td>0.1</td><td>10</td><td>4.5560±0.0772</td><td>0.8205±0.0018</td><td>0.9948±0.0001</td><td>0.8280±0.0011</td><td>0.8176±0.0021</td></tr><tr data-loss="6.1094" data-acc="0.8202" data-auc="0.9946" data-pre="0.8279" data-rec="0.8168"><td>0.1</td><td>12</td><td>6.1094±0.3781</td><td>0.8202±0.0083</td><td>0.9946±0.0001</td><td>0.8279±0.0055</td><td>0.8168±0.0084</td></tr><tr data-loss="0.9397" data-acc="0.8199" data-auc="0.9963" data-pre="0.828" data-rec="0.8175"><td>0.001</td><td>8</td><td>0.9397±0.0161</td><td>0.8199±0.0041</td><td>0.9963±0.0001</td><td>0.8280±0.0036</td><td>0.8175±0.0048</td></tr><tr data-loss="1.1385" data-acc="0.8196" data-auc="0.996" data-pre="0.8275" data-rec="0.8169"><td>0.001</td><td>12</td><td>1.1385±0.0166</td><td>0.8196±0.0052</td><td>0.9960±0.0001</td><td>0.8275±0.0047</td><td>0.8169±0.0050</td></tr><tr data-loss="0.8618" data-acc="0.8193" data-auc="0.9964" data-pre="0.8273" data-rec="0.8165"><td>0.001</td><td>6</td><td>0.8618±0.0482</td><td>0.8193±0.0060</td><td>0.9964±0.0001</td><td>0.8273±0.0039</td><td>0.8165±0.0060</td></tr><tr data-loss="0.7756" data-acc="0.8186" data-auc="0.9962" data-pre="0.8281" data-rec="0.8158"><td>0.0001</td><td>8</td><td>0.7756±0.0108</td><td>0.8186±0.0039</td><td>0.9962±0.0001</td><td>0.8281±0.0031</td><td>0.8158±0.0041</td></tr><tr data-loss="0.816" data-acc="0.8185" data-auc="0.9962" data-pre="0.828" data-rec="0.8161"><td>0.0001</td><td>10</td><td>0.8160±0.0230</td><td>0.8185±0.0062</td><td>0.9962±0.0001</td><td>0.8280±0.0020</td><td>0.8161±0.0064</td></tr><tr data-loss="1.7899" data-acc="0.8182" data-auc="0.9962" data-pre="0.8268" data-rec="0.8156"><td>0.01</td><td>10</td><td>1.7899±0.0209</td><td>0.8182±0.0036</td><td>0.9962±0.0001</td><td>0.8268±0.0020</td><td>0.8156±0.0042</td></tr><tr data-loss="1.0445" data-acc="0.8179" data-auc="0.9961" data-pre="0.8275" data-rec="0.8154"><td>0.001</td><td>10</td><td>1.0445±0.0180</td><td>0.8179±0.0073</td><td>0.9961±0.0002</td><td>0.8275±0.0031</td><td>0.8154±0.0075</td></tr><tr data-loss="2.5183" data-acc="0.8171" data-auc="0.9961" data-pre="0.8247" data-rec="0.8144"><td>0.01</td><td>14</td><td>2.5183±0.0605</td><td>0.8171±0.0036</td><td>0.9961±0.0002</td><td>0.8247±0.0025</td><td>0.8144±0.0039</td></tr><tr data-loss="6.5289" data-acc="0.8163" data-auc="0.9912" data-pre="0.8142" data-rec="0.8072"><td>10</td><td>2</td><td>6.5289±0.1401</td><td>0.8163±0.0082</td><td>0.9912±0.0007</td><td>0.8142±0.0084</td><td>0.8072±0.0081</td></tr><tr data-loss="8.2008" data-acc="0.8153" data-auc="0.9946" data-pre="0.8232" data-rec="0.8119"><td>0.1</td><td>14</td><td>8.2008±0.0785</td><td>0.8153±0.0031</td><td>0.9946±0.0001</td><td>0.8232±0.0014</td><td>0.8119±0.0035</td></tr><tr data-loss="1.2305" data-acc="0.815" data-auc="0.996" data-pre="0.8245" data-rec="0.8126"><td>0.001</td><td>14</td><td>1.2305±0.0300</td><td>0.8150±0.0076</td><td>0.9960±0.0002</td><td>0.8245±0.0047</td><td>0.8126±0.0078</td></tr><tr data-loss="0.9852" data-acc="0.8146" data-auc="0.996" data-pre="0.8272" data-rec="0.811"><td>0.0001</td><td>16</td><td>0.9852±0.0398</td><td>0.8146±0.0069</td><td>0.9960±0.0001</td><td>0.8272±0.0014</td><td>0.8110±0.0073</td></tr><tr data-loss="0.8574" data-acc="0.8145" data-auc="0.9961" data-pre="0.8273" data-rec="0.8113"><td>0.0001</td><td>12</td><td>0.8574±0.0311</td><td>0.8145±0.0054</td><td>0.9961±0.0002</td><td>0.8273±0.0012</td><td>0.8113±0.0062</td></tr><tr data-loss="0.9303" data-acc="0.814" data-auc="0.9961" data-pre="0.8272" data-rec="0.811"><td>0.0001</td><td>14</td><td>0.9303±0.0404</td><td>0.8140±0.0083</td><td>0.9961±0.0002</td><td>0.8272±0.0044</td><td>0.8110±0.0089</td></tr><tr data-loss="2.165" data-acc="0.8122" data-auc="0.996" data-pre="0.8226" data-rec="0.8092"><td>0.01</td><td>12</td><td>2.1650±0.0720</td><td>0.8122±0.0023</td><td>0.9960±0.0002</td><td>0.8226±0.0012</td><td>0.8092±0.0033</td></tr><tr data-loss="22.949" data-acc="0.8101" data-auc="0.9903" data-pre="0.8786" data-rec="0.8056"><td>10</td><td>10</td><td>22.9490±6.9954</td><td>0.8101±0.0039</td><td>0.9903±0.0006</td><td>0.8786±0.0176</td><td>0.8056±0.0043</td></tr><tr data-loss="1.3192" data-acc="0.81" data-auc="0.9958" data-pre="0.8223" data-rec="0.808"><td>0.001</td><td>16</td><td>1.3192±0.0356</td><td>0.8100±0.0031</td><td>0.9958±0.0001</td><td>0.8223±0.0027</td><td>0.8080±0.0034</td></tr><tr data-loss="3.0673" data-acc="0.8099" data-auc="0.9958" data-pre="0.8208" data-rec="0.8072"><td>0.01</td><td>16</td><td>3.0673±0.0656</td><td>0.8099±0.0032</td><td>0.9958±0.0001</td><td>0.8208±0.0010</td><td>0.8072±0.0031</td></tr><tr data-loss="10.8161" data-acc="0.8085" data-auc="0.9945" data-pre="0.8172" data-rec="0.8052"><td>0.1</td><td>16</td><td>10.8161±0.9443</td><td>0.8085±0.0133</td><td>0.9945±0.0002</td><td>0.8172±0.0104</td><td>0.8052±0.0140</td></tr><tr data-loss="29.2539" data-acc="0.8028" data-auc="0.9889" data-pre="0.8855" data-rec="0.798"><td>10</td><td>8</td><td>29.2539±6.1931</td><td>0.8028±0.0190</td><td>0.9889±0.0005</td><td>0.8855±0.0084</td><td>0.7980±0.0189</td></tr><tr data-loss="3.6909" data-acc="0.7933" data-auc="0.9876" data-pre="0.7819" data-rec="0.784"><td>1</td><td>1</td><td>3.6909±0.0597</td><td>0.7933±0.0097</td><td>0.9876±0.0006</td><td>0.7819±0.0151</td><td>0.7840±0.0096</td></tr><tr data-loss="5.5004" data-acc="0.7468" data-auc="0.9815" data-pre="0.7326" data-rec="0.7378"><td>10</td><td>1</td><td>5.5004±0.1611</td><td>0.7468±0.0179</td><td>0.9815±0.0016</td><td>0.7326±0.0199</td><td>0.7378±0.0177</td></tr>
+</tbody>
+</table>
+
+<h2>opbl</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-opbl">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-opbl">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="18.1192" data-acc="0.8488" data-auc="0.9952" data-pre="0.85" data-rec="0.8418"><td>1</td><td>16</td><td>18.1192±4.5350</td><td>0.8488±0.0080</td><td>0.9952±0.0002</td><td>0.8500±0.0050</td><td>0.8418±0.0090</td></tr><tr data-loss="11.0532" data-acc="0.848" data-auc="0.995" data-pre="0.8479" data-rec="0.8407"><td>1</td><td>12</td><td>11.0532±2.5539</td><td>0.8480±0.0082</td><td>0.9950±0.0003</td><td>0.8479±0.0121</td><td>0.8407±0.0097</td></tr><tr data-loss="15.6003" data-acc="0.8454" data-auc="0.9949" data-pre="0.8454" data-rec="0.8375"><td>1</td><td>14</td><td>15.6003±4.2317</td><td>0.8454±0.0118</td><td>0.9949±0.0002</td><td>0.8454±0.0141</td><td>0.8375±0.0140</td></tr><tr data-loss="2.9727" data-acc="0.8443" data-auc="0.9956" data-pre="0.8455" data-rec="0.8387"><td>0.1</td><td>16</td><td>2.9727±0.4682</td><td>0.8443±0.0076</td><td>0.9956±0.0001</td><td>0.8455±0.0070</td><td>0.8387±0.0082</td></tr><tr data-loss="112.553" data-acc="0.8439" data-auc="0.9948" data-pre="0.8357" data-rec="0.8354"><td>10</td><td>12</td><td>112.5531±31.7229</td><td>0.8439±0.0113</td><td>0.9948±0.0003</td><td>0.8357±0.0173</td><td>0.8354±0.0128</td></tr><tr data-loss="191.866" data-acc="0.8436" data-auc="0.995" data-pre="0.8445" data-rec="0.8353"><td>10</td><td>16</td><td>191.8658±56.7702</td><td>0.8436±0.0102</td><td>0.9950±0.0001</td><td>0.8445±0.0088</td><td>0.8353±0.0119</td></tr><tr data-loss="78.9107" data-acc="0.8425" data-auc="0.9948" data-pre="0.8381" data-rec="0.8336"><td>10</td><td>10</td><td>78.9107±13.7735</td><td>0.8425±0.0069</td><td>0.9948±0.0002</td><td>0.8381±0.0142</td><td>0.8336±0.0076</td></tr><tr data-loss="51.3547" data-acc="0.8422" data-auc="0.9948" data-pre="0.8325" data-rec="0.8327"><td>10</td><td>8</td><td>51.3547±1.1005</td><td>0.8422±0.0035</td><td>0.9948±0.0002</td><td>0.8325±0.0095</td><td>0.8327±0.0042</td></tr><tr data-loss="2.6233" data-acc="0.8408" data-auc="0.9956" data-pre="0.843" data-rec="0.8345"><td>0.1</td><td>14</td><td>2.6233±0.3441</td><td>0.8408±0.0078</td><td>0.9956±0.0001</td><td>0.8430±0.0079</td><td>0.8345±0.0086</td></tr><tr data-loss="169.238" data-acc="0.8395" data-auc="0.9948" data-pre="0.838" data-rec="0.8314"><td>10</td><td>14</td><td>169.2379±35.4515</td><td>0.8395±0.0097</td><td>0.9948±0.0001</td><td>0.8380±0.0109</td><td>0.8314±0.0110</td></tr><tr data-loss="30.6276" data-acc="0.8394" data-auc="0.9945" data-pre="0.8258" data-rec="0.8298"><td>10</td><td>6</td><td>30.6276±3.1729</td><td>0.8394±0.0072</td><td>0.9945±0.0002</td><td>0.8258±0.0069</td><td>0.8298±0.0077</td></tr><tr data-loss="2.1771" data-acc="0.8387" data-auc="0.9956" data-pre="0.8415" data-rec="0.8325"><td>0.1</td><td>12</td><td>2.1771±0.2336</td><td>0.8387±0.0057</td><td>0.9956±0.0002</td><td>0.8415±0.0067</td><td>0.8325±0.0066</td></tr><tr data-loss="6.1667" data-acc="0.8385" data-auc="0.9946" data-pre="0.8319" data-rec="0.8295"><td>1</td><td>8</td><td>6.1667±1.1149</td><td>0.8385±0.0102</td><td>0.9946±0.0002</td><td>0.8319±0.0140</td><td>0.8295±0.0113</td></tr><tr data-loss="9.3779" data-acc="0.8381" data-auc="0.9948" data-pre="0.8339" data-rec="0.8292"><td>1</td><td>10</td><td>9.3779±1.6990</td><td>0.8381±0.0081</td><td>0.9948±0.0003</td><td>0.8339±0.0182</td><td>0.8292±0.0089</td></tr><tr data-loss="14.2665" data-acc="0.8369" data-auc="0.9939" data-pre="0.823" data-rec="0.8272"><td>10</td><td>4</td><td>14.2665±0.8563</td><td>0.8369±0.0025</td><td>0.9939±0.0003</td><td>0.8230±0.0067</td><td>0.8272±0.0025</td></tr><tr data-loss="1.7557" data-acc="0.8366" data-auc="0.9954" data-pre="0.8388" data-rec="0.8303"><td>0.1</td><td>10</td><td>1.7557±0.1787</td><td>0.8366±0.0077</td><td>0.9954±0.0002</td><td>0.8388±0.0077</td><td>0.8303±0.0085</td></tr><tr data-loss="1.1373" data-acc="0.8363" data-auc="0.9949" data-pre="0.84" data-rec="0.8306"><td>0.1</td><td>4</td><td>1.1373±0.0252</td><td>0.8363±0.0029</td><td>0.9949±0.0004</td><td>0.8400±0.0034</td><td>0.8306±0.0031</td></tr><tr data-loss="1.0512" data-acc="0.8351" data-auc="0.9961" data-pre="0.8392" data-rec="0.8316"><td>0.01</td><td>16</td><td>1.0512±0.0630</td><td>0.8351±0.0045</td><td>0.9961±0.0001</td><td>0.8392±0.0041</td><td>0.8316±0.0049</td></tr><tr data-loss="4.294" data-acc="0.8336" data-auc="0.9943" data-pre="0.8201" data-rec="0.8238"><td>1</td><td>6</td><td>4.2940±0.0491</td><td>0.8336±0.0047</td><td>0.9943±0.0001</td><td>0.8201±0.0009</td><td>0.8238±0.0045</td></tr><tr data-loss="0.8862" data-acc="0.8333" data-auc="0.9961" data-pre="0.8378" data-rec="0.8295"><td>0.01</td><td>10</td><td>0.8862±0.0595</td><td>0.8333±0.0048</td><td>0.9961±0.0001</td><td>0.8378±0.0051</td><td>0.8295±0.0047</td></tr><tr data-loss="0.9938" data-acc="0.8325" data-auc="0.9961" data-pre="0.836" data-rec="0.8289"><td>0.01</td><td>14</td><td>0.9938±0.0557</td><td>0.8325±0.0049</td><td>0.9961±0.0001</td><td>0.8360±0.0044</td><td>0.8289±0.0048</td></tr><tr data-loss="1.4853" data-acc="0.8324" data-auc="0.9952" data-pre="0.8357" data-rec="0.8259"><td>0.1</td><td>8</td><td>1.4853±0.1757</td><td>0.8324±0.0112</td><td>0.9952±0.0001</td><td>0.8357±0.0120</td><td>0.8259±0.0119</td></tr><tr data-loss="0.6612" data-acc="0.8315" data-auc="0.9966" data-pre="0.8357" data-rec="0.8289"><td>0.0001</td><td>10</td><td>0.6612±0.0084</td><td>0.8315±0.0042</td><td>0.9966±0.0001</td><td>0.8357±0.0020</td><td>0.8289±0.0048</td></tr><tr data-loss="0.8685" data-acc="0.8313" data-auc="0.9961" data-pre="0.8354" data-rec="0.828"><td>0.01</td><td>6</td><td>0.8685±0.0526</td><td>0.8313±0.0066</td><td>0.9961±0.0001</td><td>0.8354±0.0073</td><td>0.8280±0.0069</td></tr><tr data-loss="0.9493" data-acc="0.8312" data-auc="0.9961" data-pre="0.8363" data-rec="0.8277"><td>0.01</td><td>12</td><td>0.9493±0.0466</td><td>0.8312±0.0056</td><td>0.9961±0.0001</td><td>0.8363±0.0046</td><td>0.8277±0.0058</td></tr><tr data-loss="0.9185" data-acc="0.8298" data-auc="0.9961" data-pre="0.834" data-rec="0.8262"><td>0.01</td><td>2</td><td>0.9185±0.0626</td><td>0.8298±0.0087</td><td>0.9961±0.0001</td><td>0.8340±0.0068</td><td>0.8262±0.0093</td></tr><tr data-loss="1.2816" data-acc="0.8295" data-auc="0.9951" data-pre="0.834" data-rec="0.8227"><td>0.1</td><td>6</td><td>1.2816±0.1513</td><td>0.8295±0.0155</td><td>0.9951±0.0004</td><td>0.8340±0.0186</td><td>0.8227±0.0171</td></tr><tr data-loss="0.6655" data-acc="0.8293" data-auc="0.9966" data-pre="0.8339" data-rec="0.8269"><td>0.0001</td><td>8</td><td>0.6655±0.0187</td><td>0.8293±0.0063</td><td>0.9966±0.0001</td><td>0.8339±0.0053</td><td>0.8269±0.0065</td></tr><tr data-loss="0.8972" data-acc="0.8287" data-auc="0.9961" data-pre="0.8331" data-rec="0.825"><td>0.01</td><td>8</td><td>0.8972±0.0348</td><td>0.8287±0.0026</td><td>0.9961±0.0001</td><td>0.8331±0.0020</td><td>0.8250±0.0034</td></tr><tr data-loss="0.734" data-acc="0.8287" data-auc="0.9964" data-pre="0.8323" data-rec="0.8256"><td>0.001</td><td>4</td><td>0.7340±0.0188</td><td>0.8287±0.0044</td><td>0.9964±0.0001</td><td>0.8323±0.0050</td><td>0.8256±0.0047</td></tr><tr data-loss="0.6676" data-acc="0.8287" data-auc="0.9966" data-pre="0.8337" data-rec="0.8264"><td>0.0001</td><td>4</td><td>0.6676±0.0096</td><td>0.8287±0.0060</td><td>0.9966±0.0001</td><td>0.8337±0.0054</td><td>0.8264±0.0062</td></tr><tr data-loss="0.6642" data-acc="0.8287" data-auc="0.9966" data-pre="0.8333" data-rec="0.8263"><td>0.0001</td><td>12</td><td>0.6642±0.0129</td><td>0.8287±0.0051</td><td>0.9966±0.0001</td><td>0.8333±0.0036</td><td>0.8263±0.0054</td></tr><tr data-loss="0.8961" data-acc="0.8286" data-auc="0.9961" data-pre="0.8319" data-rec="0.825"><td>0.01</td><td>4</td><td>0.8961±0.0465</td><td>0.8286±0.0054</td><td>0.9961±0.0001</td><td>0.8319±0.0056</td><td>0.8250±0.0060</td></tr><tr data-loss="0.6683" data-acc="0.8279" data-auc="0.9966" data-pre="0.8312" data-rec="0.8253"><td>0.0001</td><td>6</td><td>0.6683±0.0074</td><td>0.8279±0.0069</td><td>0.9966±0.0001</td><td>0.8312±0.0068</td><td>0.8253±0.0072</td></tr><tr data-loss="0.7354" data-acc="0.8277" data-auc="0.9964" data-pre="0.8324" data-rec="0.824"><td>0.001</td><td>6</td><td>0.7354±0.0205</td><td>0.8277±0.0048</td><td>0.9964±0.0001</td><td>0.8324±0.0051</td><td>0.8240±0.0051</td></tr><tr data-loss="0.9621" data-acc="0.8273" data-auc="0.996" data-pre="0.8308" data-rec="0.8232"><td>0.01</td><td>1</td><td>0.9621±0.0325</td><td>0.8273±0.0038</td><td>0.9960±0.0001</td><td>0.8308±0.0031</td><td>0.8232±0.0034</td></tr><tr data-loss="0.7315" data-acc="0.8273" data-auc="0.9964" data-pre="0.8314" data-rec="0.8239"><td>0.001</td><td>10</td><td>0.7315±0.0218</td><td>0.8273±0.0036</td><td>0.9964±0.0002</td><td>0.8314±0.0044</td><td>0.8239±0.0042</td></tr><tr data-loss="0.7444" data-acc="0.8273" data-auc="0.9964" data-pre="0.8311" data-rec="0.8242"><td>0.001</td><td>16</td><td>0.7444±0.0223</td><td>0.8273±0.0045</td><td>0.9964±0.0001</td><td>0.8311±0.0050</td><td>0.8242±0.0049</td></tr><tr data-loss="0.7484" data-acc="0.8272" data-auc="0.9964" data-pre="0.8318" data-rec="0.824"><td>0.001</td><td>1</td><td>0.7484±0.0198</td><td>0.8272±0.0041</td><td>0.9964±0.0001</td><td>0.8318±0.0043</td><td>0.8240±0.0046</td></tr><tr data-loss="0.7382" data-acc="0.8272" data-auc="0.9964" data-pre="0.831" data-rec="0.8244"><td>0.001</td><td>14</td><td>0.7382±0.0221</td><td>0.8272±0.0051</td><td>0.9964±0.0001</td><td>0.8310±0.0055</td><td>0.8244±0.0055</td></tr><tr data-loss="1.3536" data-acc="0.8263" data-auc="0.995" data-pre="0.8247" data-rec="0.8187"><td>0.1</td><td>2</td><td>1.3536±0.0619</td><td>0.8263±0.0060</td><td>0.9950±0.0002</td><td>0.8247±0.0094</td><td>0.8187±0.0070</td></tr><tr data-loss="0.6689" data-acc="0.8263" data-auc="0.9966" data-pre="0.8307" data-rec="0.8233"><td>0.0001</td><td>14</td><td>0.6689±0.0171</td><td>0.8263±0.0077</td><td>0.9966±0.0001</td><td>0.8307±0.0082</td><td>0.8233±0.0078</td></tr><tr data-loss="0.7419" data-acc="0.8261" data-auc="0.9964" data-pre="0.8309" data-rec="0.8231"><td>0.001</td><td>12</td><td>0.7419±0.0253</td><td>0.8261±0.0062</td><td>0.9964±0.0001</td><td>0.8309±0.0051</td><td>0.8231±0.0068</td></tr><tr data-loss="0.7521" data-acc="0.826" data-auc="0.9964" data-pre="0.8303" data-rec="0.8226"><td>0.001</td><td>2</td><td>0.7521±0.0127</td><td>0.8260±0.0019</td><td>0.9964±0.0001</td><td>0.8303±0.0030</td><td>0.8226±0.0024</td></tr><tr data-loss="0.7384" data-acc="0.826" data-auc="0.9964" data-pre="0.8297" data-rec="0.8226"><td>0.001</td><td>8</td><td>0.7384±0.0162</td><td>0.8260±0.0033</td><td>0.9964±0.0001</td><td>0.8297±0.0036</td><td>0.8226±0.0039</td></tr><tr data-loss="0.677" data-acc="0.8257" data-auc="0.9965" data-pre="0.8309" data-rec="0.8231"><td>0.0001</td><td>2</td><td>0.6770±0.0158</td><td>0.8257±0.0067</td><td>0.9965±0.0001</td><td>0.8309±0.0061</td><td>0.8231±0.0069</td></tr><tr data-loss="0.6683" data-acc="0.8255" data-auc="0.9966" data-pre="0.8301" data-rec="0.8225"><td>0.0001</td><td>16</td><td>0.6683±0.0139</td><td>0.8255±0.0072</td><td>0.9966±0.0001</td><td>0.8301±0.0082</td><td>0.8225±0.0074</td></tr><tr data-loss="0.6768" data-acc="0.8247" data-auc="0.9966" data-pre="0.829" data-rec="0.8224"><td>0.0001</td><td>1</td><td>0.6768±0.0129</td><td>0.8247±0.0068</td><td>0.9966±0.0002</td><td>0.8290±0.0067</td><td>0.8224±0.0074</td></tr><tr data-loss="1.4244" data-acc="0.8232" data-auc="0.9949" data-pre="0.8257" data-rec="0.8161"><td>0.1</td><td>1</td><td>1.4244±0.0694</td><td>0.8232±0.0062</td><td>0.9949±0.0001</td><td>0.8257±0.0047</td><td>0.8161±0.0070</td></tr><tr data-loss="2.9937" data-acc="0.8209" data-auc="0.9936" data-pre="0.8029" data-rec="0.811"><td>1</td><td>4</td><td>2.9937±0.2670</td><td>0.8209±0.0096</td><td>0.9936±0.0002</td><td>0.8029±0.0108</td><td>0.8110±0.0100</td></tr><tr data-loss="6.5425" data-acc="0.8122" data-auc="0.988" data-pre="0.8044" data-rec="0.8018"><td>10</td><td>2</td><td>6.5425±0.0840</td><td>0.8122±0.0074</td><td>0.9880±0.0005</td><td>0.8044±0.0040</td><td>0.8018±0.0072</td></tr><tr data-loss="2.6347" data-acc="0.7879" data-auc="0.9909" data-pre="0.7793" data-rec="0.7781"><td>1</td><td>2</td><td>2.6347±0.0799</td><td>0.7879±0.0124</td><td>0.9909±0.0005</td><td>0.7793±0.0135</td><td>0.7781±0.0120</td></tr><tr data-loss="5.2396" data-acc="0.7357" data-auc="0.9761" data-pre="0.7636" data-rec="0.7243"><td>10</td><td>1</td><td>5.2396±0.0793</td><td>0.7357±0.0215</td><td>0.9761±0.0013</td><td>0.7636±0.0167</td><td>0.7243±0.0211</td></tr><tr data-loss="3.1993" data-acc="0.7294" data-auc="0.9861" data-pre="0.7349" data-rec="0.7195"><td>1</td><td>1</td><td>3.1993±0.0932</td><td>0.7294±0.0186</td><td>0.9861±0.0013</td><td>0.7349±0.0220</td><td>0.7195±0.0182</td></tr>
+</tbody>
+</table>
+
+
+<h2>最优精度汇总</h2>
+<table>
+<thead><tr><th>模型</th><th>beta</th><th>anchor_scale</th><th>最优 Acc</th></tr></thead>
+<tbody>
+<tr class="best"><td>opb</td><td>1</td><td>16</td><td>0.8608±0.0021</td></tr><tr><td>opbl</td><td>1</td><td>16</td><td>0.8488±0.0080</td></tr><tr><td>cnn</td><td>-</td><td>-</td><td>0.8340±0.0013</td></tr><tr><td>dvcca</td><td>0.001</td><td>-</td><td>0.8321±0.0070</td></tr><tr><td>svib</td><td>0.001</td><td>-</td><td>0.8311±0.0086</td></tr><tr><td>ceb</td><td>0.01</td><td>-</td><td>0.8297±0.0067</td></tr><tr><td>vib</td><td>0.0001</td><td>-</td><td>0.8294±0.0037</td></tr><tr><td>nib</td><td>1</td><td>-</td><td>0.8291±0.0035</td></tr>
+</tbody>
+</table>
+
+<h2>压缩-精度对比曲线</h2>
+<style>
+.viz-root {
+  color-scheme: light;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px 10px;
+  position: relative;
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, .10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, .10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, .10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+}
+.viz-card { margin-top: 1.6em; }
+.viz-root h3 { font-size: 1.02em; margin: 0 0 2px; }
+.viz-root .viz-sub { color: var(--text-secondary); font-size: .82em; margin-bottom: 8px; }
+.viz-root svg { display: block; width: 100%; height: auto; }
+.viz-root .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 4px; }
+.viz-root .legend-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .82em; color: var(--text-secondary); cursor: pointer;
+  border: none; background: none; padding: 2px 0; font-family: inherit;
+}
+.viz-root .legend-item .key { display: inline-block; width: 18px; height: 2px; border-radius: 1px; }
+.viz-root .legend-item.off { opacity: .35; }
+.viz-root g.series.off { display: none; }
+.viz-root .tooltip {
+  position: absolute; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px; font-size: 12px; pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18); z-index: 10;
+}
+.viz-root .tooltip .tip-title { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.viz-root .tooltip .tip-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.viz-root .tooltip .tip-key { display: inline-block; width: 14px; height: 2px; flex: none; }
+.viz-root .tooltip .tip-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.viz-root .tooltip .tip-label { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.viz-root .hover-capture:focus { outline: 1px solid var(--muted); outline-offset: -1px; }
+</style>
+
+<div class="viz-card">
+<div class="viz-root">
+<h3>压缩-精度对比曲线（ceb / opb）</h3>
+<div class="viz-sub">y 为测试集 Acc（跨 run 均值±标准差），x 为 β（对数刻度）；opb 各画 anchor=1/6/12 三条线；单击图例可显隐系列</div>
+<svg viewBox="0 0 860 380" role="img" aria-label="压缩-精度对比曲线（ceb / opb）">
+<clipPath id="advclip-tune-all"><rect x="56.0" y="18.0" width="618.0" height="318.0"/></clipPath>
+<line x1="56.0" y1="18.0" x2="56.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="336.0" x2="674.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="336.0" x2="674.0" y2="336.0" stroke="var(--grid)"/><text x="50.0" y="340.0" text-anchor="end" font-size="11" fill="var(--muted)">0</text><line x1="56.0" y1="272.4" x2="674.0" y2="272.4" stroke="var(--grid)"/><text x="50.0" y="276.4" text-anchor="end" font-size="11" fill="var(--muted)">0.2</text><line x1="56.0" y1="208.8" x2="674.0" y2="208.8" stroke="var(--grid)"/><text x="50.0" y="212.8" text-anchor="end" font-size="11" fill="var(--muted)">0.4</text><line x1="56.0" y1="145.2" x2="674.0" y2="145.2" stroke="var(--grid)"/><text x="50.0" y="149.2" text-anchor="end" font-size="11" fill="var(--muted)">0.6</text><line x1="56.0" y1="81.6" x2="674.0" y2="81.6" stroke="var(--grid)"/><text x="50.0" y="85.6" text-anchor="end" font-size="11" fill="var(--muted)">0.8</text><line x1="56.0" y1="18.0" x2="674.0" y2="18.0" stroke="var(--grid)"/><text x="50.0" y="22.0" text-anchor="end" font-size="11" fill="var(--muted)">1</text><line x1="56.0" y1="336.0" x2="56.0" y2="340.0" stroke="var(--baseline)"/><text x="56.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.0001</text><line x1="179.6" y1="336.0" x2="179.6" y2="340.0" stroke="var(--baseline)"/><text x="179.6" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.001</text><line x1="303.2" y1="336.0" x2="303.2" y2="340.0" stroke="var(--baseline)"/><text x="303.2" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.01</text><line x1="426.8" y1="336.0" x2="426.8" y2="340.0" stroke="var(--baseline)"/><text x="426.8" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.1</text><line x1="550.4" y1="336.0" x2="550.4" y2="340.0" stroke="var(--baseline)"/><text x="550.4" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">1</text><line x1="674.0" y1="336.0" x2="674.0" y2="340.0" stroke="var(--baseline)"/><text x="674.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">10</text>
+<g clip-path="url(#advclip-tune-all)">
+<g class="series" data-series="0"><path d="M 56.0,74.2 179.6,72.2 303.2,72.2 426.8,73.9 550.4,212.1 674.0,332.7" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="73.0" x2="56.0" y2="75.4" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="179.6" y1="70.7" x2="179.6" y2="73.7" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="303.2" y1="70.0" x2="303.2" y2="74.3" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="426.8" y1="72.6" x2="426.8" y2="75.2" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="550.4" y1="201.8" x2="550.4" y2="222.4" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="74.2" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="179.6" cy="72.2" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="303.2" cy="72.2" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="426.8" cy="73.9" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="550.4" cy="212.1" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="332.7" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="1"><path d="M 56.0,74.5 179.6,72.1 303.2,70.4 426.8,70.6 550.4,83.7 674.0,98.5" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="72.9" x2="56.0" y2="76.1" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="179.6" y1="70.2" x2="179.6" y2="74.0" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="303.2" y1="68.2" x2="303.2" y2="72.5" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="426.8" y1="68.4" x2="426.8" y2="72.8" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="550.4" y1="80.6" x2="550.4" y2="86.8" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="92.8" x2="674.0" y2="104.2" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="74.5" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="179.6" cy="72.1" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="303.2" cy="70.4" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="426.8" cy="70.6" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="550.4" cy="83.7" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="98.5" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="2"><path d="M 56.0,74.9 179.6,75.5 303.2,73.5 426.8,70.6 550.4,65.4 674.0,64.6" fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="73.6" x2="56.0" y2="76.2" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="179.6" y1="73.6" x2="179.6" y2="77.4" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="303.2" y1="71.9" x2="303.2" y2="75.0" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="426.8" y1="68.6" x2="426.8" y2="72.7" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="550.4" y1="64.3" x2="550.4" y2="66.5" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="63.8" x2="674.0" y2="65.4" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="74.9" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="179.6" cy="75.5" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="303.2" cy="73.5" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="426.8" cy="70.6" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="550.4" cy="65.4" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="64.6" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="3"><path d="M 56.0,77.0 179.6,75.4 303.2,77.7 426.8,75.2 550.4,63.0 674.0,72.1" fill="none" stroke="var(--series-4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="75.3" x2="56.0" y2="78.7" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="179.6" y1="73.7" x2="179.6" y2="77.0" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="303.2" y1="77.0" x2="303.2" y2="78.5" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="426.8" y1="72.5" x2="426.8" y2="77.8" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="550.4" y1="61.3" x2="550.4" y2="64.6" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="70.4" x2="674.0" y2="73.7" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="77.0" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="179.6" cy="75.4" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="303.2" cy="77.7" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="426.8" cy="75.2" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="550.4" cy="63.0" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="72.1" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/></g>
+</g>
+<line x1="674.0" y1="332.7" x2="682.0" y2="332.7" stroke="var(--series-1)" stroke-width="1"/><text x="686.0" y="336.7" font-size="11" fill="var(--text-secondary)">ceb</text><line x1="674.0" y1="98.5" x2="682.0" y2="98.5" stroke="var(--series-2)" stroke-width="1"/><text x="686.0" y="102.5" font-size="11" fill="var(--text-secondary)">opb（a=1）</text><line x1="674.0" y1="64.6" x2="682.0" y2="64.6" stroke="var(--series-3)" stroke-width="1"/><text x="686.0" y="68.6" font-size="11" fill="var(--text-secondary)">opb（a=6）</text><line x1="674.0" y1="72.1" x2="682.0" y2="79.6" stroke="var(--series-4)" stroke-width="1"/><text x="686.0" y="83.6" font-size="11" fill="var(--text-secondary)">opb（a=12）</text>
+<line class="crosshair" x1="56.0" x2="56.0" y1="18.0" y2="336.0" stroke="var(--muted)" stroke-opacity="0"/>
+<rect class="hover-capture" x="56.0" y="18.0" width="618.0" height="318.0" fill="transparent" tabindex="0" aria-label="移动光标或按左右方向键查看各系列数值"/>
+</svg>
+<div class="legend"><button type="button" class="legend-item" data-series="0"><span class="key" style="background:var(--series-1)"></span><span>ceb</span></button><button type="button" class="legend-item" data-series="1"><span class="key" style="background:var(--series-2)"></span><span>opb（a=1）</span></button><button type="button" class="legend-item" data-series="2"><span class="key" style="background:var(--series-3)"></span><span>opb（a=6）</span></button><button type="button" class="legend-item" data-series="3"><span class="key" style="background:var(--series-4)"></span><span>opb（a=12）</span></button></div>
+<div class="tooltip" hidden></div>
+<script type="application/json" class="viz-data">{"xs": [56.0, 179.6, 303.2, 426.8, 550.4, 674.0], "titles": ["β=0.0001", "β=0.001", "β=0.01", "β=0.1", "β=1", "β=10"], "series": [{"label": "ceb", "texts": ["0.8233±0.0038", "0.8297±0.0047", "0.8297±0.0067", "0.8242±0.0042", "0.3895±0.0324", "0.0103"], "color": "var(--series-1)"}, {"label": "opb（a=1）", "texts": ["0.8223±0.0051", "0.8299±0.0059", "0.8353±0.0067", "0.8345±0.0069", "0.7933±0.0097", "0.7468±0.0179"], "color": "var(--series-2)"}, {"label": "opb（a=6）", "texts": ["0.8211±0.0040", "0.8193±0.0060", "0.8256±0.0050", "0.8345±0.0064", "0.8509±0.0034", "0.8536±0.0025"], "color": "var(--series-3)"}, {"label": "opb（a=12）", "texts": ["0.8145±0.0054", "0.8196±0.0052", "0.8122±0.0023", "0.8202±0.0083", "0.8586±0.0052", "0.8300±0.0051"], "color": "var(--series-4)"}]}</script>
+</div>
+</div>
+<script>
+(function () {
+  document.querySelectorAll(".viz-card").forEach(function (card) {
+    var dataEl = card.querySelector("script.viz-data");
+    if (!dataEl) return;
+    var data = JSON.parse(dataEl.textContent);
+    var svg = card.querySelector("svg");
+    var cap = svg.querySelector(".hover-capture");
+    var hair = svg.querySelector(".crosshair");
+    var tip = card.querySelector(".tooltip");
+    var groups = Array.prototype.slice.call(svg.querySelectorAll("g.series"));
+    var viewW = svg.viewBox.baseVal.width;
+    var col = 0;
+
+    function visible(i) { return !groups[i] || !groups[i].classList.contains("off"); }
+
+    function showTooltip(j, clientX, clientY) {
+      hair.setAttribute("x1", data.xs[j]);
+      hair.setAttribute("x2", data.xs[j]);
+      hair.setAttribute("stroke-opacity", "1");
+      tip.textContent = "";
+      var title = document.createElement("div");
+      title.className = "tip-title";
+      title.textContent = data.titles[j];
+      tip.appendChild(title);
+      data.series.forEach(function (s, i) {
+        if (!visible(i)) return;
+        var row = document.createElement("div");
+        row.className = "tip-row";
+        var key = document.createElement("span");
+        key.className = "tip-key";
+        key.style.background = s.color;
+        var val = document.createElement("span");
+        val.className = "tip-val";
+        val.textContent = s.texts[j];
+        var lab = document.createElement("span");
+        lab.className = "tip-label";
+        lab.textContent = s.label;
+        row.appendChild(key);
+        row.appendChild(val);
+        row.appendChild(lab);
+        tip.appendChild(row);
+      });
+      var root = card.querySelector(".viz-root");
+      var rootRect = root.getBoundingClientRect();
+      var left = clientX - rootRect.left + 14;
+      var top = clientY - rootRect.top + 14;
+      if (left + 240 > rootRect.width) left = clientX - rootRect.left - 240;
+      if (top + 120 > rootRect.height) top = clientY - rootRect.top - 120;
+      tip.style.left = Math.max(4, left) + "px";
+      tip.style.top = Math.max(4, top) + "px";
+      tip.hidden = false;
+    }
+
+    function hideTooltip() { tip.hidden = true; hair.setAttribute("stroke-opacity", "0"); }
+
+    function nearestCol(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var x = (clientX - rect.left) * (viewW / rect.width);
+      var best = 0, bestD = Infinity;
+      data.xs.forEach(function (v, j) {
+        var d = Math.abs(v - x);
+        if (d < bestD) { bestD = d; best = j; }
+      });
+      return best;
+    }
+
+    function tooltipAt(j) {
+      var rect = svg.getBoundingClientRect();
+      showTooltip(j, rect.left + data.xs[j] * (rect.width / viewW), rect.top + rect.height * 0.2);
+    }
+
+    cap.addEventListener("pointermove", function (e) {
+      col = nearestCol(e.clientX);
+      showTooltip(col, e.clientX, e.clientY);
+    });
+    cap.addEventListener("pointerleave", hideTooltip);
+    cap.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") col = Math.max(0, col - 1);
+      else if (e.key === "ArrowRight") col = Math.min(data.xs.length - 1, col + 1);
+      else return;
+      e.preventDefault();
+      tooltipAt(col);
+    });
+    cap.addEventListener("focus", function () { tooltipAt(col); });
+    cap.addEventListener("blur", hideTooltip);
+
+    card.querySelectorAll(".legend-item").forEach(function (item) {
+      item.addEventListener("click", function () {
+        var i = Number(item.dataset.series);
+        var off = groups[i].classList.toggle("off");
+        item.classList.toggle("off", off);
+      });
+    });
+  });
+})();
+</script>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

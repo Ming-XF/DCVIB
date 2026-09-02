@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=mnist pgd_steps=20 n_test=1000 | 3 个配置（每行跨 5 run 的均值±标准差；Acc 为 clean acc，Linf/L2 为对应 ε 的鲁棒精度）（绿色高亮 = 各模型默认指标 Acc 的最佳行）</div>
+
+<h2>mnist_mlp</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-mnist_mlp">
+<option value="Acc" selected>Acc</option><option value="Linf0.05">Linf0.05</option><option value="Linf0.1">Linf0.1</option><option value="Linf0.15">Linf0.15</option><option value="Linf0.2">Linf0.2</option><option value="Linf0.25">Linf0.25</option><option value="Linf0.3">Linf0.3</option><option value="L21">L21</option><option value="L22">L22</option><option value="L23">L23</option><option value="L24">L24</option><option value="L25">L25</option><option value="L26">L26</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-mnist_mlp">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Acc</th><th>Linf0.05</th><th>Linf0.1</th><th>Linf0.15</th><th>Linf0.2</th><th>Linf0.25</th><th>Linf0.3</th><th>L21</th><th>L22</th><th>L23</th><th>L24</th><th>L25</th><th>L26</th></tr></thead>
+<tbody>
+<tr class="best" data-acc="0.9816" data-linf0.05="0.932" data-linf0.1="0.7644" data-linf0.15="0.454" data-linf0.2="0.229" data-linf0.25="0.1038" data-linf0.3="0.0536" data-l21="0.9314" data-l22="0.7624" data-l23="0.4548" data-l24="0.2432" data-l25="0.1424" data-l26="0.106"><td>-</td><td>-</td><td>0.9816±0.0036</td><td>0.9320±0.0044</td><td>0.7644±0.0071</td><td>0.4540±0.0293</td><td>0.2290±0.0280</td><td>0.1038±0.0232</td><td>0.0536±0.0270</td><td>0.9314±0.0047</td><td>0.7624±0.0101</td><td>0.4548±0.0309</td><td>0.2432±0.0530</td><td>0.1424±0.0750</td><td>0.1060±0.0844</td></tr>
+</tbody>
+</table>
+
+<h2>mnist_mlp_opb_beta0.1_scale12</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-mnist_mlp_opb_beta0.1_scale12">
+<option value="Acc" selected>Acc</option><option value="Linf0.05">Linf0.05</option><option value="Linf0.1">Linf0.1</option><option value="Linf0.15">Linf0.15</option><option value="Linf0.2">Linf0.2</option><option value="Linf0.25">Linf0.25</option><option value="Linf0.3">Linf0.3</option><option value="L21">L21</option><option value="L22">L22</option><option value="L23">L23</option><option value="L24">L24</option><option value="L25">L25</option><option value="L26">L26</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-mnist_mlp_opb_beta0.1_scale12">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Acc</th><th>Linf0.05</th><th>Linf0.1</th><th>Linf0.15</th><th>Linf0.2</th><th>Linf0.25</th><th>Linf0.3</th><th>L21</th><th>L22</th><th>L23</th><th>L24</th><th>L25</th><th>L26</th></tr></thead>
+<tbody>
+<tr class="best" data-acc="0.9832" data-linf0.05="0.9358" data-linf0.1="0.7682" data-linf0.15="0.482" data-linf0.2="0.279" data-linf0.25="0.1482" data-linf0.3="0.074" data-l21="0.9374" data-l22="0.7862" data-l23="0.4848" data-l24="0.273" data-l25="0.1366" data-l26="0.0682"><td>-</td><td>-</td><td>0.9832±0.0019</td><td>0.9358±0.0016</td><td>0.7682±0.0190</td><td>0.4820±0.0177</td><td>0.2790±0.0228</td><td>0.1482±0.0095</td><td>0.0740±0.0049</td><td>0.9374±0.0015</td><td>0.7862±0.0132</td><td>0.4848±0.0270</td><td>0.2730±0.0224</td><td>0.1366±0.0145</td><td>0.0682±0.0053</td></tr>
+</tbody>
+</table>
+
+<h2>mnist_mlp_ceb_beta0.1</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-mnist_mlp_ceb_beta0.1">
+<option value="Acc" selected>Acc</option><option value="Linf0.05">Linf0.05</option><option value="Linf0.1">Linf0.1</option><option value="Linf0.15">Linf0.15</option><option value="Linf0.2">Linf0.2</option><option value="Linf0.25">Linf0.25</option><option value="Linf0.3">Linf0.3</option><option value="L21">L21</option><option value="L22">L22</option><option value="L23">L23</option><option value="L24">L24</option><option value="L25">L25</option><option value="L26">L26</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-mnist_mlp_ceb_beta0.1">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Acc</th><th>Linf0.05</th><th>Linf0.1</th><th>Linf0.15</th><th>Linf0.2</th><th>Linf0.25</th><th>Linf0.3</th><th>L21</th><th>L22</th><th>L23</th><th>L24</th><th>L25</th><th>L26</th></tr></thead>
+<tbody>
+<tr class="best" data-acc="0.9776" data-linf0.05="0.9162" data-linf0.1="0.702" data-linf0.15="0.4322" data-linf0.2="0.2402" data-linf0.25="0.1254" data-linf0.3="0.0684" data-l21="0.9192" data-l22="0.7324" data-l23="0.439" data-l24="0.239" data-l25="0.1212" data-l26="0.0608"><td>-</td><td>-</td><td>0.9776±0.0028</td><td>0.9162±0.0058</td><td>0.7020±0.0326</td><td>0.4322±0.0295</td><td>0.2402±0.0238</td><td>0.1254±0.0167</td><td>0.0684±0.0057</td><td>0.9192±0.0040</td><td>0.7324±0.0299</td><td>0.4390±0.0198</td><td>0.2390±0.0244</td><td>0.1212±0.0181</td><td>0.0608±0.0088</td></tr>
+</tbody>
+</table>
+
+
+<h2>鲁棒精度对比曲线</h2>
+<style>
+.viz-root {
+  color-scheme: light;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px 10px;
+  position: relative;
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, .10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, .10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, .10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+}
+.viz-card { margin-top: 1.6em; }
+.viz-root h3 { font-size: 1.02em; margin: 0 0 2px; }
+.viz-root .viz-sub { color: var(--text-secondary); font-size: .82em; margin-bottom: 8px; }
+.viz-root svg { display: block; width: 100%; height: auto; }
+.viz-root .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 4px; }
+.viz-root .legend-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .82em; color: var(--text-secondary); cursor: pointer;
+  border: none; background: none; padding: 2px 0; font-family: inherit;
+}
+.viz-root .legend-item .key { display: inline-block; width: 18px; height: 2px; border-radius: 1px; }
+.viz-root .legend-item.off { opacity: .35; }
+.viz-root g.series.off { display: none; }
+.viz-root .tooltip {
+  position: absolute; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px; font-size: 12px; pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18); z-index: 10;
+}
+.viz-root .tooltip .tip-title { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.viz-root .tooltip .tip-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.viz-root .tooltip .tip-key { display: inline-block; width: 14px; height: 2px; flex: none; }
+.viz-root .tooltip .tip-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.viz-root .tooltip .tip-label { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.viz-root .hover-capture:focus { outline: 1px solid var(--muted); outline-offset: -1px; }
+</style>
+
+<div class="viz-card">
+<div class="viz-root">
+<h3>L∞ PGD 对比曲线</h3>
+<div class="viz-sub">ε 定义在归一化像素空间；ε=0 为 clean 精度；误差棒为跨 5 run 的均值±标准差；单击图例可显隐配置</div>
+<svg viewBox="0 0 860 380" role="img" aria-label="L∞ PGD 对比曲线">
+<clipPath id="advclip-linf"><rect x="56.0" y="18.0" width="618.0" height="318.0"/></clipPath>
+<line x1="56.0" y1="18.0" x2="56.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="336.0" x2="674.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="336.0" x2="674.0" y2="336.0" stroke="var(--grid)"/><text x="50.0" y="340.0" text-anchor="end" font-size="11" fill="var(--muted)">0</text><line x1="56.0" y1="272.4" x2="674.0" y2="272.4" stroke="var(--grid)"/><text x="50.0" y="276.4" text-anchor="end" font-size="11" fill="var(--muted)">0.2</text><line x1="56.0" y1="208.8" x2="674.0" y2="208.8" stroke="var(--grid)"/><text x="50.0" y="212.8" text-anchor="end" font-size="11" fill="var(--muted)">0.4</text><line x1="56.0" y1="145.2" x2="674.0" y2="145.2" stroke="var(--grid)"/><text x="50.0" y="149.2" text-anchor="end" font-size="11" fill="var(--muted)">0.6</text><line x1="56.0" y1="81.6" x2="674.0" y2="81.6" stroke="var(--grid)"/><text x="50.0" y="85.6" text-anchor="end" font-size="11" fill="var(--muted)">0.8</text><line x1="56.0" y1="18.0" x2="674.0" y2="18.0" stroke="var(--grid)"/><text x="50.0" y="22.0" text-anchor="end" font-size="11" fill="var(--muted)">1</text><line x1="56.0" y1="336.0" x2="56.0" y2="340.0" stroke="var(--baseline)"/><text x="56.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0</text><text x="56.0" y="367.0" text-anchor="middle" font-size="9" fill="var(--muted)">clean</text><line x1="159.0" y1="336.0" x2="159.0" y2="340.0" stroke="var(--baseline)"/><text x="159.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.05</text><line x1="262.0" y1="336.0" x2="262.0" y2="340.0" stroke="var(--baseline)"/><text x="262.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.1</text><line x1="365.0" y1="336.0" x2="365.0" y2="340.0" stroke="var(--baseline)"/><text x="365.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.15</text><line x1="468.0" y1="336.0" x2="468.0" y2="340.0" stroke="var(--baseline)"/><text x="468.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.2</text><line x1="571.0" y1="336.0" x2="571.0" y2="340.0" stroke="var(--baseline)"/><text x="571.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.25</text><line x1="674.0" y1="336.0" x2="674.0" y2="340.0" stroke="var(--baseline)"/><text x="674.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.3</text>
+<g clip-path="url(#advclip-linf)">
+<g class="series" data-series="0"><path d="M 56.0,23.9 159.0,39.6 262.0,92.9 365.0,191.6 468.0,263.2 571.0,303.0 674.0,319.0" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="22.7" x2="56.0" y2="25.0" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="159.0" y1="38.2" x2="159.0" y2="41.0" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="262.0" y1="90.7" x2="262.0" y2="95.2" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="365.0" y1="182.3" x2="365.0" y2="201.0" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="468.0" y1="254.3" x2="468.0" y2="272.1" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="571.0" y1="295.6" x2="571.0" y2="310.4" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="310.4" x2="674.0" y2="327.6" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="23.9" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="159.0" cy="39.6" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="262.0" cy="92.9" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="365.0" cy="191.6" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="468.0" cy="263.2" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="571.0" cy="303.0" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="319.0" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="1"><path d="M 56.0,23.3 159.0,38.4 262.0,91.7 365.0,182.7 468.0,247.3 571.0,288.9 674.0,312.5" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="22.7" x2="56.0" y2="24.0" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="159.0" y1="37.9" x2="159.0" y2="38.9" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="262.0" y1="85.7" x2="262.0" y2="97.8" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="365.0" y1="177.1" x2="365.0" y2="188.3" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="468.0" y1="240.0" x2="468.0" y2="254.5" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="571.0" y1="285.9" x2="571.0" y2="291.9" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="310.9" x2="674.0" y2="314.0" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="23.3" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="159.0" cy="38.4" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="262.0" cy="91.7" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="365.0" cy="182.7" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="468.0" cy="247.3" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="571.0" cy="288.9" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="312.5" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="2"><path d="M 56.0,25.1 159.0,44.6 262.0,112.8 365.0,198.6 468.0,259.6 571.0,296.1 674.0,314.2" fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="24.2" x2="56.0" y2="26.0" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="159.0" y1="42.8" x2="159.0" y2="46.5" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="262.0" y1="102.4" x2="262.0" y2="123.1" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="365.0" y1="189.2" x2="365.0" y2="207.9" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="468.0" y1="252.0" x2="468.0" y2="267.2" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="571.0" y1="290.8" x2="571.0" y2="301.4" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="312.4" x2="674.0" y2="316.1" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="25.1" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="159.0" cy="44.6" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="262.0" cy="112.8" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="365.0" cy="198.6" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="468.0" cy="259.6" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="571.0" cy="296.1" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="314.2" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/></g>
+</g>
+
+<line class="crosshair" x1="56.0" x2="56.0" y1="18.0" y2="336.0" stroke="var(--muted)" stroke-opacity="0"/>
+<rect class="hover-capture" x="56.0" y="18.0" width="618.0" height="318.0" fill="transparent" tabindex="0" aria-label="移动光标或按左右方向键查看各系列数值"/>
+</svg>
+<div class="legend"><button type="button" class="legend-item" data-series="0"><span class="key" style="background:var(--series-1)"></span><span>mnist_mlp</span></button><button type="button" class="legend-item" data-series="1"><span class="key" style="background:var(--series-2)"></span><span>mnist_mlp_opb_beta0.1_scale12</span></button><button type="button" class="legend-item" data-series="2"><span class="key" style="background:var(--series-3)"></span><span>mnist_mlp_ceb_beta0.1</span></button></div>
+<div class="tooltip" hidden></div>
+<script type="application/json" class="viz-data">{"xs": [56.0, 159.0, 262.0, 365.0, 468.0, 571.0, 674.0], "titles": ["clean", "ε=0.05", "ε=0.1", "ε=0.15", "ε=0.2", "ε=0.25", "ε=0.3"], "series": [{"label": "mnist_mlp", "texts": ["0.9816±0.0036", "0.9320±0.0044", "0.7644±0.0071", "0.4540±0.0293", "0.2290±0.0280", "0.1038±0.0232", "0.0536±0.0270"], "color": "var(--series-1)"}, {"label": "mnist_mlp_opb_beta0.1_scale12", "texts": ["0.9832±0.0019", "0.9358±0.0016", "0.7682±0.0190", "0.4820±0.0177", "0.2790±0.0228", "0.1482±0.0095", "0.0740±0.0049"], "color": "var(--series-2)"}, {"label": "mnist_mlp_ceb_beta0.1", "texts": ["0.9776±0.0028", "0.9162±0.0058", "0.7020±0.0326", "0.4322±0.0295", "0.2402±0.0238", "0.1254±0.0167", "0.0684±0.0057"], "color": "var(--series-3)"}]}</script>
+</div>
+</div>
+<div class="viz-card">
+<div class="viz-root">
+<h3>L2 PGD 对比曲线</h3>
+<div class="viz-sub">ε 定义在归一化像素空间；ε=0 为 clean 精度；误差棒为跨 5 run 的均值±标准差；单击图例可显隐配置</div>
+<svg viewBox="0 0 860 380" role="img" aria-label="L2 PGD 对比曲线">
+<clipPath id="advclip-l2"><rect x="56.0" y="18.0" width="618.0" height="318.0"/></clipPath>
+<line x1="56.0" y1="18.0" x2="56.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="336.0" x2="674.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="336.0" x2="674.0" y2="336.0" stroke="var(--grid)"/><text x="50.0" y="340.0" text-anchor="end" font-size="11" fill="var(--muted)">0</text><line x1="56.0" y1="272.4" x2="674.0" y2="272.4" stroke="var(--grid)"/><text x="50.0" y="276.4" text-anchor="end" font-size="11" fill="var(--muted)">0.2</text><line x1="56.0" y1="208.8" x2="674.0" y2="208.8" stroke="var(--grid)"/><text x="50.0" y="212.8" text-anchor="end" font-size="11" fill="var(--muted)">0.4</text><line x1="56.0" y1="145.2" x2="674.0" y2="145.2" stroke="var(--grid)"/><text x="50.0" y="149.2" text-anchor="end" font-size="11" fill="var(--muted)">0.6</text><line x1="56.0" y1="81.6" x2="674.0" y2="81.6" stroke="var(--grid)"/><text x="50.0" y="85.6" text-anchor="end" font-size="11" fill="var(--muted)">0.8</text><line x1="56.0" y1="18.0" x2="674.0" y2="18.0" stroke="var(--grid)"/><text x="50.0" y="22.0" text-anchor="end" font-size="11" fill="var(--muted)">1</text><line x1="56.0" y1="336.0" x2="56.0" y2="340.0" stroke="var(--baseline)"/><text x="56.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0</text><text x="56.0" y="367.0" text-anchor="middle" font-size="9" fill="var(--muted)">clean</text><line x1="159.0" y1="336.0" x2="159.0" y2="340.0" stroke="var(--baseline)"/><text x="159.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">1</text><line x1="262.0" y1="336.0" x2="262.0" y2="340.0" stroke="var(--baseline)"/><text x="262.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">2</text><line x1="365.0" y1="336.0" x2="365.0" y2="340.0" stroke="var(--baseline)"/><text x="365.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">3</text><line x1="468.0" y1="336.0" x2="468.0" y2="340.0" stroke="var(--baseline)"/><text x="468.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">4</text><line x1="571.0" y1="336.0" x2="571.0" y2="340.0" stroke="var(--baseline)"/><text x="571.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">5</text><line x1="674.0" y1="336.0" x2="674.0" y2="340.0" stroke="var(--baseline)"/><text x="674.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">6</text>
+<g clip-path="url(#advclip-l2)">
+<g class="series" data-series="0"><path d="M 56.0,23.9 159.0,39.8 262.0,93.6 365.0,191.4 468.0,258.7 571.0,290.7 674.0,302.3" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="22.7" x2="56.0" y2="25.0" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="159.0" y1="38.3" x2="159.0" y2="41.3" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="262.0" y1="90.4" x2="262.0" y2="96.8" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="365.0" y1="181.6" x2="365.0" y2="201.2" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="468.0" y1="241.8" x2="468.0" y2="275.5" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="571.0" y1="266.9" x2="571.0" y2="314.6" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="275.5" x2="674.0" y2="329.1" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="23.9" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="159.0" cy="39.8" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="262.0" cy="93.6" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="365.0" cy="191.4" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="468.0" cy="258.7" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="571.0" cy="290.7" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="302.3" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="1"><path d="M 56.0,23.3 159.0,37.9 262.0,86.0 365.0,181.8 468.0,249.2 571.0,292.6 674.0,314.3" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="22.7" x2="56.0" y2="24.0" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="159.0" y1="37.4" x2="159.0" y2="38.4" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="262.0" y1="81.8" x2="262.0" y2="90.2" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="365.0" y1="173.3" x2="365.0" y2="190.4" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="468.0" y1="242.1" x2="468.0" y2="256.3" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="571.0" y1="288.0" x2="571.0" y2="297.2" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="312.6" x2="674.0" y2="316.0" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="23.3" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="159.0" cy="37.9" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="262.0" cy="86.0" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="365.0" cy="181.8" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="468.0" cy="249.2" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="571.0" cy="292.6" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="314.3" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="2"><path d="M 56.0,25.1 159.0,43.7 262.0,103.1 365.0,196.4 468.0,260.0 571.0,297.5 674.0,316.7" fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="24.2" x2="56.0" y2="26.0" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="159.0" y1="42.4" x2="159.0" y2="45.0" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="262.0" y1="93.6" x2="262.0" y2="112.6" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="365.0" y1="190.1" x2="365.0" y2="202.7" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="468.0" y1="252.2" x2="468.0" y2="267.8" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="571.0" y1="291.7" x2="571.0" y2="303.2" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="674.0" y1="313.9" x2="674.0" y2="319.5" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="25.1" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="159.0" cy="43.7" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="262.0" cy="103.1" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="365.0" cy="196.4" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="468.0" cy="260.0" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="571.0" cy="297.5" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="674.0" cy="316.7" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/></g>
+</g>
+
+<line class="crosshair" x1="56.0" x2="56.0" y1="18.0" y2="336.0" stroke="var(--muted)" stroke-opacity="0"/>
+<rect class="hover-capture" x="56.0" y="18.0" width="618.0" height="318.0" fill="transparent" tabindex="0" aria-label="移动光标或按左右方向键查看各系列数值"/>
+</svg>
+<div class="legend"><button type="button" class="legend-item" data-series="0"><span class="key" style="background:var(--series-1)"></span><span>mnist_mlp</span></button><button type="button" class="legend-item" data-series="1"><span class="key" style="background:var(--series-2)"></span><span>mnist_mlp_opb_beta0.1_scale12</span></button><button type="button" class="legend-item" data-series="2"><span class="key" style="background:var(--series-3)"></span><span>mnist_mlp_ceb_beta0.1</span></button></div>
+<div class="tooltip" hidden></div>
+<script type="application/json" class="viz-data">{"xs": [56.0, 159.0, 262.0, 365.0, 468.0, 571.0, 674.0], "titles": ["clean", "ε=1", "ε=2", "ε=3", "ε=4", "ε=5", "ε=6"], "series": [{"label": "mnist_mlp", "texts": ["0.9816±0.0036", "0.9314±0.0047", "0.7624±0.0101", "0.4548±0.0309", "0.2432±0.0530", "0.1424±0.0750", "0.1060±0.0844"], "color": "var(--series-1)"}, {"label": "mnist_mlp_opb_beta0.1_scale12", "texts": ["0.9832±0.0019", "0.9374±0.0015", "0.7862±0.0132", "0.4848±0.0270", "0.2730±0.0224", "0.1366±0.0145", "0.0682±0.0053"], "color": "var(--series-2)"}, {"label": "mnist_mlp_ceb_beta0.1", "texts": ["0.9776±0.0028", "0.9192±0.0040", "0.7324±0.0299", "0.4390±0.0198", "0.2390±0.0244", "0.1212±0.0181", "0.0608±0.0088"], "color": "var(--series-3)"}]}</script>
+</div>
+</div>
+<script>
+(function () {
+  document.querySelectorAll(".viz-card").forEach(function (card) {
+    var dataEl = card.querySelector("script.viz-data");
+    if (!dataEl) return;
+    var data = JSON.parse(dataEl.textContent);
+    var svg = card.querySelector("svg");
+    var cap = svg.querySelector(".hover-capture");
+    var hair = svg.querySelector(".crosshair");
+    var tip = card.querySelector(".tooltip");
+    var groups = Array.prototype.slice.call(svg.querySelectorAll("g.series"));
+    var viewW = svg.viewBox.baseVal.width;
+    var col = 0;
+
+    function visible(i) { return !groups[i] || !groups[i].classList.contains("off"); }
+
+    function showTooltip(j, clientX, clientY) {
+      hair.setAttribute("x1", data.xs[j]);
+      hair.setAttribute("x2", data.xs[j]);
+      hair.setAttribute("stroke-opacity", "1");
+      tip.textContent = "";
+      var title = document.createElement("div");
+      title.className = "tip-title";
+      title.textContent = data.titles[j];
+      tip.appendChild(title);
+      data.series.forEach(function (s, i) {
+        if (!visible(i)) return;
+        var row = document.createElement("div");
+        row.className = "tip-row";
+        var key = document.createElement("span");
+        key.className = "tip-key";
+        key.style.background = s.color;
+        var val = document.createElement("span");
+        val.className = "tip-val";
+        val.textContent = s.texts[j];
+        var lab = document.createElement("span");
+        lab.className = "tip-label";
+        lab.textContent = s.label;
+        row.appendChild(key);
+        row.appendChild(val);
+        row.appendChild(lab);
+        tip.appendChild(row);
+      });
+      var root = card.querySelector(".viz-root");
+      var rootRect = root.getBoundingClientRect();
+      var left = clientX - rootRect.left + 14;
+      var top = clientY - rootRect.top + 14;
+      if (left + 240 > rootRect.width) left = clientX - rootRect.left - 240;
+      if (top + 120 > rootRect.height) top = clientY - rootRect.top - 120;
+      tip.style.left = Math.max(4, left) + "px";
+      tip.style.top = Math.max(4, top) + "px";
+      tip.hidden = false;
+    }
+
+    function hideTooltip() { tip.hidden = true; hair.setAttribute("stroke-opacity", "0"); }
+
+    function nearestCol(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var x = (clientX - rect.left) * (viewW / rect.width);
+      var best = 0, bestD = Infinity;
+      data.xs.forEach(function (v, j) {
+        var d = Math.abs(v - x);
+        if (d < bestD) { bestD = d; best = j; }
+      });
+      return best;
+    }
+
+    function tooltipAt(j) {
+      var rect = svg.getBoundingClientRect();
+      showTooltip(j, rect.left + data.xs[j] * (rect.width / viewW), rect.top + rect.height * 0.2);
+    }
+
+    cap.addEventListener("pointermove", function (e) {
+      col = nearestCol(e.clientX);
+      showTooltip(col, e.clientX, e.clientY);
+    });
+    cap.addEventListener("pointerleave", hideTooltip);
+    cap.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") col = Math.max(0, col - 1);
+      else if (e.key === "ArrowRight") col = Math.min(data.xs.length - 1, col + 1);
+      else return;
+      e.preventDefault();
+      tooltipAt(col);
+    });
+    cap.addEventListener("focus", function () { tooltipAt(col); });
+    cap.addEventListener("blur", hideTooltip);
+
+    card.querySelectorAll(".legend-item").forEach(function (item) {
+      item.addEventListener("click", function () {
+        var i = Number(item.dataset.series);
+        var off = groups[i].classList.toggle("off");
+        item.classList.toggle("off", off);
+      });
+    });
+  });
+})();
+</script>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

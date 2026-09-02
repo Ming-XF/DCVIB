@@ -377,12 +377,15 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
     if args.energy_classifier:
         if args.model != "opb":
             parser.error("--energy-classifier 仅 opb 模型支持")
-        if backbone != "mlp":
-            parser.error("--energy-classifier 仅实现 mlp 版 OPB（v1）")
         if args.task in ("housing", "stsb", "zinc", "agedb"):
             parser.error(
                 "--energy-classifier 仅分类任务（回归为等距轴先验，无类别锚点表）"
             )
+    if args.tied_head:
+        if args.model != "opb":
+            parser.error("--tied-head 仅 opb 模型支持")
+        if args.task not in ("housing", "stsb", "zinc", "agedb"):
+            parser.error("--tied-head 仅回归任务支持（分类任务无等距轴）")
     model_cls = MODEL_CLASSES[(args.model, backbone)]
     model_kwargs = dict(dropout=args.dropout)
     if backbone in ("mlp", "gnn", "rnn"):
@@ -391,8 +394,11 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
         model_kwargs["z_dim"] = args.z_dim
     if args.model in ("fgib", "opb"):
         model_kwargs["anchor_scale"] = args.anchor_scale
-    if args.model == "opb" and args.energy_classifier:
-        model_kwargs["energy_classifier"] = True
+    if args.model == "opb":
+        if args.energy_classifier:
+            model_kwargs["energy_classifier"] = True
+        if args.tied_head:
+            model_kwargs["tied_head"] = True
     if args.task == "housing":
         model_kwargs["input_dim"] = 8
         model_kwargs["num_classes"] = 1
@@ -530,7 +536,14 @@ def build_parser():
         action="store_true",
         help="opb 消融（paper/OPB.txt §12）：分类器改为锚点能量分类器 "
         "logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)，与 KL 共用同一套锚点、无法绕过"
-        "正交几何；仅 mlp 骨干的分类 opb 支持",
+        "正交几何；仅分类任务（四骨干均支持）",
+    )
+    parser.add_argument(
+        "--tied-head",
+        action="store_true",
+        help="opb 回归头消融（paper/OPB-R.txt §7.1）：回归头改为 tied projection "
+        "head y_hat_tilde = uᵀz/rho，与 KL 共用同一条等距轴、无自由尺度；"
+        "反标准化由训练管道的 y_scaler 逆归一化完成；仅回归任务",
     )
     parser.add_argument(
         "--max-len",

@@ -1,0 +1,38 @@
+/root/miniconda3/bin/python /root/autodl-tmp/IB/train.py --backbone rnn --task imdb --energy-classifier --model opb --beta 10.0 --anchor-scale 6.0 --no-save --log-path /root/autodl-tmp/IB/tune_results/imdb_rnn_opb_beta_10_anchor_6/train.log
+
+
+2026-09-03 05:40:00 | Device: cuda
+2026-09-03 05:40:00 | Args: {'model': 'opb', 'backbone': 'rnn', 'task': 'imdb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 6.0, 'energy_classifier': True, 'tied_head': False, 'max_len': 250, 'random_labels': False, 'beta': 10.0, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/imdb_rnn_opb/imdb_rnn_opb.pt', 'log_path': '/root/autodl-tmp/IB/tune_results/imdb_rnn_opb_beta_10_anchor_6/train.log', 'no_save': True}
+2026-09-03 05:40:00 | IMDb 预处理缓存：mmap 共享 ./data/imdb/imdb_processed_maxlen250
+2026-09-03 05:40:00 | ===== Run 1/5 (seed 0) =====
+Traceback (most recent call last):
+  File "/root/autodl-tmp/IB/train.py", line 906, in <module>
+    main()
+  File "/root/autodl-tmp/IB/train.py", line 807, in main
+    train_loss, train_acc = train_one_epoch(
+                            ^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/IB/train.py", line 130, in train_one_epoch
+    logits, kl, recon = run_model(model, images, labels, stochastic=True)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/IB/train.py", line 101, in run_model
+    logits, kl = model(images, labels, stochastic=stochastic)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/IB/model/rnn/opb.py", line 127, in forward
+    h = self.encoder(x)
+        ^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/IB/model/rnn/utils.py", line 84, in forward
+    self.embedding(x), lengths.cpu(), batch_first=True, enforce_sorted=False
+                       ^^^^^^^^^^^^^
+KeyboardInterrupt

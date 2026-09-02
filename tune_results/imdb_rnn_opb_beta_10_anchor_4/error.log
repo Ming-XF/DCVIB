@@ -1,0 +1,23 @@
+/root/miniconda3/bin/python /root/autodl-tmp/IB/train.py --backbone rnn --task imdb --energy-classifier --model opb --beta 10.0 --anchor-scale 4.0 --no-save --log-path /root/autodl-tmp/IB/tune_results/imdb_rnn_opb_beta_10_anchor_4/train.log
+
+
+2026-09-03 05:40:00 | Device: cuda
+2026-09-03 05:40:00 | Args: {'model': 'opb', 'backbone': 'rnn', 'task': 'imdb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 4.0, 'energy_classifier': True, 'tied_head': False, 'max_len': 250, 'random_labels': False, 'beta': 10.0, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/imdb_rnn_opb/imdb_rnn_opb.pt', 'log_path': '/root/autodl-tmp/IB/tune_results/imdb_rnn_opb_beta_10_anchor_4/train.log', 'no_save': True}
+2026-09-03 05:40:00 | IMDb 预处理缓存：mmap 共享 ./data/imdb/imdb_processed_maxlen250
+2026-09-03 05:40:00 | ===== Run 1/5 (seed 0) =====
+Traceback (most recent call last):
+  File "/root/autodl-tmp/IB/train.py", line 906, in <module>
+    main()
+  File "/root/autodl-tmp/IB/train.py", line 807, in main
+    train_loss, train_acc = train_one_epoch(
+                            ^^^^^^^^^^^^^^^^
+  File "/root/autodl-tmp/IB/train.py", line 138, in train_one_epoch
+    loss.backward()
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/lib/python3.12/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

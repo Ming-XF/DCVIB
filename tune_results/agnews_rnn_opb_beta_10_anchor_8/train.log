@@ -1,209 +1,246 @@
-2026-09-01 14:02:21 | Device: cuda
-2026-09-01 14:02:21 | Args: {'model': 'opb', 'backbone': 'rnn', 'task': 'agnews', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 8.0, 'energy_classifier': False, 'max_len': 250, 'random_labels': False, 'beta': 10.0, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/agnews_rnn_opb/agnews_rnn_opb.pt', 'log_path': '/root/autodl-tmp/IB/tune_results/agnews_rnn_opb_beta_10_anchor_8/train.log', 'no_save': True}
-2026-09-01 14:02:21 | AG News 特征文件：agnews_bert_base_layer10_pca50_features.npy（input_dim=50）
-2026-09-01 14:02:21 | AG News 预处理缓存：mmap 共享 ./data/agnews/agnews_bert_base_layer10_pca50_features_fp32.npy
-2026-09-01 14:02:21 | AG News BERT 特征划分（60/20/20 分层）：train 76560 / val 25520 / test 25520（共 127600 条）
-2026-09-01 14:02:21 | ===== Run 1/5 (seed 0) =====
-2026-09-01 14:02:52 | Epoch   1/100 | Train Loss 118.7231 Acc 0.6126 | Val Loss 53.7175 Acc 0.8721 AUC 0.9633 Pre 0.8739 Rec 0.8721
-2026-09-01 14:02:52 |   Val AUC improved to 0.9633, model saved
-2026-09-01 14:03:22 | Epoch   2/100 | Train Loss 47.7365 Acc 0.8696 | Val Loss 33.2521 Acc 0.8899 AUC 0.9735 Pre 0.8898 Rec 0.8899
-2026-09-01 14:03:22 |   Val AUC improved to 0.9735, model saved
-2026-09-01 14:03:50 | Epoch   3/100 | Train Loss 27.4610 Acc 0.8809 | Val Loss 18.7108 Acc 0.8917 AUC 0.9757 Pre 0.8943 Rec 0.8917
-2026-09-01 14:03:50 |   Val AUC improved to 0.9757, model saved
-2026-09-01 14:04:18 | Epoch   4/100 | Train Loss 15.5822 Acc 0.8742 | Val Loss 11.2326 Acc 0.8966 AUC 0.9768 Pre 0.8965 Rec 0.8966
-2026-09-01 14:04:18 |   Val AUC improved to 0.9768, model saved
-2026-09-01 14:04:46 | Epoch   5/100 | Train Loss 10.2934 Acc 0.8555 | Val Loss 7.6380 Acc 0.9011 AUC 0.9783 Pre 0.9013 Rec 0.9011
-2026-09-01 14:04:46 |   Val AUC improved to 0.9783, model saved
-2026-09-01 14:05:16 | Epoch   6/100 | Train Loss 7.4318 Acc 0.8341 | Val Loss 5.6344 Acc 0.9008 AUC 0.9789 Pre 0.9012 Rec 0.9008
-2026-09-01 14:05:16 |   Val AUC improved to 0.9789, model saved
-2026-09-01 14:05:45 | Epoch   7/100 | Train Loss 5.8393 Acc 0.8050 | Val Loss 4.4558 Acc 0.9030 AUC 0.9796 Pre 0.9042 Rec 0.9030
-2026-09-01 14:05:45 |   Val AUC improved to 0.9796, model saved
-2026-09-01 14:06:14 | Epoch   8/100 | Train Loss 4.8110 Acc 0.7764 | Val Loss 3.6181 Acc 0.9054 AUC 0.9791 Pre 0.9058 Rec 0.9054
-2026-09-01 14:06:44 | Epoch   9/100 | Train Loss 4.0835 Acc 0.7490 | Val Loss 3.0295 Acc 0.9064 AUC 0.9801 Pre 0.9076 Rec 0.9064
-2026-09-01 14:06:44 |   Val AUC improved to 0.9801, model saved
-2026-09-01 14:07:13 | Epoch  10/100 | Train Loss 3.5609 Acc 0.7219 | Val Loss 2.6063 Acc 0.9078 AUC 0.9797 Pre 0.9089 Rec 0.9078
-2026-09-01 14:07:44 | Epoch  11/100 | Train Loss 3.1519 Acc 0.6966 | Val Loss 2.2793 Acc 0.9085 AUC 0.9798 Pre 0.9088 Rec 0.9085
-2026-09-01 14:08:14 | Epoch  12/100 | Train Loss 2.8703 Acc 0.6774 | Val Loss 2.0568 Acc 0.9092 AUC 0.9804 Pre 0.9094 Rec 0.9092
-2026-09-01 14:08:14 |   Val AUC improved to 0.9804, model saved
-2026-09-01 14:08:43 | Epoch  13/100 | Train Loss 2.6482 Acc 0.6540 | Val Loss 1.8934 Acc 0.9115 AUC 0.9797 Pre 0.9118 Rec 0.9115
-2026-09-01 14:09:14 | Epoch  14/100 | Train Loss 2.4577 Acc 0.6350 | Val Loss 1.7481 Acc 0.9118 AUC 0.9806 Pre 0.9125 Rec 0.9118
-2026-09-01 14:09:14 |   Val AUC improved to 0.9806, model saved
-2026-09-01 14:09:43 | Epoch  15/100 | Train Loss 2.3174 Acc 0.6213 | Val Loss 1.6312 Acc 0.9116 AUC 0.9799 Pre 0.9117 Rec 0.9116
-2026-09-01 14:10:13 | Epoch  16/100 | Train Loss 2.1955 Acc 0.6066 | Val Loss 1.5710 Acc 0.9100 AUC 0.9800 Pre 0.9109 Rec 0.9100
-2026-09-01 14:10:43 | Epoch  17/100 | Train Loss 2.0899 Acc 0.5943 | Val Loss 1.5184 Acc 0.9121 AUC 0.9798 Pre 0.9121 Rec 0.9121
-2026-09-01 14:11:13 | Epoch  18/100 | Train Loss 2.0227 Acc 0.5813 | Val Loss 1.4811 Acc 0.9101 AUC 0.9792 Pre 0.9106 Rec 0.9101
-2026-09-01 14:11:44 | Epoch  19/100 | Train Loss 1.9534 Acc 0.5713 | Val Loss 1.4099 Acc 0.9129 AUC 0.9804 Pre 0.9133 Rec 0.9129
-2026-09-01 14:12:14 | Epoch  20/100 | Train Loss 1.8925 Acc 0.5594 | Val Loss 1.3737 Acc 0.9137 AUC 0.9807 Pre 0.9143 Rec 0.9137
-2026-09-01 14:12:14 |   Val AUC improved to 0.9807, model saved
-2026-09-01 14:12:44 | Epoch  21/100 | Train Loss 1.8450 Acc 0.5531 | Val Loss 1.3608 Acc 0.9139 AUC 0.9805 Pre 0.9143 Rec 0.9139
-2026-09-01 14:13:15 | Epoch  22/100 | Train Loss 1.8031 Acc 0.5440 | Val Loss 1.3567 Acc 0.9129 AUC 0.9800 Pre 0.9137 Rec 0.9129
-2026-09-01 14:13:45 | Epoch  23/100 | Train Loss 1.7617 Acc 0.5357 | Val Loss 1.3480 Acc 0.9094 AUC 0.9812 Pre 0.9119 Rec 0.9094
-2026-09-01 14:13:45 |   Val AUC improved to 0.9812, model saved
-2026-09-01 14:14:16 | Epoch  24/100 | Train Loss 1.7340 Acc 0.5326 | Val Loss 1.3154 Acc 0.9149 AUC 0.9789 Pre 0.9153 Rec 0.9149
-2026-09-01 14:14:47 | Epoch  25/100 | Train Loss 1.7005 Acc 0.5284 | Val Loss 1.2934 Acc 0.9149 AUC 0.9803 Pre 0.9153 Rec 0.9149
-2026-09-01 14:15:17 | Epoch  26/100 | Train Loss 1.6688 Acc 0.5265 | Val Loss 1.3015 Acc 0.9144 AUC 0.9807 Pre 0.9148 Rec 0.9144
-2026-09-01 14:15:47 | Epoch  27/100 | Train Loss 1.6566 Acc 0.5208 | Val Loss 1.2737 Acc 0.9146 AUC 0.9804 Pre 0.9155 Rec 0.9146
-2026-09-01 14:16:18 | Epoch  28/100 | Train Loss 1.6273 Acc 0.5193 | Val Loss 1.2882 Acc 0.9135 AUC 0.9805 Pre 0.9145 Rec 0.9135
-2026-09-01 14:16:49 | Epoch  29/100 | Train Loss 1.6217 Acc 0.5171 | Val Loss 1.2395 Acc 0.9154 AUC 0.9799 Pre 0.9155 Rec 0.9154
-2026-09-01 14:17:19 | Epoch  30/100 | Train Loss 1.5876 Acc 0.5193 | Val Loss 1.2674 Acc 0.9128 AUC 0.9802 Pre 0.9132 Rec 0.9128
-2026-09-01 14:17:49 | Epoch  31/100 | Train Loss 1.5792 Acc 0.5159 | Val Loss 1.2331 Acc 0.9126 AUC 0.9793 Pre 0.9146 Rec 0.9126
-2026-09-01 14:18:20 | Epoch  32/100 | Train Loss 1.5499 Acc 0.5162 | Val Loss 1.2436 Acc 0.9144 AUC 0.9800 Pre 0.9148 Rec 0.9144
-2026-09-01 14:18:49 | Epoch  33/100 | Train Loss 1.5702 Acc 0.5129 | Val Loss 1.2521 Acc 0.9149 AUC 0.9771 Pre 0.9148 Rec 0.9149
-2026-09-01 14:18:49 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 33 (best AUC 0.9812 @ Epoch 23)
-2026-09-01 14:18:55 | Run 1/5 | Test (best model @ Epoch 23) | Loss 1.3320 Acc 0.9128 AUC 0.9814 Pre 0.9149 Rec 0.9128
-2026-09-01 14:18:55 | ===== Run 2/5 (seed 1) =====
-2026-09-01 14:19:26 | Epoch   1/100 | Train Loss 117.5310 Acc 0.6113 | Val Loss 53.3512 Acc 0.8759 AUC 0.9610 Pre 0.8779 Rec 0.8759
-2026-09-01 14:19:26 |   Val AUC improved to 0.9610, model saved
-2026-09-01 14:19:56 | Epoch   2/100 | Train Loss 81.8507 Acc 0.7293 | Val Loss 88.2695 Acc 0.6498 AUC 0.8840 Pre 0.7072 Rec 0.6498
-2026-09-01 14:20:26 | Epoch   3/100 | Train Loss 43.5764 Acc 0.7986 | Val Loss 23.0440 Acc 0.8754 AUC 0.9694 Pre 0.8774 Rec 0.8754
-2026-09-01 14:20:26 |   Val AUC improved to 0.9694, model saved
-2026-09-01 14:20:56 | Epoch   4/100 | Train Loss 18.6395 Acc 0.8679 | Val Loss 13.4324 Acc 0.8937 AUC 0.9750 Pre 0.8944 Rec 0.8937
-2026-09-01 14:20:56 |   Val AUC improved to 0.9750, model saved
-2026-09-01 14:21:27 | Epoch   5/100 | Train Loss 12.3008 Acc 0.8667 | Val Loss 9.2304 Acc 0.9000 AUC 0.9771 Pre 0.9006 Rec 0.9000
-2026-09-01 14:21:27 |   Val AUC improved to 0.9771, model saved
-2026-09-01 14:21:57 | Epoch   6/100 | Train Loss 9.1403 Acc 0.8546 | Val Loss 7.1943 Acc 0.9009 AUC 0.9772 Pre 0.9017 Rec 0.9009
-2026-09-01 14:21:57 |   Val AUC improved to 0.9772, model saved
-2026-09-01 14:22:25 | Epoch   7/100 | Train Loss 7.3525 Acc 0.8366 | Val Loss 5.7943 Acc 0.9024 AUC 0.9779 Pre 0.9030 Rec 0.9024
-2026-09-01 14:22:25 |   Val AUC improved to 0.9779, model saved
-2026-09-01 14:22:57 | Epoch   8/100 | Train Loss 6.1404 Acc 0.8162 | Val Loss 4.7952 Acc 0.9034 AUC 0.9774 Pre 0.9032 Rec 0.9034
-2026-09-01 14:23:27 | Epoch   9/100 | Train Loss 5.3121 Acc 0.7916 | Val Loss 5.5484 Acc 0.8738 AUC 0.9645 Pre 0.8740 Rec 0.8738
-2026-09-01 14:23:57 | Epoch  10/100 | Train Loss 5.3448 Acc 0.7464 | Val Loss 3.6634 Acc 0.8976 AUC 0.9751 Pre 0.8986 Rec 0.8976
-2026-09-01 14:24:27 | Epoch  11/100 | Train Loss 4.5645 Acc 0.7251 | Val Loss 3.1536 Acc 0.8993 AUC 0.9755 Pre 0.9000 Rec 0.8993
-2026-09-01 14:24:57 | Epoch  12/100 | Train Loss 3.7512 Acc 0.7097 | Val Loss 2.7204 Acc 0.9017 AUC 0.9768 Pre 0.9035 Rec 0.9017
-2026-09-01 14:25:28 | Epoch  13/100 | Train Loss 3.3719 Acc 0.6927 | Val Loss 2.4556 Acc 0.9013 AUC 0.9753 Pre 0.9015 Rec 0.9013
-2026-09-01 14:25:58 | Epoch  14/100 | Train Loss 3.0869 Acc 0.6719 | Val Loss 2.2051 Acc 0.9016 AUC 0.9773 Pre 0.9021 Rec 0.9016
-2026-09-01 14:26:28 | Epoch  15/100 | Train Loss 2.8675 Acc 0.6538 | Val Loss 2.0541 Acc 0.9036 AUC 0.9776 Pre 0.9042 Rec 0.9036
-2026-09-01 14:26:59 | Epoch  16/100 | Train Loss 2.7004 Acc 0.6407 | Val Loss 1.9905 Acc 0.9030 AUC 0.9772 Pre 0.9039 Rec 0.9030
-2026-09-01 14:27:28 | Epoch  17/100 | Train Loss 2.5787 Acc 0.6201 | Val Loss 1.8445 Acc 0.9027 AUC 0.9760 Pre 0.9024 Rec 0.9027
-2026-09-01 14:27:28 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 17 (best AUC 0.9779 @ Epoch 7)
-2026-09-01 14:27:34 | Run 2/5 | Test (best model @ Epoch 7) | Loss 5.6611 Acc 0.9049 AUC 0.9787 Pre 0.9058 Rec 0.9049
-2026-09-01 14:27:34 | ===== Run 3/5 (seed 2) =====
-2026-09-01 14:28:05 | Epoch   1/100 | Train Loss 122.2151 Acc 0.5937 | Val Loss 46.7074 Acc 0.8876 AUC 0.9720 Pre 0.8897 Rec 0.8876
-2026-09-01 14:28:05 |   Val AUC improved to 0.9720, model saved
-2026-09-01 14:28:34 | Epoch   2/100 | Train Loss 42.7034 Acc 0.8875 | Val Loss 32.3495 Acc 0.8998 AUC 0.9764 Pre 0.9003 Rec 0.8998
-2026-09-01 14:28:34 |   Val AUC improved to 0.9764, model saved
-2026-09-01 14:29:05 | Epoch   3/100 | Train Loss 26.5444 Acc 0.8964 | Val Loss 18.1347 Acc 0.9055 AUC 0.9783 Pre 0.9060 Rec 0.9055
-2026-09-01 14:29:05 |   Val AUC improved to 0.9783, model saved
-2026-09-01 14:29:35 | Epoch   4/100 | Train Loss 15.1513 Acc 0.8909 | Val Loss 10.7104 Acc 0.9088 AUC 0.9797 Pre 0.9095 Rec 0.9088
-2026-09-01 14:29:35 |   Val AUC improved to 0.9797, model saved
-2026-09-01 14:30:04 | Epoch   5/100 | Train Loss 9.6250 Acc 0.8758 | Val Loss 7.1238 Acc 0.9106 AUC 0.9811 Pre 0.9107 Rec 0.9106
-2026-09-01 14:30:04 |   Val AUC improved to 0.9811, model saved
-2026-09-01 14:30:34 | Epoch   6/100 | Train Loss 6.7900 Acc 0.8508 | Val Loss 5.2321 Acc 0.9122 AUC 0.9814 Pre 0.9126 Rec 0.9122
-2026-09-01 14:30:34 |   Val AUC improved to 0.9814, model saved
-2026-09-01 14:31:03 | Epoch   7/100 | Train Loss 5.1854 Acc 0.8239 | Val Loss 4.0229 Acc 0.9133 AUC 0.9822 Pre 0.9146 Rec 0.9133
-2026-09-01 14:31:03 |   Val AUC improved to 0.9822, model saved
-2026-09-01 14:31:34 | Epoch   8/100 | Train Loss 4.2347 Acc 0.7953 | Val Loss 3.2550 Acc 0.9157 AUC 0.9825 Pre 0.9163 Rec 0.9157
-2026-09-01 14:31:34 |   Val AUC improved to 0.9825, model saved
-2026-09-01 14:32:03 | Epoch   9/100 | Train Loss 3.5850 Acc 0.7655 | Val Loss 2.7365 Acc 0.9163 AUC 0.9828 Pre 0.9168 Rec 0.9163
-2026-09-01 14:32:03 |   Val AUC improved to 0.9828, model saved
-2026-09-01 14:32:33 | Epoch  10/100 | Train Loss 3.1396 Acc 0.7363 | Val Loss 2.4001 Acc 0.9161 AUC 0.9823 Pre 0.9162 Rec 0.9161
-2026-09-01 14:33:04 | Epoch  11/100 | Train Loss 2.7758 Acc 0.7158 | Val Loss 2.1183 Acc 0.9167 AUC 0.9837 Pre 0.9180 Rec 0.9167
-2026-09-01 14:33:04 |   Val AUC improved to 0.9837, model saved
-2026-09-01 14:33:34 | Epoch  12/100 | Train Loss 2.5195 Acc 0.6911 | Val Loss 1.9362 Acc 0.9180 AUC 0.9836 Pre 0.9188 Rec 0.9180
-2026-09-01 14:34:04 | Epoch  13/100 | Train Loss 2.3217 Acc 0.6749 | Val Loss 1.7860 Acc 0.9188 AUC 0.9832 Pre 0.9190 Rec 0.9188
-2026-09-01 14:34:34 | Epoch  14/100 | Train Loss 2.1694 Acc 0.6618 | Val Loss 1.7190 Acc 0.9170 AUC 0.9834 Pre 0.9192 Rec 0.9170
-2026-09-01 14:35:03 | Epoch  15/100 | Train Loss 2.0493 Acc 0.6441 | Val Loss 1.5801 Acc 0.9190 AUC 0.9839 Pre 0.9198 Rec 0.9190
-2026-09-01 14:35:03 |   Val AUC improved to 0.9839, model saved
-2026-09-01 14:35:33 | Epoch  16/100 | Train Loss 1.9583 Acc 0.6329 | Val Loss 1.5364 Acc 0.9200 AUC 0.9831 Pre 0.9199 Rec 0.9200
-2026-09-01 14:36:02 | Epoch  17/100 | Train Loss 1.8673 Acc 0.6264 | Val Loss 1.5162 Acc 0.9184 AUC 0.9820 Pre 0.9192 Rec 0.9184
-2026-09-01 14:36:31 | Epoch  18/100 | Train Loss 1.8084 Acc 0.6193 | Val Loss 1.4580 Acc 0.9210 AUC 0.9833 Pre 0.9212 Rec 0.9210
-2026-09-01 14:37:00 | Epoch  19/100 | Train Loss 1.7349 Acc 0.6160 | Val Loss 1.4436 Acc 0.9183 AUC 0.9821 Pre 0.9187 Rec 0.9183
-2026-09-01 14:37:29 | Epoch  20/100 | Train Loss 1.6861 Acc 0.6162 | Val Loss 1.4028 Acc 0.9184 AUC 0.9825 Pre 0.9187 Rec 0.9184
-2026-09-01 14:37:58 | Epoch  21/100 | Train Loss 1.6474 Acc 0.6134 | Val Loss 1.4284 Acc 0.9181 AUC 0.9825 Pre 0.9183 Rec 0.9181
-2026-09-01 14:38:28 | Epoch  22/100 | Train Loss 1.6132 Acc 0.6140 | Val Loss 1.3643 Acc 0.9204 AUC 0.9828 Pre 0.9212 Rec 0.9204
-2026-09-01 14:38:58 | Epoch  23/100 | Train Loss 1.5878 Acc 0.6122 | Val Loss 1.3533 Acc 0.9206 AUC 0.9825 Pre 0.9216 Rec 0.9206
-2026-09-01 14:39:27 | Epoch  24/100 | Train Loss 1.5736 Acc 0.6114 | Val Loss 1.3414 Acc 0.9219 AUC 0.9835 Pre 0.9229 Rec 0.9219
-2026-09-01 14:39:56 | Epoch  25/100 | Train Loss 1.5403 Acc 0.6082 | Val Loss 1.3187 Acc 0.9212 AUC 0.9818 Pre 0.9216 Rec 0.9212
-2026-09-01 14:39:56 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 25 (best AUC 0.9839 @ Epoch 15)
-2026-09-01 14:40:01 | Run 3/5 | Test (best model @ Epoch 15) | Loss 1.5388 Acc 0.9228 AUC 0.9840 Pre 0.9234 Rec 0.9228
-2026-09-01 14:40:01 | ===== Run 4/5 (seed 3) =====
-2026-09-01 14:40:31 | Epoch   1/100 | Train Loss 155.0521 Acc 0.4613 | Val Loss 126.7767 Acc 0.6138 AUC 0.8489 Pre 0.6119 Rec 0.6138
-2026-09-01 14:40:31 |   Val AUC improved to 0.8489, model saved
-2026-09-01 14:41:01 | Epoch   2/100 | Train Loss 69.7319 Acc 0.7917 | Val Loss 39.1022 Acc 0.8803 AUC 0.9694 Pre 0.8817 Rec 0.8803
-2026-09-01 14:41:01 |   Val AUC improved to 0.9694, model saved
-2026-09-01 14:41:30 | Epoch   3/100 | Train Loss 31.7303 Acc 0.8775 | Val Loss 21.2751 Acc 0.8928 AUC 0.9745 Pre 0.8936 Rec 0.8928
-2026-09-01 14:41:30 |   Val AUC improved to 0.9745, model saved
-2026-09-01 14:42:00 | Epoch   4/100 | Train Loss 17.6500 Acc 0.8773 | Val Loss 12.0418 Acc 0.8957 AUC 0.9763 Pre 0.8956 Rec 0.8957
-2026-09-01 14:42:00 |   Val AUC improved to 0.9763, model saved
-2026-09-01 14:42:30 | Epoch   5/100 | Train Loss 10.7500 Acc 0.8625 | Val Loss 7.9334 Acc 0.8993 AUC 0.9777 Pre 0.9007 Rec 0.8993
-2026-09-01 14:42:30 |   Val AUC improved to 0.9777, model saved
-2026-09-01 14:43:00 | Epoch   6/100 | Train Loss 7.5661 Acc 0.8369 | Val Loss 5.7318 Acc 0.9030 AUC 0.9776 Pre 0.9035 Rec 0.9030
-2026-09-01 14:43:29 | Epoch   7/100 | Train Loss 5.8523 Acc 0.8077 | Val Loss 4.4412 Acc 0.9040 AUC 0.9784 Pre 0.9055 Rec 0.9040
-2026-09-01 14:43:29 |   Val AUC improved to 0.9784, model saved
-2026-09-01 14:43:57 | Epoch   8/100 | Train Loss 4.7816 Acc 0.7757 | Val Loss 3.6493 Acc 0.9051 AUC 0.9782 Pre 0.9060 Rec 0.9051
-2026-09-01 14:44:26 | Epoch   9/100 | Train Loss 4.0900 Acc 0.7509 | Val Loss 3.1849 Acc 0.9037 AUC 0.9794 Pre 0.9061 Rec 0.9037
-2026-09-01 14:44:26 |   Val AUC improved to 0.9794, model saved
-2026-09-01 14:44:55 | Epoch  10/100 | Train Loss 3.6095 Acc 0.7216 | Val Loss 2.6904 Acc 0.9075 AUC 0.9792 Pre 0.9074 Rec 0.9075
-2026-09-01 14:45:24 | Epoch  11/100 | Train Loss 3.2528 Acc 0.7003 | Val Loss 2.4118 Acc 0.9071 AUC 0.9795 Pre 0.9073 Rec 0.9071
-2026-09-01 14:45:24 |   Val AUC improved to 0.9795, model saved
-2026-09-01 14:45:53 | Epoch  12/100 | Train Loss 2.9909 Acc 0.6771 | Val Loss 2.1950 Acc 0.9091 AUC 0.9798 Pre 0.9092 Rec 0.9091
-2026-09-01 14:45:53 |   Val AUC improved to 0.9798, model saved
-2026-09-01 14:46:23 | Epoch  13/100 | Train Loss 2.7893 Acc 0.6593 | Val Loss 2.0064 Acc 0.9104 AUC 0.9796 Pre 0.9107 Rec 0.9104
-2026-09-01 14:46:52 | Epoch  14/100 | Train Loss 2.5960 Acc 0.6462 | Val Loss 1.9005 Acc 0.9111 AUC 0.9798 Pre 0.9111 Rec 0.9111
-2026-09-01 14:46:52 |   Val AUC improved to 0.9798, model saved
-2026-09-01 14:47:22 | Epoch  15/100 | Train Loss 2.4594 Acc 0.6294 | Val Loss 1.7707 Acc 0.9111 AUC 0.9791 Pre 0.9112 Rec 0.9111
-2026-09-01 14:47:52 | Epoch  16/100 | Train Loss 2.3404 Acc 0.6202 | Val Loss 1.7182 Acc 0.9101 AUC 0.9786 Pre 0.9098 Rec 0.9101
-2026-09-01 14:48:22 | Epoch  17/100 | Train Loss 2.2434 Acc 0.6055 | Val Loss 1.6195 Acc 0.9100 AUC 0.9795 Pre 0.9108 Rec 0.9100
-2026-09-01 14:48:50 | Epoch  18/100 | Train Loss 2.1590 Acc 0.5928 | Val Loss 1.5509 Acc 0.9094 AUC 0.9797 Pre 0.9109 Rec 0.9094
-2026-09-01 14:49:19 | Epoch  19/100 | Train Loss 2.0796 Acc 0.5839 | Val Loss 1.5026 Acc 0.9123 AUC 0.9797 Pre 0.9128 Rec 0.9123
-2026-09-01 14:49:49 | Epoch  20/100 | Train Loss 2.0121 Acc 0.5746 | Val Loss 1.4675 Acc 0.9117 AUC 0.9786 Pre 0.9122 Rec 0.9117
-2026-09-01 14:50:17 | Epoch  21/100 | Train Loss 1.9613 Acc 0.5651 | Val Loss 1.4179 Acc 0.9112 AUC 0.9786 Pre 0.9114 Rec 0.9112
-2026-09-01 14:50:47 | Epoch  22/100 | Train Loss 1.9011 Acc 0.5550 | Val Loss 1.3714 Acc 0.9141 AUC 0.9789 Pre 0.9142 Rec 0.9141
-2026-09-01 14:51:17 | Epoch  23/100 | Train Loss 1.8574 Acc 0.5515 | Val Loss 1.3623 Acc 0.9124 AUC 0.9778 Pre 0.9126 Rec 0.9124
-2026-09-01 14:51:47 | Epoch  24/100 | Train Loss 1.8114 Acc 0.5468 | Val Loss 1.3231 Acc 0.9131 AUC 0.9785 Pre 0.9139 Rec 0.9131
-2026-09-01 14:51:47 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 24 (best AUC 0.9798 @ Epoch 14)
-2026-09-01 14:51:52 | Run 4/5 | Test (best model @ Epoch 14) | Loss 1.8265 Acc 0.9159 AUC 0.9809 Pre 0.9158 Rec 0.9159
-2026-09-01 14:51:52 | ===== Run 5/5 (seed 4) =====
-2026-09-01 14:52:21 | Epoch   1/100 | Train Loss 155.0153 Acc 0.4592 | Val Loss 71.5574 Acc 0.8527 AUC 0.9473 Pre 0.8575 Rec 0.8527
-2026-09-01 14:52:21 |   Val AUC improved to 0.9473, model saved
-2026-09-01 14:52:50 | Epoch   2/100 | Train Loss 51.6179 Acc 0.8620 | Val Loss 53.4998 Acc 0.8443 AUC 0.9477 Pre 0.8461 Rec 0.8443
-2026-09-01 14:52:50 |   Val AUC improved to 0.9477, model saved
-2026-09-01 14:53:18 | Epoch   3/100 | Train Loss 33.4683 Acc 0.8719 | Val Loss 20.1188 Acc 0.8947 AUC 0.9739 Pre 0.8947 Rec 0.8947
-2026-09-01 14:53:18 |   Val AUC improved to 0.9739, model saved
-2026-09-01 14:53:48 | Epoch   4/100 | Train Loss 16.3296 Acc 0.8770 | Val Loss 11.3775 Acc 0.8980 AUC 0.9752 Pre 0.8991 Rec 0.8980
-2026-09-01 14:53:48 |   Val AUC improved to 0.9752, model saved
-2026-09-01 14:54:18 | Epoch   5/100 | Train Loss 10.0479 Acc 0.8556 | Val Loss 7.2277 Acc 0.9030 AUC 0.9771 Pre 0.9035 Rec 0.9030
-2026-09-01 14:54:18 |   Val AUC improved to 0.9771, model saved
-2026-09-01 14:54:48 | Epoch   6/100 | Train Loss 7.3570 Acc 0.8256 | Val Loss 5.4267 Acc 0.9025 AUC 0.9770 Pre 0.9031 Rec 0.9025
-2026-09-01 14:55:18 | Epoch   7/100 | Train Loss 9.6292 Acc 0.6722 | Val Loss 5.2935 Acc 0.8599 AUC 0.9690 Pre 0.8728 Rec 0.8599
-2026-09-01 14:55:48 | Epoch   8/100 | Train Loss 5.0662 Acc 0.7217 | Val Loss 3.4898 Acc 0.8931 AUC 0.9747 Pre 0.8959 Rec 0.8931
-2026-09-01 14:56:18 | Epoch   9/100 | Train Loss 4.0810 Acc 0.7105 | Val Loss 2.9129 Acc 0.8986 AUC 0.9757 Pre 0.9007 Rec 0.8986
-2026-09-01 14:56:47 | Epoch  10/100 | Train Loss 3.5764 Acc 0.6972 | Val Loss 2.6449 Acc 0.8982 AUC 0.9767 Pre 0.8998 Rec 0.8982
-2026-09-01 14:57:13 | Epoch  11/100 | Train Loss 3.2330 Acc 0.6794 | Val Loss 2.3509 Acc 0.9020 AUC 0.9780 Pre 0.9039 Rec 0.9020
-2026-09-01 14:57:13 |   Val AUC improved to 0.9780, model saved
-2026-09-01 14:57:42 | Epoch  12/100 | Train Loss 2.9936 Acc 0.6644 | Val Loss 2.2069 Acc 0.9030 AUC 0.9788 Pre 0.9054 Rec 0.9030
-2026-09-01 14:57:42 |   Val AUC improved to 0.9788, model saved
-2026-09-01 14:58:12 | Epoch  13/100 | Train Loss 2.7890 Acc 0.6523 | Val Loss 2.0190 Acc 0.9058 AUC 0.9791 Pre 0.9070 Rec 0.9058
-2026-09-01 14:58:12 |   Val AUC improved to 0.9791, model saved
-2026-09-01 14:58:43 | Epoch  14/100 | Train Loss 2.6272 Acc 0.6447 | Val Loss 1.8810 Acc 0.9078 AUC 0.9799 Pre 0.9091 Rec 0.9078
-2026-09-01 14:58:43 |   Val AUC improved to 0.9799, model saved
-2026-09-01 14:59:12 | Epoch  15/100 | Train Loss 2.4817 Acc 0.6313 | Val Loss 1.8011 Acc 0.9087 AUC 0.9805 Pre 0.9095 Rec 0.9087
-2026-09-01 14:59:12 |   Val AUC improved to 0.9805, model saved
-2026-09-01 14:59:41 | Epoch  16/100 | Train Loss 2.3817 Acc 0.6205 | Val Loss 1.7176 Acc 0.9099 AUC 0.9797 Pre 0.9099 Rec 0.9099
-2026-09-01 15:00:11 | Epoch  17/100 | Train Loss 2.2875 Acc 0.6129 | Val Loss 1.7190 Acc 0.9090 AUC 0.9803 Pre 0.9103 Rec 0.9090
-2026-09-01 15:00:42 | Epoch  18/100 | Train Loss 2.2051 Acc 0.6044 | Val Loss 1.5994 Acc 0.9123 AUC 0.9800 Pre 0.9121 Rec 0.9123
-2026-09-01 15:01:12 | Epoch  19/100 | Train Loss 2.1315 Acc 0.6009 | Val Loss 1.5420 Acc 0.9144 AUC 0.9801 Pre 0.9150 Rec 0.9144
-2026-09-01 15:01:43 | Epoch  20/100 | Train Loss 2.0663 Acc 0.5884 | Val Loss 1.4794 Acc 0.9143 AUC 0.9817 Pre 0.9151 Rec 0.9143
-2026-09-01 15:01:43 |   Val AUC improved to 0.9817, model saved
-2026-09-01 15:02:13 | Epoch  21/100 | Train Loss 2.0099 Acc 0.5803 | Val Loss 1.4764 Acc 0.9148 AUC 0.9813 Pre 0.9162 Rec 0.9148
-2026-09-01 15:02:43 | Epoch  22/100 | Train Loss 1.9541 Acc 0.5803 | Val Loss 1.4250 Acc 0.9152 AUC 0.9814 Pre 0.9155 Rec 0.9152
-2026-09-01 15:03:13 | Epoch  23/100 | Train Loss 1.9228 Acc 0.5738 | Val Loss 1.4089 Acc 0.9167 AUC 0.9818 Pre 0.9181 Rec 0.9167
-2026-09-01 15:03:13 |   Val AUC improved to 0.9818, model saved
-2026-09-01 15:03:43 | Epoch  24/100 | Train Loss 1.8791 Acc 0.5663 | Val Loss 1.3947 Acc 0.9157 AUC 0.9806 Pre 0.9156 Rec 0.9157
-2026-09-01 15:04:14 | Epoch  25/100 | Train Loss 1.8218 Acc 0.5665 | Val Loss 1.3513 Acc 0.9166 AUC 0.9817 Pre 0.9174 Rec 0.9166
-2026-09-01 15:04:42 | Epoch  26/100 | Train Loss 1.8008 Acc 0.5631 | Val Loss 1.3564 Acc 0.9171 AUC 0.9796 Pre 0.9173 Rec 0.9171
-2026-09-01 15:05:10 | Epoch  27/100 | Train Loss 1.7619 Acc 0.5598 | Val Loss 1.3207 Acc 0.9156 AUC 0.9826 Pre 0.9171 Rec 0.9156
-2026-09-01 15:05:10 |   Val AUC improved to 0.9826, model saved
-2026-09-01 15:05:40 | Epoch  28/100 | Train Loss 1.7473 Acc 0.5527 | Val Loss 1.3061 Acc 0.9186 AUC 0.9821 Pre 0.9202 Rec 0.9186
-2026-09-01 15:06:10 | Epoch  29/100 | Train Loss 1.7670 Acc 0.5481 | Val Loss 1.3712 Acc 0.9079 AUC 0.9793 Pre 0.9095 Rec 0.9079
-2026-09-01 15:06:41 | Epoch  30/100 | Train Loss 1.8922 Acc 0.5284 | Val Loss 1.3755 Acc 0.9079 AUC 0.9771 Pre 0.9083 Rec 0.9079
-2026-09-01 15:07:11 | Epoch  31/100 | Train Loss 1.8162 Acc 0.5222 | Val Loss 1.3692 Acc 0.9096 AUC 0.9784 Pre 0.9098 Rec 0.9096
-2026-09-01 15:07:41 | Epoch  32/100 | Train Loss 1.7665 Acc 0.5153 | Val Loss 1.3492 Acc 0.9107 AUC 0.9795 Pre 0.9110 Rec 0.9107
-2026-09-01 15:08:11 | Epoch  33/100 | Train Loss 1.7293 Acc 0.5111 | Val Loss 1.3276 Acc 0.9114 AUC 0.9798 Pre 0.9117 Rec 0.9114
-2026-09-01 15:08:40 | Epoch  34/100 | Train Loss 1.7039 Acc 0.5094 | Val Loss 1.3061 Acc 0.9145 AUC 0.9806 Pre 0.9150 Rec 0.9145
-2026-09-01 15:09:10 | Epoch  35/100 | Train Loss 1.6705 Acc 0.5083 | Val Loss 1.3069 Acc 0.9126 AUC 0.9805 Pre 0.9129 Rec 0.9126
-2026-09-01 15:09:39 | Epoch  36/100 | Train Loss 1.6545 Acc 0.5065 | Val Loss 1.2792 Acc 0.9125 AUC 0.9800 Pre 0.9141 Rec 0.9125
-2026-09-01 15:10:11 | Epoch  37/100 | Train Loss 1.6387 Acc 0.5087 | Val Loss 1.2512 Acc 0.9168 AUC 0.9807 Pre 0.9173 Rec 0.9168
-2026-09-01 15:10:11 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 37 (best AUC 0.9826 @ Epoch 27)
-2026-09-01 15:10:17 | Run 5/5 | Test (best model @ Epoch 27) | Loss 1.2981 Acc 0.9182 AUC 0.9836 Pre 0.9199 Rec 0.9182
-2026-09-01 15:10:17 | Average over 5 runs | Test Loss 2.3313±1.8733 Acc 0.9149±0.0067 AUC 0.9817±0.0021 Pre 0.9160±0.0066 Rec 0.9149±0.0067
+2026-09-02 13:05:17 | Device: cuda
+2026-09-02 13:05:17 | Args: {'model': 'opb', 'backbone': 'rnn', 'task': 'agnews', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 8.0, 'energy_classifier': True, 'tied_head': False, 'max_len': 250, 'random_labels': False, 'beta': 10.0, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/agnews_rnn_opb/agnews_rnn_opb.pt', 'log_path': '/root/autodl-tmp/IB/tune_results/agnews_rnn_opb_beta_10_anchor_8/train.log', 'no_save': True}
+2026-09-02 13:05:17 | AG News 特征文件：agnews_bert_base_layer10_pca50_features.npy（input_dim=50）
+2026-09-02 13:05:17 | AG News 预处理缓存：mmap 共享 ./data/agnews/agnews_bert_base_layer10_pca50_features_fp32.npy
+2026-09-02 13:05:17 | AG News BERT 特征划分（60/20/20 分层）：train 76560 / val 25520 / test 25520（共 127600 条）
+2026-09-02 13:05:17 | ===== Run 1/5 (seed 0) =====
+2026-09-02 13:05:42 | Epoch   1/100 | Train Loss 130.4083 Acc 0.7086 | Val Loss 92.3064 Acc 0.7803 AUC 0.9101 Pre 0.8217 Rec 0.7803
+2026-09-02 13:05:42 |   Val AUC improved to 0.9101, model saved
+2026-09-02 13:06:09 | Epoch   2/100 | Train Loss 73.7004 Acc 0.8021 | Val Loss 44.7032 Acc 0.8691 AUC 0.9645 Pre 0.8734 Rec 0.8691
+2026-09-02 13:06:09 |   Val AUC improved to 0.9645, model saved
+2026-09-02 13:06:36 | Epoch   3/100 | Train Loss 33.1002 Acc 0.8852 | Val Loss 23.2122 Acc 0.8972 AUC 0.9729 Pre 0.8987 Rec 0.8972
+2026-09-02 13:06:36 |   Val AUC improved to 0.9729, model saved
+2026-09-02 13:07:05 | Epoch   4/100 | Train Loss 19.1364 Acc 0.8860 | Val Loss 13.4521 Acc 0.9010 AUC 0.9763 Pre 0.9014 Rec 0.9010
+2026-09-02 13:07:05 |   Val AUC improved to 0.9763, model saved
+2026-09-02 13:07:32 | Epoch   5/100 | Train Loss 11.6319 Acc 0.8698 | Val Loss 8.1498 Acc 0.9037 AUC 0.9778 Pre 0.9042 Rec 0.9037
+2026-09-02 13:07:32 |   Val AUC improved to 0.9778, model saved
+2026-09-02 13:08:00 | Epoch   6/100 | Train Loss 7.6909 Acc 0.8487 | Val Loss 5.6103 Acc 0.9066 AUC 0.9777 Pre 0.9073 Rec 0.9066
+2026-09-02 13:08:27 | Epoch   7/100 | Train Loss 5.7084 Acc 0.8203 | Val Loss 4.2310 Acc 0.9058 AUC 0.9796 Pre 0.9068 Rec 0.9058
+2026-09-02 13:08:27 |   Val AUC improved to 0.9796, model saved
+2026-09-02 13:08:44 | Epoch   8/100 | Train Loss 4.5785 Acc 0.7924 | Val Loss 3.3716 Acc 0.9081 AUC 0.9801 Pre 0.9087 Rec 0.9081
+2026-09-02 13:08:44 |   Val AUC improved to 0.9801, model saved
+2026-09-02 13:09:09 | Epoch   9/100 | Train Loss 3.8757 Acc 0.7628 | Val Loss 2.8416 Acc 0.9086 AUC 0.9805 Pre 0.9103 Rec 0.9086
+2026-09-02 13:09:09 |   Val AUC improved to 0.9805, model saved
+2026-09-02 13:09:36 | Epoch  10/100 | Train Loss 3.4021 Acc 0.7402 | Val Loss 2.4793 Acc 0.9096 AUC 0.9805 Pre 0.9111 Rec 0.9096
+2026-09-02 13:10:04 | Epoch  11/100 | Train Loss 3.0645 Acc 0.7192 | Val Loss 2.1973 Acc 0.9120 AUC 0.9806 Pre 0.9124 Rec 0.9120
+2026-09-02 13:10:04 |   Val AUC improved to 0.9806, model saved
+2026-09-02 13:10:32 | Epoch  12/100 | Train Loss 2.8377 Acc 0.6945 | Val Loss 2.0187 Acc 0.9115 AUC 0.9811 Pre 0.9119 Rec 0.9115
+2026-09-02 13:10:32 |   Val AUC improved to 0.9811, model saved
+2026-09-02 13:11:01 | Epoch  13/100 | Train Loss 2.6352 Acc 0.6824 | Val Loss 1.8701 Acc 0.9131 AUC 0.9808 Pre 0.9137 Rec 0.9131
+2026-09-02 13:11:28 | Epoch  14/100 | Train Loss 2.4767 Acc 0.6679 | Val Loss 1.7687 Acc 0.9136 AUC 0.9812 Pre 0.9141 Rec 0.9136
+2026-09-02 13:11:28 |   Val AUC improved to 0.9812, model saved
+2026-09-02 13:11:57 | Epoch  15/100 | Train Loss 2.3573 Acc 0.6510 | Val Loss 1.6861 Acc 0.9143 AUC 0.9819 Pre 0.9146 Rec 0.9143
+2026-09-02 13:11:57 |   Val AUC improved to 0.9819, model saved
+2026-09-02 13:12:26 | Epoch  16/100 | Train Loss 2.2542 Acc 0.6405 | Val Loss 1.6445 Acc 0.9120 AUC 0.9817 Pre 0.9123 Rec 0.9120
+2026-09-02 13:12:54 | Epoch  17/100 | Train Loss 2.1642 Acc 0.6281 | Val Loss 1.5722 Acc 0.9141 AUC 0.9813 Pre 0.9144 Rec 0.9141
+2026-09-02 13:13:22 | Epoch  18/100 | Train Loss 2.0927 Acc 0.6215 | Val Loss 1.5662 Acc 0.9127 AUC 0.9823 Pre 0.9126 Rec 0.9127
+2026-09-02 13:13:22 |   Val AUC improved to 0.9823, model saved
+2026-09-02 13:13:51 | Epoch  19/100 | Train Loss 2.0252 Acc 0.6166 | Val Loss 1.5019 Acc 0.9129 AUC 0.9817 Pre 0.9137 Rec 0.9129
+2026-09-02 13:14:20 | Epoch  20/100 | Train Loss 1.9663 Acc 0.6053 | Val Loss 1.4477 Acc 0.9153 AUC 0.9827 Pre 0.9159 Rec 0.9153
+2026-09-02 13:14:20 |   Val AUC improved to 0.9827, model saved
+2026-09-02 13:14:49 | Epoch  21/100 | Train Loss 1.9132 Acc 0.6000 | Val Loss 1.4222 Acc 0.9165 AUC 0.9827 Pre 0.9179 Rec 0.9165
+2026-09-02 13:15:16 | Epoch  22/100 | Train Loss 1.8733 Acc 0.5946 | Val Loss 1.4366 Acc 0.9138 AUC 0.9824 Pre 0.9156 Rec 0.9138
+2026-09-02 13:15:44 | Epoch  23/100 | Train Loss 1.8286 Acc 0.5895 | Val Loss 1.3954 Acc 0.9155 AUC 0.9827 Pre 0.9172 Rec 0.9155
+2026-09-02 13:15:44 |   Val AUC improved to 0.9827, model saved
+2026-09-02 13:16:14 | Epoch  24/100 | Train Loss 1.7917 Acc 0.5883 | Val Loss 1.3720 Acc 0.9179 AUC 0.9828 Pre 0.9189 Rec 0.9179
+2026-09-02 13:16:14 |   Val AUC improved to 0.9828, model saved
+2026-09-02 13:16:43 | Epoch  25/100 | Train Loss 1.7709 Acc 0.5839 | Val Loss 1.3800 Acc 0.9153 AUC 0.9817 Pre 0.9155 Rec 0.9153
+2026-09-02 13:17:12 | Epoch  26/100 | Train Loss 1.7423 Acc 0.5770 | Val Loss 1.3504 Acc 0.9178 AUC 0.9818 Pre 0.9186 Rec 0.9178
+2026-09-02 13:17:41 | Epoch  27/100 | Train Loss 1.7223 Acc 0.5749 | Val Loss 1.3366 Acc 0.9170 AUC 0.9823 Pre 0.9180 Rec 0.9170
+2026-09-02 13:18:09 | Epoch  28/100 | Train Loss 1.6922 Acc 0.5703 | Val Loss 1.3432 Acc 0.9178 AUC 0.9827 Pre 0.9192 Rec 0.9178
+2026-09-02 13:18:39 | Epoch  29/100 | Train Loss 1.6632 Acc 0.5725 | Val Loss 1.3317 Acc 0.9180 AUC 0.9823 Pre 0.9184 Rec 0.9180
+2026-09-02 13:19:07 | Epoch  30/100 | Train Loss 1.6419 Acc 0.5704 | Val Loss 1.3313 Acc 0.9171 AUC 0.9802 Pre 0.9168 Rec 0.9171
+2026-09-02 13:19:34 | Epoch  31/100 | Train Loss 1.6213 Acc 0.5685 | Val Loss 1.3106 Acc 0.9167 AUC 0.9822 Pre 0.9168 Rec 0.9167
+2026-09-02 13:20:03 | Epoch  32/100 | Train Loss 1.6289 Acc 0.5643 | Val Loss 1.3084 Acc 0.9183 AUC 0.9827 Pre 0.9189 Rec 0.9183
+2026-09-02 13:20:29 | Epoch  33/100 | Train Loss 1.5954 Acc 0.5638 | Val Loss 1.3052 Acc 0.9181 AUC 0.9817 Pre 0.9189 Rec 0.9181
+2026-09-02 13:20:58 | Epoch  34/100 | Train Loss 1.5728 Acc 0.5666 | Val Loss 1.3064 Acc 0.9196 AUC 0.9831 Pre 0.9198 Rec 0.9196
+2026-09-02 13:20:58 |   Val AUC improved to 0.9831, model saved
+2026-09-02 13:21:24 | Epoch  35/100 | Train Loss 1.5531 Acc 0.5683 | Val Loss 1.2986 Acc 0.9190 AUC 0.9834 Pre 0.9201 Rec 0.9190
+2026-09-02 13:21:24 |   Val AUC improved to 0.9834, model saved
+2026-09-02 13:21:52 | Epoch  36/100 | Train Loss 1.5503 Acc 0.5644 | Val Loss 1.2823 Acc 0.9184 AUC 0.9834 Pre 0.9196 Rec 0.9184
+2026-09-02 13:22:18 | Epoch  37/100 | Train Loss 1.5352 Acc 0.5635 | Val Loss 1.2918 Acc 0.9181 AUC 0.9829 Pre 0.9202 Rec 0.9181
+2026-09-02 13:22:44 | Epoch  38/100 | Train Loss 1.5445 Acc 0.5621 | Val Loss 1.3085 Acc 0.9190 AUC 0.9800 Pre 0.9189 Rec 0.9190
+2026-09-02 13:23:12 | Epoch  39/100 | Train Loss 1.5243 Acc 0.5584 | Val Loss 1.2702 Acc 0.9215 AUC 0.9819 Pre 0.9216 Rec 0.9215
+2026-09-02 13:23:39 | Epoch  40/100 | Train Loss 1.4907 Acc 0.5633 | Val Loss 1.2941 Acc 0.9161 AUC 0.9833 Pre 0.9182 Rec 0.9161
+2026-09-02 13:24:06 | Epoch  41/100 | Train Loss 1.4779 Acc 0.5669 | Val Loss 1.2946 Acc 0.9139 AUC 0.9818 Pre 0.9160 Rec 0.9139
+2026-09-02 13:24:35 | Epoch  42/100 | Train Loss 1.4939 Acc 0.5612 | Val Loss 1.2905 Acc 0.9203 AUC 0.9825 Pre 0.9206 Rec 0.9203
+2026-09-02 13:25:04 | Epoch  43/100 | Train Loss 1.4488 Acc 0.5649 | Val Loss 1.3041 Acc 0.9190 AUC 0.9823 Pre 0.9200 Rec 0.9190
+2026-09-02 13:25:33 | Epoch  44/100 | Train Loss 1.4388 Acc 0.5685 | Val Loss 1.2708 Acc 0.9210 AUC 0.9822 Pre 0.9213 Rec 0.9210
+2026-09-02 13:26:01 | Epoch  45/100 | Train Loss 1.4289 Acc 0.5659 | Val Loss 1.2933 Acc 0.9212 AUC 0.9826 Pre 0.9217 Rec 0.9212
+2026-09-02 13:26:01 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 45 (best AUC 0.9834 @ Epoch 35)
+2026-09-02 13:26:06 | Run 1/5 | Test (best model @ Epoch 35) | Loss 1.2654 Acc 0.9232 AUC 0.9844 Pre 0.9241 Rec 0.9232
+2026-09-02 13:26:06 | ===== Run 2/5 (seed 1) =====
+2026-09-02 13:26:34 | Epoch   1/100 | Train Loss 123.8533 Acc 0.7329 | Val Loss 50.3902 Acc 0.8855 AUC 0.9648 Pre 0.8864 Rec 0.8855
+2026-09-02 13:26:34 |   Val AUC improved to 0.9648, model saved
+2026-09-02 13:27:02 | Epoch   2/100 | Train Loss 47.7040 Acc 0.8859 | Val Loss 39.1186 Acc 0.8944 AUC 0.9702 Pre 0.8944 Rec 0.8944
+2026-09-02 13:27:02 |   Val AUC improved to 0.9702, model saved
+2026-09-02 13:27:31 | Epoch   3/100 | Train Loss 36.2394 Acc 0.8982 | Val Loss 30.8343 Acc 0.9046 AUC 0.9741 Pre 0.9048 Rec 0.9046
+2026-09-02 13:27:31 |   Val AUC improved to 0.9741, model saved
+2026-09-02 13:28:00 | Epoch   4/100 | Train Loss 29.1061 Acc 0.9033 | Val Loss 25.6946 Acc 0.9051 AUC 0.9755 Pre 0.9061 Rec 0.9051
+2026-09-02 13:28:00 |   Val AUC improved to 0.9755, model saved
+2026-09-02 13:28:29 | Epoch   5/100 | Train Loss 22.3214 Acc 0.9036 | Val Loss 17.4977 Acc 0.9118 AUC 0.9751 Pre 0.9131 Rec 0.9118
+2026-09-02 13:28:58 | Epoch   6/100 | Train Loss 15.0039 Acc 0.8968 | Val Loss 11.5699 Acc 0.9153 AUC 0.9744 Pre 0.9154 Rec 0.9153
+2026-09-02 13:29:26 | Epoch   7/100 | Train Loss 8.5881 Acc 0.8695 | Val Loss 5.4518 Acc 0.9156 AUC 0.9781 Pre 0.9166 Rec 0.9156
+2026-09-02 13:29:26 |   Val AUC improved to 0.9781, model saved
+2026-09-02 13:29:55 | Epoch   8/100 | Train Loss 4.6732 Acc 0.8248 | Val Loss 3.3147 Acc 0.9179 AUC 0.9804 Pre 0.9188 Rec 0.9179
+2026-09-02 13:29:55 |   Val AUC improved to 0.9804, model saved
+2026-09-02 13:30:24 | Epoch   9/100 | Train Loss 3.4059 Acc 0.7834 | Val Loss 2.4938 Acc 0.9182 AUC 0.9802 Pre 0.9188 Rec 0.9182
+2026-09-02 13:30:52 | Epoch  10/100 | Train Loss 2.8263 Acc 0.7469 | Val Loss 2.0951 Acc 0.9176 AUC 0.9806 Pre 0.9179 Rec 0.9176
+2026-09-02 13:30:52 |   Val AUC improved to 0.9806, model saved
+2026-09-02 13:31:20 | Epoch  11/100 | Train Loss 2.4501 Acc 0.7182 | Val Loss 1.7846 Acc 0.9183 AUC 0.9815 Pre 0.9184 Rec 0.9183
+2026-09-02 13:31:20 |   Val AUC improved to 0.9815, model saved
+2026-09-02 13:31:50 | Epoch  12/100 | Train Loss 2.2309 Acc 0.6869 | Val Loss 1.6405 Acc 0.9191 AUC 0.9817 Pre 0.9200 Rec 0.9191
+2026-09-02 13:31:50 |   Val AUC improved to 0.9817, model saved
+2026-09-02 13:32:19 | Epoch  13/100 | Train Loss 2.0778 Acc 0.6722 | Val Loss 1.5270 Acc 0.9182 AUC 0.9823 Pre 0.9195 Rec 0.9182
+2026-09-02 13:32:19 |   Val AUC improved to 0.9823, model saved
+2026-09-02 13:32:49 | Epoch  14/100 | Train Loss 1.9811 Acc 0.6537 | Val Loss 1.4637 Acc 0.9190 AUC 0.9826 Pre 0.9205 Rec 0.9190
+2026-09-02 13:32:49 |   Val AUC improved to 0.9826, model saved
+2026-09-02 13:33:18 | Epoch  15/100 | Train Loss 1.8943 Acc 0.6408 | Val Loss 1.4320 Acc 0.9195 AUC 0.9829 Pre 0.9201 Rec 0.9195
+2026-09-02 13:33:18 |   Val AUC improved to 0.9829, model saved
+2026-09-02 13:33:47 | Epoch  16/100 | Train Loss 1.8269 Acc 0.6328 | Val Loss 1.4080 Acc 0.9201 AUC 0.9831 Pre 0.9208 Rec 0.9201
+2026-09-02 13:33:47 |   Val AUC improved to 0.9831, model saved
+2026-09-02 13:34:16 | Epoch  17/100 | Train Loss 1.7826 Acc 0.6242 | Val Loss 1.3780 Acc 0.9200 AUC 0.9820 Pre 0.9202 Rec 0.9200
+2026-09-02 13:34:44 | Epoch  18/100 | Train Loss 1.7329 Acc 0.6161 | Val Loss 1.3719 Acc 0.9194 AUC 0.9823 Pre 0.9196 Rec 0.9194
+2026-09-02 13:35:13 | Epoch  19/100 | Train Loss 1.6971 Acc 0.6121 | Val Loss 1.3257 Acc 0.9215 AUC 0.9816 Pre 0.9216 Rec 0.9215
+2026-09-02 13:35:41 | Epoch  20/100 | Train Loss 1.6709 Acc 0.6056 | Val Loss 1.3278 Acc 0.9210 AUC 0.9821 Pre 0.9212 Rec 0.9210
+2026-09-02 13:36:07 | Epoch  21/100 | Train Loss 1.6245 Acc 0.6028 | Val Loss 1.3214 Acc 0.9221 AUC 0.9830 Pre 0.9228 Rec 0.9221
+2026-09-02 13:36:36 | Epoch  22/100 | Train Loss 1.6020 Acc 0.6032 | Val Loss 1.3132 Acc 0.9185 AUC 0.9815 Pre 0.9188 Rec 0.9185
+2026-09-02 13:37:02 | Epoch  23/100 | Train Loss 1.5959 Acc 0.5989 | Val Loss 1.2940 Acc 0.9212 AUC 0.9826 Pre 0.9224 Rec 0.9212
+2026-09-02 13:37:28 | Epoch  24/100 | Train Loss 1.5716 Acc 0.5939 | Val Loss 1.3129 Acc 0.9218 AUC 0.9822 Pre 0.9222 Rec 0.9218
+2026-09-02 13:37:55 | Epoch  25/100 | Train Loss 1.5396 Acc 0.5941 | Val Loss 1.3106 Acc 0.9191 AUC 0.9820 Pre 0.9195 Rec 0.9191
+2026-09-02 13:38:20 | Epoch  26/100 | Train Loss 1.5269 Acc 0.5921 | Val Loss 1.2769 Acc 0.9210 AUC 0.9830 Pre 0.9217 Rec 0.9210
+2026-09-02 13:38:20 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 26 (best AUC 0.9831 @ Epoch 16)
+2026-09-02 13:38:25 | Run 2/5 | Test (best model @ Epoch 16) | Loss 1.3737 Acc 0.9231 AUC 0.9840 Pre 0.9237 Rec 0.9231
+2026-09-02 13:38:25 | ===== Run 3/5 (seed 2) =====
+2026-09-02 13:38:54 | Epoch   1/100 | Train Loss 135.3935 Acc 0.6916 | Val Loss 63.9965 Acc 0.8629 AUC 0.9567 Pre 0.8652 Rec 0.8629
+2026-09-02 13:38:54 |   Val AUC improved to 0.9567, model saved
+2026-09-02 13:39:21 | Epoch   2/100 | Train Loss 50.3095 Acc 0.8774 | Val Loss 39.3772 Acc 0.8920 AUC 0.9697 Pre 0.8925 Rec 0.8920
+2026-09-02 13:39:21 |   Val AUC improved to 0.9697, model saved
+2026-09-02 13:39:48 | Epoch   3/100 | Train Loss 37.1201 Acc 0.8900 | Val Loss 29.4409 Acc 0.8964 AUC 0.9722 Pre 0.8977 Rec 0.8964
+2026-09-02 13:39:48 |   Val AUC improved to 0.9722, model saved
+2026-09-02 13:40:15 | Epoch   4/100 | Train Loss 24.5182 Acc 0.8886 | Val Loss 17.7262 Acc 0.8991 AUC 0.9752 Pre 0.9009 Rec 0.8991
+2026-09-02 13:40:15 |   Val AUC improved to 0.9752, model saved
+2026-09-02 13:40:42 | Epoch   5/100 | Train Loss 15.9564 Acc 0.8748 | Val Loss 11.9716 Acc 0.9014 AUC 0.9752 Pre 0.9024 Rec 0.9014
+2026-09-02 13:40:42 |   Val AUC improved to 0.9752, model saved
+2026-09-02 13:41:11 | Epoch   6/100 | Train Loss 10.7192 Acc 0.8557 | Val Loss 7.6049 Acc 0.9034 AUC 0.9776 Pre 0.9045 Rec 0.9034
+2026-09-02 13:41:11 |   Val AUC improved to 0.9776, model saved
+2026-09-02 13:41:39 | Epoch   7/100 | Train Loss 7.2448 Acc 0.8343 | Val Loss 5.4073 Acc 0.9025 AUC 0.9788 Pre 0.9046 Rec 0.9025
+2026-09-02 13:41:39 |   Val AUC improved to 0.9788, model saved
+2026-09-02 13:42:07 | Epoch   8/100 | Train Loss 5.2613 Acc 0.8039 | Val Loss 3.7799 Acc 0.9051 AUC 0.9778 Pre 0.9058 Rec 0.9051
+2026-09-02 13:42:36 | Epoch   9/100 | Train Loss 3.9998 Acc 0.7692 | Val Loss 2.9079 Acc 0.9058 AUC 0.9787 Pre 0.9065 Rec 0.9058
+2026-09-02 13:43:04 | Epoch  10/100 | Train Loss 3.2994 Acc 0.7372 | Val Loss 2.4040 Acc 0.9061 AUC 0.9785 Pre 0.9069 Rec 0.9061
+2026-09-02 13:43:34 | Epoch  11/100 | Train Loss 2.8820 Acc 0.7096 | Val Loss 2.0919 Acc 0.9064 AUC 0.9787 Pre 0.9074 Rec 0.9064
+2026-09-02 13:44:02 | Epoch  12/100 | Train Loss 2.6227 Acc 0.6822 | Val Loss 1.8845 Acc 0.9075 AUC 0.9790 Pre 0.9078 Rec 0.9075
+2026-09-02 13:44:02 |   Val AUC improved to 0.9790, model saved
+2026-09-02 13:44:30 | Epoch  13/100 | Train Loss 2.4384 Acc 0.6619 | Val Loss 1.7586 Acc 0.9079 AUC 0.9792 Pre 0.9080 Rec 0.9079
+2026-09-02 13:44:30 |   Val AUC improved to 0.9792, model saved
+2026-09-02 13:44:59 | Epoch  14/100 | Train Loss 2.2964 Acc 0.6466 | Val Loss 1.6725 Acc 0.9075 AUC 0.9798 Pre 0.9083 Rec 0.9075
+2026-09-02 13:44:59 |   Val AUC improved to 0.9798, model saved
+2026-09-02 13:45:28 | Epoch  15/100 | Train Loss 2.1988 Acc 0.6300 | Val Loss 1.5964 Acc 0.9087 AUC 0.9801 Pre 0.9098 Rec 0.9087
+2026-09-02 13:45:28 |   Val AUC improved to 0.9801, model saved
+2026-09-02 13:45:56 | Epoch  16/100 | Train Loss 2.1099 Acc 0.6173 | Val Loss 1.5537 Acc 0.9087 AUC 0.9801 Pre 0.9089 Rec 0.9087
+2026-09-02 13:45:56 |   Val AUC improved to 0.9801, model saved
+2026-09-02 13:46:25 | Epoch  17/100 | Train Loss 2.0466 Acc 0.6061 | Val Loss 1.5295 Acc 0.9075 AUC 0.9802 Pre 0.9078 Rec 0.9075
+2026-09-02 13:46:25 |   Val AUC improved to 0.9802, model saved
+2026-09-02 13:46:54 | Epoch  18/100 | Train Loss 1.9815 Acc 0.5998 | Val Loss 1.4863 Acc 0.9083 AUC 0.9805 Pre 0.9086 Rec 0.9083
+2026-09-02 13:46:54 |   Val AUC improved to 0.9805, model saved
+2026-09-02 13:47:23 | Epoch  19/100 | Train Loss 1.9259 Acc 0.5894 | Val Loss 1.4467 Acc 0.9101 AUC 0.9802 Pre 0.9103 Rec 0.9101
+2026-09-02 13:47:51 | Epoch  20/100 | Train Loss 1.8799 Acc 0.5840 | Val Loss 1.4184 Acc 0.9110 AUC 0.9799 Pre 0.9115 Rec 0.9110
+2026-09-02 13:48:19 | Epoch  21/100 | Train Loss 1.8491 Acc 0.5761 | Val Loss 1.4170 Acc 0.9100 AUC 0.9804 Pre 0.9106 Rec 0.9100
+2026-09-02 13:48:49 | Epoch  22/100 | Train Loss 1.8037 Acc 0.5732 | Val Loss 1.4005 Acc 0.9102 AUC 0.9806 Pre 0.9112 Rec 0.9102
+2026-09-02 13:48:49 |   Val AUC improved to 0.9806, model saved
+2026-09-02 13:49:18 | Epoch  23/100 | Train Loss 1.7859 Acc 0.5662 | Val Loss 1.3841 Acc 0.9097 AUC 0.9811 Pre 0.9102 Rec 0.9097
+2026-09-02 13:49:18 |   Val AUC improved to 0.9811, model saved
+2026-09-02 13:49:49 | Epoch  24/100 | Train Loss 1.7472 Acc 0.5647 | Val Loss 1.3905 Acc 0.9086 AUC 0.9809 Pre 0.9101 Rec 0.9086
+2026-09-02 13:50:17 | Epoch  25/100 | Train Loss 1.7222 Acc 0.5579 | Val Loss 1.3461 Acc 0.9115 AUC 0.9802 Pre 0.9115 Rec 0.9115
+2026-09-02 13:50:46 | Epoch  26/100 | Train Loss 1.6941 Acc 0.5568 | Val Loss 1.3361 Acc 0.9131 AUC 0.9799 Pre 0.9136 Rec 0.9131
+2026-09-02 13:51:15 | Epoch  27/100 | Train Loss 1.6841 Acc 0.5507 | Val Loss 1.3494 Acc 0.9109 AUC 0.9810 Pre 0.9114 Rec 0.9109
+2026-09-02 13:51:43 | Epoch  28/100 | Train Loss 1.6655 Acc 0.5479 | Val Loss 1.3317 Acc 0.9107 AUC 0.9809 Pre 0.9116 Rec 0.9107
+2026-09-02 13:52:12 | Epoch  29/100 | Train Loss 1.6423 Acc 0.5444 | Val Loss 1.3210 Acc 0.9127 AUC 0.9807 Pre 0.9134 Rec 0.9127
+2026-09-02 13:52:38 | Epoch  30/100 | Train Loss 1.6238 Acc 0.5471 | Val Loss 1.3252 Acc 0.9113 AUC 0.9799 Pre 0.9115 Rec 0.9113
+2026-09-02 13:53:05 | Epoch  31/100 | Train Loss 1.6198 Acc 0.5413 | Val Loss 1.3094 Acc 0.9122 AUC 0.9805 Pre 0.9134 Rec 0.9122
+2026-09-02 13:53:29 | Epoch  32/100 | Train Loss 1.5953 Acc 0.5406 | Val Loss 1.3193 Acc 0.9130 AUC 0.9809 Pre 0.9136 Rec 0.9130
+2026-09-02 13:53:57 | Epoch  33/100 | Train Loss 1.5848 Acc 0.5402 | Val Loss 1.3112 Acc 0.9127 AUC 0.9801 Pre 0.9129 Rec 0.9127
+2026-09-02 13:53:57 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 33 (best AUC 0.9811 @ Epoch 23)
+2026-09-02 13:54:02 | Run 3/5 | Test (best model @ Epoch 23) | Loss 1.3516 Acc 0.9164 AUC 0.9823 Pre 0.9167 Rec 0.9164
+2026-09-02 13:54:02 | ===== Run 4/5 (seed 3) =====
+2026-09-02 13:54:28 | Epoch   1/100 | Train Loss 144.3504 Acc 0.6340 | Val Loss 92.7216 Acc 0.7781 AUC 0.8931 Pre 0.8089 Rec 0.7781
+2026-09-02 13:54:28 |   Val AUC improved to 0.8931, model saved
+2026-09-02 13:54:55 | Epoch   2/100 | Train Loss 61.9593 Acc 0.8468 | Val Loss 44.8978 Acc 0.8752 AUC 0.9608 Pre 0.8764 Rec 0.8752
+2026-09-02 13:54:56 |   Val AUC improved to 0.9608, model saved
+2026-09-02 13:55:24 | Epoch   3/100 | Train Loss 45.0968 Acc 0.8689 | Val Loss 34.0155 Acc 0.8906 AUC 0.9691 Pre 0.8910 Rec 0.8906
+2026-09-02 13:55:24 |   Val AUC improved to 0.9691, model saved
+2026-09-02 13:55:51 | Epoch   4/100 | Train Loss 32.7689 Acc 0.8862 | Val Loss 29.5200 Acc 0.8910 AUC 0.9697 Pre 0.8930 Rec 0.8910
+2026-09-02 13:55:51 |   Val AUC improved to 0.9697, model saved
+2026-09-02 13:56:18 | Epoch   5/100 | Train Loss 26.7447 Acc 0.8911 | Val Loss 23.7879 Acc 0.8962 AUC 0.9752 Pre 0.8982 Rec 0.8962
+2026-09-02 13:56:18 |   Val AUC improved to 0.9752, model saved
+2026-09-02 13:56:45 | Epoch   6/100 | Train Loss 21.6092 Acc 0.8956 | Val Loss 18.9967 Acc 0.9056 AUC 0.9779 Pre 0.9063 Rec 0.9056
+2026-09-02 13:56:45 |   Val AUC improved to 0.9779, model saved
+2026-09-02 13:57:13 | Epoch   7/100 | Train Loss 18.0730 Acc 0.8962 | Val Loss 15.7839 Acc 0.9084 AUC 0.9785 Pre 0.9086 Rec 0.9084
+2026-09-02 13:57:13 |   Val AUC improved to 0.9785, model saved
+2026-09-02 13:57:41 | Epoch   8/100 | Train Loss 14.5304 Acc 0.8946 | Val Loss 12.6276 Acc 0.9093 AUC 0.9786 Pre 0.9099 Rec 0.9093
+2026-09-02 13:57:41 |   Val AUC improved to 0.9786, model saved
+2026-09-02 13:58:11 | Epoch   9/100 | Train Loss 11.5678 Acc 0.8808 | Val Loss 10.2025 Acc 0.9063 AUC 0.9748 Pre 0.9077 Rec 0.9063
+2026-09-02 13:58:39 | Epoch  10/100 | Train Loss 9.0333 Acc 0.8553 | Val Loss 8.0533 Acc 0.9111 AUC 0.9718 Pre 0.9115 Rec 0.9111
+2026-09-02 13:59:08 | Epoch  11/100 | Train Loss 7.7286 Acc 0.8291 | Val Loss 7.0691 Acc 0.9066 AUC 0.9729 Pre 0.9066 Rec 0.9066
+2026-09-02 13:59:35 | Epoch  12/100 | Train Loss 6.6970 Acc 0.8137 | Val Loss 6.1744 Acc 0.9094 AUC 0.9729 Pre 0.9091 Rec 0.9094
+2026-09-02 14:00:03 | Epoch  13/100 | Train Loss 5.9647 Acc 0.8020 | Val Loss 5.4521 Acc 0.9120 AUC 0.9723 Pre 0.9117 Rec 0.9120
+2026-09-02 14:00:32 | Epoch  14/100 | Train Loss 5.3496 Acc 0.7916 | Val Loss 5.1036 Acc 0.9115 AUC 0.9723 Pre 0.9119 Rec 0.9115
+2026-09-02 14:01:00 | Epoch  15/100 | Train Loss 4.8433 Acc 0.7874 | Val Loss 4.4929 Acc 0.9165 AUC 0.9764 Pre 0.9166 Rec 0.9165
+2026-09-02 14:01:29 | Epoch  16/100 | Train Loss 4.4542 Acc 0.7815 | Val Loss 4.2319 Acc 0.9142 AUC 0.9748 Pre 0.9142 Rec 0.9142
+2026-09-02 14:01:58 | Epoch  17/100 | Train Loss 4.0033 Acc 0.7795 | Val Loss 3.7363 Acc 0.9156 AUC 0.9743 Pre 0.9157 Rec 0.9156
+2026-09-02 14:02:24 | Epoch  18/100 | Train Loss 3.6078 Acc 0.7743 | Val Loss 3.4004 Acc 0.9132 AUC 0.9751 Pre 0.9140 Rec 0.9132
+2026-09-02 14:02:24 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 18 (best AUC 0.9786 @ Epoch 8)
+2026-09-02 14:02:29 | Run 4/5 | Test (best model @ Epoch 8) | Loss 12.0590 Acc 0.9148 AUC 0.9799 Pre 0.9151 Rec 0.9148
+2026-09-02 14:02:29 | ===== Run 5/5 (seed 4) =====
+2026-09-02 14:02:58 | Epoch   1/100 | Train Loss 122.0215 Acc 0.7336 | Val Loss 54.8149 Acc 0.8804 AUC 0.9576 Pre 0.8803 Rec 0.8804
+2026-09-02 14:02:58 |   Val AUC improved to 0.9576, model saved
+2026-09-02 14:03:27 | Epoch   2/100 | Train Loss 47.9643 Acc 0.8852 | Val Loss 38.3457 Acc 0.8980 AUC 0.9704 Pre 0.8982 Rec 0.8980
+2026-09-02 14:03:27 |   Val AUC improved to 0.9704, model saved
+2026-09-02 14:03:55 | Epoch   3/100 | Train Loss 35.5716 Acc 0.8976 | Val Loss 28.8531 Acc 0.9033 AUC 0.9736 Pre 0.9036 Rec 0.9033
+2026-09-02 14:03:55 |   Val AUC improved to 0.9736, model saved
+2026-09-02 14:04:24 | Epoch   4/100 | Train Loss 23.1599 Acc 0.8962 | Val Loss 14.7838 Acc 0.9084 AUC 0.9778 Pre 0.9097 Rec 0.9084
+2026-09-02 14:04:24 |   Val AUC improved to 0.9778, model saved
+2026-09-02 14:04:52 | Epoch   5/100 | Train Loss 11.9462 Acc 0.8817 | Val Loss 7.8913 Acc 0.9114 AUC 0.9791 Pre 0.9125 Rec 0.9114
+2026-09-02 14:04:52 |   Val AUC improved to 0.9791, model saved
+2026-09-02 14:05:20 | Epoch   6/100 | Train Loss 7.0294 Acc 0.8558 | Val Loss 5.0733 Acc 0.9127 AUC 0.9803 Pre 0.9136 Rec 0.9127
+2026-09-02 14:05:20 |   Val AUC improved to 0.9803, model saved
+2026-09-02 14:05:49 | Epoch   7/100 | Train Loss 4.9307 Acc 0.8251 | Val Loss 3.7684 Acc 0.9099 AUC 0.9806 Pre 0.9144 Rec 0.9099
+2026-09-02 14:05:49 |   Val AUC improved to 0.9806, model saved
+2026-09-02 14:06:19 | Epoch   8/100 | Train Loss 3.8009 Acc 0.7937 | Val Loss 2.8673 Acc 0.9156 AUC 0.9816 Pre 0.9173 Rec 0.9156
+2026-09-02 14:06:19 |   Val AUC improved to 0.9816, model saved
+2026-09-02 14:06:47 | Epoch   9/100 | Train Loss 3.1597 Acc 0.7663 | Val Loss 2.3634 Acc 0.9175 AUC 0.9818 Pre 0.9181 Rec 0.9175
+2026-09-02 14:06:47 |   Val AUC improved to 0.9818, model saved
+2026-09-02 14:07:15 | Epoch  10/100 | Train Loss 2.7883 Acc 0.7415 | Val Loss 2.0759 Acc 0.9179 AUC 0.9827 Pre 0.9183 Rec 0.9179
+2026-09-02 14:07:15 |   Val AUC improved to 0.9827, model saved
+2026-09-02 14:07:43 | Epoch  11/100 | Train Loss 2.5278 Acc 0.7179 | Val Loss 1.8956 Acc 0.9183 AUC 0.9823 Pre 0.9197 Rec 0.9183
+2026-09-02 14:08:09 | Epoch  12/100 | Train Loss 2.3483 Acc 0.7018 | Val Loss 1.7535 Acc 0.9201 AUC 0.9833 Pre 0.9204 Rec 0.9201
+2026-09-02 14:08:09 |   Val AUC improved to 0.9833, model saved
+2026-09-02 14:08:35 | Epoch  13/100 | Train Loss 2.2011 Acc 0.6857 | Val Loss 1.6553 Acc 0.9204 AUC 0.9831 Pre 0.9213 Rec 0.9204
+2026-09-02 14:09:02 | Epoch  14/100 | Train Loss 2.1008 Acc 0.6707 | Val Loss 1.6268 Acc 0.9176 AUC 0.9828 Pre 0.9188 Rec 0.9176
+2026-09-02 14:09:31 | Epoch  15/100 | Train Loss 2.0067 Acc 0.6618 | Val Loss 1.5193 Acc 0.9214 AUC 0.9836 Pre 0.9223 Rec 0.9214
+2026-09-02 14:09:31 |   Val AUC improved to 0.9836, model saved
+2026-09-02 14:10:01 | Epoch  16/100 | Train Loss 1.9351 Acc 0.6547 | Val Loss 1.5047 Acc 0.9182 AUC 0.9824 Pre 0.9185 Rec 0.9182
+2026-09-02 14:10:29 | Epoch  17/100 | Train Loss 1.8693 Acc 0.6426 | Val Loss 1.4667 Acc 0.9203 AUC 0.9831 Pre 0.9208 Rec 0.9203
+2026-09-02 14:10:58 | Epoch  18/100 | Train Loss 1.8232 Acc 0.6390 | Val Loss 1.4166 Acc 0.9217 AUC 0.9832 Pre 0.9218 Rec 0.9217
+2026-09-02 14:11:26 | Epoch  19/100 | Train Loss 1.7753 Acc 0.6289 | Val Loss 1.3857 Acc 0.9220 AUC 0.9832 Pre 0.9229 Rec 0.9220
+2026-09-02 14:11:52 | Epoch  20/100 | Train Loss 1.7407 Acc 0.6254 | Val Loss 1.4148 Acc 0.9185 AUC 0.9827 Pre 0.9198 Rec 0.9185
+2026-09-02 14:12:18 | Epoch  21/100 | Train Loss 1.6816 Acc 0.6268 | Val Loss 1.3786 Acc 0.9209 AUC 0.9836 Pre 0.9219 Rec 0.9209
+2026-09-02 14:12:18 |   Val AUC improved to 0.9836, model saved
+2026-09-02 14:12:49 | Epoch  22/100 | Train Loss 1.6626 Acc 0.6196 | Val Loss 1.3731 Acc 0.9231 AUC 0.9845 Pre 0.9232 Rec 0.9231
+2026-09-02 14:12:49 |   Val AUC improved to 0.9845, model saved
+2026-09-02 14:13:19 | Epoch  23/100 | Train Loss 1.6257 Acc 0.6175 | Val Loss 1.3396 Acc 0.9238 AUC 0.9849 Pre 0.9243 Rec 0.9238
+2026-09-02 14:13:19 |   Val AUC improved to 0.9849, model saved
+2026-09-02 14:13:50 | Epoch  24/100 | Train Loss 1.5941 Acc 0.6169 | Val Loss 1.3409 Acc 0.9211 AUC 0.9831 Pre 0.9211 Rec 0.9211
+2026-09-02 14:14:18 | Epoch  25/100 | Train Loss 1.5844 Acc 0.6136 | Val Loss 1.3655 Acc 0.9219 AUC 0.9829 Pre 0.9222 Rec 0.9219
+2026-09-02 14:14:46 | Epoch  26/100 | Train Loss 1.5567 Acc 0.6078 | Val Loss 1.3285 Acc 0.9221 AUC 0.9831 Pre 0.9221 Rec 0.9221
+2026-09-02 14:15:13 | Epoch  27/100 | Train Loss 1.5109 Acc 0.6098 | Val Loss 1.3490 Acc 0.9206 AUC 0.9833 Pre 0.9209 Rec 0.9206
+2026-09-02 14:15:42 | Epoch  28/100 | Train Loss 1.5343 Acc 0.6075 | Val Loss 1.3094 Acc 0.9230 AUC 0.9827 Pre 0.9230 Rec 0.9230
+2026-09-02 14:16:10 | Epoch  29/100 | Train Loss 1.4917 Acc 0.6097 | Val Loss 1.2961 Acc 0.9237 AUC 0.9835 Pre 0.9238 Rec 0.9237
+2026-09-02 14:16:38 | Epoch  30/100 | Train Loss 1.4695 Acc 0.6116 | Val Loss 1.2911 Acc 0.9233 AUC 0.9840 Pre 0.9238 Rec 0.9233
+2026-09-02 14:17:06 | Epoch  31/100 | Train Loss 1.4644 Acc 0.6016 | Val Loss 1.3357 Acc 0.9207 AUC 0.9838 Pre 0.9211 Rec 0.9207
+2026-09-02 14:17:35 | Epoch  32/100 | Train Loss 1.4643 Acc 0.6036 | Val Loss 1.3747 Acc 0.9145 AUC 0.9826 Pre 0.9148 Rec 0.9145
+2026-09-02 14:18:02 | Epoch  33/100 | Train Loss 1.5067 Acc 0.5910 | Val Loss 1.2548 Acc 0.9219 AUC 0.9844 Pre 0.9226 Rec 0.9219
+2026-09-02 14:18:02 | Val AUC did not improve for 10 consecutive epochs, early stopping at Epoch 33 (best AUC 0.9849 @ Epoch 23)
+2026-09-02 14:18:08 | Run 5/5 | Test (best model @ Epoch 23) | Loss 1.2996 Acc 0.9266 AUC 0.9857 Pre 0.9271 Rec 0.9266
+2026-09-02 14:18:08 | Average over 5 runs | Test Loss 3.4699±4.8017 Acc 0.9208±0.0050 AUC 0.9833±0.0022 Pre 0.9213±0.0052 Rec 0.9208±0.0050

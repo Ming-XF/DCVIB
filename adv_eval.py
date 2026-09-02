@@ -20,10 +20,14 @@
 自定义后缀如 `_beta_0.01`）或 `{dataset}_{model}`（基线）。checkpoint 须用默认
 架构参数训练（hidden-dims 512 256、z-dim 256、dropout 0.2、anchor-scale 4.0）；
 非默认值需用对应的全局参数（`--hidden-dims`/`--z-dim`/`--dropout`/`--anchor-scale`）
-覆盖。v1 仅支持 MNIST。
+覆盖。opb 例外：checkpoint 须以 `--energy-classifier` 训练，评估时自动按能量
+分类器重建（无需传该标志）；anchor_scale 仍须经 `--anchor-scale` 与训练值一致。
+v1 仅支持 MNIST。
 
 输出：`{results-dir}/{dataset}_adv.csv`（长表）与
-`{results-dir}/{dataset}_adv.html`（汇总表，每配置一行、跨 run 均值±标准差）。
+`{results-dir}/{dataset}_adv.html`（汇总表，每配置一行、跨 run 均值±标准差；
+表后附鲁棒精度-ε 对比曲线：L∞/L2 各一张，每配置一条折线、带均值±标准差误差棒，
+图例可点击显隐、悬停/键盘方向键查看各配置数值）。
 """
 
 import argparse
@@ -38,6 +42,7 @@ import torch.nn.functional as F
 from datasets.datasets import get_mnist_dataloaders
 from train import build_model, build_parser, run_model
 from tune import gen_html
+from utils import curve_card, curve_css, curve_script, plot_bounds
 
 ROOT = Path(__file__).resolve().parent
 
@@ -107,6 +112,70 @@ def fmt_mean_std(values):
     return f"{t.mean():.4f}±{t.std():.4f}"
 
 
+# ---------------------------------------------------------------------------
+# 鲁棒精度-ε 对比曲线：共享渲染器在 utils.py（curve_card/curve_css/curve_script/
+# plot_bounds，dataviz 规范：2px 折线、≥8px 圆点带 2px 面环、发丝实线网格、
+# 图例恒在（≥2 系列）、≤4 系列末端直标、十字准线 + tooltip、浅/深双模式）。
+# ---------------------------------------------------------------------------
+
+CURVE_NORM_TITLES = {"linf": "L∞ PGD 对比曲线", "l2": "L2 PGD 对比曲线"}
+
+
+def _adv_curve_card(norm, eps_grid, prefix, curve_rows, n_runs):
+    """单张范数对比图：把 eps 网格与 per-run 统计换算成曲线卡数据。"""
+    keys = ["Acc"] + [f"{prefix}{e:g}" for e in eps_grid]
+    x_max = max(eps_grid)
+    x0, x1, _, _, _ = plot_bounds(len(curve_rows))
+    eps_all = [0.0] + list(eps_grid)
+    xs = [x0 + (e / x_max) * (x1 - x0) for e in eps_all]
+    series = []
+    for label, means, stds in curve_rows:
+        vals = [means[k] for k in keys]
+        errs = [stds[k] if n_runs > 1 else 0.0 for k in keys]
+        texts = [f"{m:.4f}±{s:.4f}" if s > 1e-12 else f"{m:.4f}" for m, s in zip(vals, errs)]
+        series.append((label, vals, errs, texts))
+    title = CURVE_NORM_TITLES[norm]
+    subtitle = (
+        f"ε 定义在归一化像素空间；ε=0 为 clean 精度；误差棒为跨 {n_runs} run 的"
+        "均值±标准差；单击图例可显隐配置"
+    )
+    return curve_card(
+        norm, title, subtitle, xs,
+        [f"{e:g}" for e in eps_all], series, 0.0, 1.0,
+        x_sublabels=["clean"] + [None] * len(eps_grid),
+        col_titles=["clean"] + [f"ε={e:g}" for e in eps_grid],
+    )
+
+
+def build_adv_curves_html(curve_rows, eps_linf, eps_l2, n_runs):
+    """生成对比曲线区块 HTML：L∞/L2 各一张 SVG 折线图。
+
+    curve_rows: [(label, {指标: mean}, {指标: std}), ...]，指标键为
+    "Acc" / f"Linf{e:g}" / f"L2{e:g}"（与 main 的 metric_names 一致）。
+    经 tune.gen_html(extra_html=...) 追加在汇总表之后。
+    """
+    if not curve_rows:
+        return ""
+    if len(curve_rows) > 8:
+        print(f"警告：曲线调色板只有 8 色，{len(curve_rows)} 个配置将复用颜色（线型兜底）")
+    cards = []
+    for norm, eps_grid, prefix in (
+        ("linf", [e for e in eps_linf if e != 0.0], "Linf"),
+        ("l2", [e for e in eps_l2 if e != 0.0], "L2"),
+    ):
+        if not eps_grid:
+            continue
+        cards.append(_adv_curve_card(norm, eps_grid, prefix, curve_rows, n_runs))
+    if not cards:
+        return ""
+    return f"""
+<h2>鲁棒精度对比曲线</h2>
+{curve_css()}
+{''.join(cards)}
+{curve_script()}
+"""
+
+
 def build_adv_parser():
     parser = build_parser()
     parser.add_argument(
@@ -160,6 +229,7 @@ def main():
     )
 
     results = []  # [(label, None, None, metrics)] 供 gen_html
+    curve_rows = []  # [(label, {指标: mean}, {指标: std})] 供对比曲线图
     csv_rows = []
 
     for d in (Path(p) for p in args.model_dirs):
@@ -178,6 +248,13 @@ def main():
         dir_args = argparse.Namespace(**vars(args))
         dir_args.model = model
         dir_args.backbone = backbone
+        if model == "opb":
+            # OPB 固定按能量分类器重建（paper/OPB.txt §12）：energy 训练下
+            # self.classifier 是死参数（随机初始化），按默认普通分类器路径会得到
+            # 随机输出（clean acc ≈ 1/K）。无需命令行传 --energy-classifier；
+            # anchor_scale 仍经 --anchor-scale 全局覆盖，须与训练值一致（能量
+            # logits 的锚点位置依赖它）。
+            dir_args.energy_classifier = True
         model_net = build_model(parser, dir_args).to(device)
         print(f"[加载] {label} → backbone={backbone} model={model}，checkpoint {len(ckpts)} 个")
 
@@ -199,6 +276,12 @@ def main():
 
         metrics = {k: fmt_mean_std(v) for k, v in per_run.items()}
         results.append((label, None, None, metrics))
+        means, stds = {}, {}
+        for k, v in per_run.items():
+            t = torch.tensor(v, dtype=torch.float64)
+            means[k] = float(t.mean())
+            stds[k] = float(t.std())
+        curve_rows.append((label, means, stds))
         print(f"[汇总] {label}: " + " ".join(f"{k}={v}" for k, v in metrics.items()))
 
     results_root = ROOT / args.results_dir
@@ -214,7 +297,8 @@ def main():
         "Acc 为 clean acc，Linf/L2 为对应 ε 的鲁棒精度）"
     )
     html_path = results_root / f"{args.task}_adv.html"
-    gen_html(results, html_path, meta)
+    curves_html = build_adv_curves_html(curve_rows, args.eps_linf, args.eps_l2, args.runs)
+    gen_html(results, html_path, meta, extra_html=curves_html)
     print(f"\n结果已保存：{csv_path}\n调参结果表格已生成：{html_path}")
 
 

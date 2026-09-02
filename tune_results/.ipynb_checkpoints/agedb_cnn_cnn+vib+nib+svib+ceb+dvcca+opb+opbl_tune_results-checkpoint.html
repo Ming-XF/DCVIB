@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=agedb backbone=cnn model=cnn+vib+nib+svib+ceb+dvcca+opb+opbl runs=5 epochs=100 | 139 组组合 | 表格后附最优精度汇总表与 ceb/dvcca/opbl 压缩-精度对比曲线（β 对数刻度；opbl 各 a=1/6/12 一条线）（绿色高亮 = 各模型默认指标 R2 的最佳行）</div>
+
+<h2>cnn</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-cnn">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-cnn">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0186" data-mae="10.9021" data-r2="0.3914"><td>-</td><td>-</td><td>0.0186±0.0006</td><td>10.9021±0.1036</td><td>0.3914±0.0194</td></tr>
+</tbody>
+</table>
+
+<h2>vib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-vib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-vib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0258" data-mae="11.4342" data-r2="0.3342"><td>0.001</td><td>-</td><td>0.0258±0.0056</td><td>11.4342±1.7505</td><td>0.3342±0.1894</td></tr><tr data-loss="0.0262" data-mae="11.749" data-r2="0.314"><td>0.0001</td><td>-</td><td>0.0262±0.0037</td><td>11.7490±1.6562</td><td>0.3140±0.1798</td></tr><tr data-loss="0.0364" data-mae="12.0952" data-r2="0.2603"><td>0.01</td><td>-</td><td>0.0364±0.0045</td><td>12.0952±1.4658</td><td>0.2603±0.1531</td></tr><tr data-loss="0.0305" data-mae="14.6443" data-r2="-0.0007"><td>10</td><td>-</td><td>0.0305±0.0000</td><td>14.6443±0.0021</td><td>-0.0007±0.0001</td></tr><tr data-loss="0.0305" data-mae="14.645" data-r2="-0.0007"><td>1</td><td>-</td><td>0.0305±0.0000</td><td>14.6450±0.0018</td><td>-0.0007±0.0000</td></tr><tr data-loss="0.0717" data-mae="15.0194" data-r2="-0.2104"><td>0.1</td><td>-</td><td>0.0717±0.0096</td><td>15.0194±1.7338</td><td>-0.2104±0.2785</td></tr>
+</tbody>
+</table>
+
+<h2>nib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-nib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-nib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="9.5325" data-mae="11.4546" data-r2="0.3337"><td>10</td><td>-</td><td>9.5325±7.0817</td><td>11.4546±1.8004</td><td>0.3337±0.1889</td></tr><tr data-loss="0.9721" data-mae="11.4551" data-r2="0.3337"><td>1</td><td>-</td><td>0.9721±0.7041</td><td>11.4551±1.7999</td><td>0.3337±0.1889</td></tr><tr data-loss="0.0213" data-mae="11.4552" data-r2="0.3337"><td>0.001</td><td>-</td><td>0.0213±0.0052</td><td>11.4552±1.8000</td><td>0.3337±0.1890</td></tr><tr data-loss="0.0204" data-mae="11.4548" data-r2="0.3337"><td>0.0001</td><td>-</td><td>0.0204±0.0057</td><td>11.4548±1.8002</td><td>0.3337±0.1889</td></tr><tr data-loss="0.1155" data-mae="11.4549" data-r2="0.3336"><td>0.1</td><td>-</td><td>0.1155±0.0662</td><td>11.4549±1.8001</td><td>0.3336±0.1889</td></tr><tr data-loss="0.0298" data-mae="11.4554" data-r2="0.3336"><td>0.01</td><td>-</td><td>0.0298±0.0039</td><td>11.4554±1.7999</td><td>0.3336±0.1889</td></tr>
+</tbody>
+</table>
+
+<h2>svib</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-svib">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-svib">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0226" data-mae="11.4805" data-r2="0.3323"><td>0.0001</td><td>-</td><td>0.0226±0.0056</td><td>11.4805±1.7462</td><td>0.3323±0.1870</td></tr><tr data-loss="0.0279" data-mae="12.0536" data-r2="0.2651"><td>0.001</td><td>-</td><td>0.0279±0.0024</td><td>12.0536±1.4225</td><td>0.2651±0.1534</td></tr><tr data-loss="0.0315" data-mae="12.6229" data-r2="0.1853"><td>0.01</td><td>-</td><td>0.0315±0.0020</td><td>12.6229±1.0953</td><td>0.1853±0.1059</td></tr><tr data-loss="0.0319" data-mae="14.6357" data-r2="-0"><td>1</td><td>-</td><td>0.0319±0.0031</td><td>14.6357±0.0120</td><td>-0.0000±0.0006</td></tr><tr data-loss="0.0307" data-mae="14.6445" data-r2="-0.0007"><td>10</td><td>-</td><td>0.0307±0.0002</td><td>14.6445±0.0020</td><td>-0.0007±0.0001</td></tr><tr data-loss="0.0503" data-mae="15.855" data-r2="-0.3172"><td>0.1</td><td>-</td><td>0.0503±0.0127</td><td>15.8550±1.1846</td><td>-0.3172±0.2426</td></tr>
+</tbody>
+</table>
+
+<h2>ceb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-ceb">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-ceb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0199" data-mae="11.1046" data-r2="0.3882"><td>0.001</td><td>-</td><td>0.0199±0.0006</td><td>11.1046±0.3327</td><td>0.3882±0.0275</td></tr><tr data-loss="0.0234" data-mae="11.884" data-r2="0.2972"><td>0.01</td><td>-</td><td>0.0234±0.0041</td><td>11.8840±1.5120</td><td>0.2972±0.1672</td></tr><tr data-loss="0.0232" data-mae="12.0055" data-r2="0.2919"><td>0.0001</td><td>-</td><td>0.0232±0.0046</td><td>12.0055±1.1870</td><td>0.2919±0.1221</td></tr><tr data-loss="0.0291" data-mae="13.4072" data-r2="0.1213"><td>0.1</td><td>-</td><td>0.0291±0.0014</td><td>13.4072±1.2451</td><td>0.1213±0.1294</td></tr><tr data-loss="0.0308" data-mae="14.6314" data-r2="0.0002"><td>1</td><td>-</td><td>0.0308±0.0001</td><td>14.6314±0.0217</td><td>0.0002±0.0010</td></tr><tr data-loss="0.0306" data-mae="14.6519" data-r2="-0.0009"><td>10</td><td>-</td><td>0.0306±0.0002</td><td>14.6519±0.0032</td><td>-0.0009±0.0001</td></tr>
+</tbody>
+</table>
+
+<h2>dvcca</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-dvcca">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-dvcca">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0275" data-mae="11.5981" data-r2="0.3205"><td>0.001</td><td>-</td><td>0.0275±0.0056</td><td>11.5981±1.6463</td><td>0.3205±0.1811</td></tr><tr data-loss="0.027" data-mae="11.9072" data-r2="0.2966"><td>0.0001</td><td>-</td><td>0.0270±0.0032</td><td>11.9072±1.5625</td><td>0.2966±0.1720</td></tr><tr data-loss="0.0474" data-mae="12.9323" data-r2="0.1632"><td>0.01</td><td>-</td><td>0.0474±0.0024</td><td>12.9323±1.5045</td><td>0.1632±0.1506</td></tr><tr data-loss="12.939" data-mae="14.6464" data-r2="-0.0008"><td>10</td><td>-</td><td>12.9390±0.0283</td><td>14.6464±0.0017</td><td>-0.0008±0.0000</td></tr><tr data-loss="1.3216" data-mae="14.6462" data-r2="-0.0008"><td>1</td><td>-</td><td>1.3216±0.0029</td><td>14.6462±0.0017</td><td>-0.0008±0.0000</td></tr><tr data-loss="0.2072" data-mae="14.9866" data-r2="-0.2057"><td>0.1</td><td>-</td><td>0.2072±0.0080</td><td>14.9866±1.3262</td><td>-0.2057±0.2073</td></tr>
+</tbody>
+</table>
+
+<h2>opb</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-opb">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-opb">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0166" data-mae="10.0665" data-r2="0.47"><td>0.0001</td><td>12</td><td>0.0166±0.0003</td><td>10.0665±0.0748</td><td>0.4700±0.0072</td></tr><tr data-loss="0.0167" data-mae="10.0562" data-r2="0.4697"><td>0.0001</td><td>16</td><td>0.0167±0.0003</td><td>10.0562±0.1129</td><td>0.4697±0.0106</td></tr><tr data-loss="0.0167" data-mae="10.0819" data-r2="0.4676"><td>0.0001</td><td>14</td><td>0.0167±0.0002</td><td>10.0819±0.0532</td><td>0.4676±0.0068</td></tr><tr data-loss="0.0167" data-mae="10.0795" data-r2="0.4652"><td>0.0001</td><td>10</td><td>0.0167±0.0003</td><td>10.0795±0.0864</td><td>0.4652±0.0109</td></tr><tr data-loss="0.0186" data-mae="10.1294" data-r2="0.4631"><td>0.001</td><td>14</td><td>0.0186±0.0003</td><td>10.1294±0.0909</td><td>0.4631±0.0081</td></tr><tr data-loss="0.0184" data-mae="10.1562" data-r2="0.4622"><td>0.001</td><td>10</td><td>0.0184±0.0002</td><td>10.1562±0.0471</td><td>0.4622±0.0057</td></tr><tr data-loss="0.0169" data-mae="10.1485" data-r2="0.4622"><td>0.0001</td><td>8</td><td>0.0169±0.0006</td><td>10.1485±0.2175</td><td>0.4622±0.0143</td></tr><tr data-loss="0.0185" data-mae="10.135" data-r2="0.4621"><td>0.001</td><td>12</td><td>0.0185±0.0003</td><td>10.1350±0.0653</td><td>0.4621±0.0088</td></tr><tr data-loss="0.0191" data-mae="10.1998" data-r2="0.4588"><td>0.001</td><td>16</td><td>0.0191±0.0003</td><td>10.1998±0.1375</td><td>0.4588±0.0094</td></tr><tr data-loss="0.0246" data-mae="10.239" data-r2="0.4576"><td>0.01</td><td>8</td><td>0.0246±0.0005</td><td>10.2390±0.2201</td><td>0.4576±0.0144</td></tr><tr data-loss="0.0258" data-mae="10.2041" data-r2="0.4566"><td>0.01</td><td>10</td><td>0.0258±0.0005</td><td>10.2041±0.1246</td><td>0.4566±0.0107</td></tr><tr data-loss="0.0172" data-mae="10.2851" data-r2="0.4553"><td>0.0001</td><td>6</td><td>0.0172±0.0007</td><td>10.2851±0.1963</td><td>0.4553±0.0163</td></tr><tr data-loss="0.0282" data-mae="10.2439" data-r2="0.455"><td>0.01</td><td>12</td><td>0.0282±0.0006</td><td>10.2439±0.1482</td><td>0.4550±0.0120</td></tr><tr data-loss="0.0187" data-mae="10.2401" data-r2="0.4536"><td>0.001</td><td>8</td><td>0.0187±0.0007</td><td>10.2401±0.2104</td><td>0.4536±0.0158</td></tr><tr data-loss="0.0312" data-mae="10.2392" data-r2="0.4524"><td>0.01</td><td>14</td><td>0.0312±0.0009</td><td>10.2392±0.0819</td><td>0.4524±0.0103</td></tr><tr data-loss="0.089" data-mae="10.2585" data-r2="0.4512"><td>0.1</td><td>12</td><td>0.0890±0.0161</td><td>10.2585±0.1238</td><td>0.4512±0.0123</td></tr><tr data-loss="0.073" data-mae="10.3089" data-r2="0.4507"><td>0.1</td><td>10</td><td>0.0730±0.0078</td><td>10.3089±0.1016</td><td>0.4507±0.0061</td></tr><tr data-loss="0.1356" data-mae="10.2509" data-r2="0.4507"><td>0.1</td><td>16</td><td>0.1356±0.0190</td><td>10.2509±0.0868</td><td>0.4507±0.0110</td></tr><tr data-loss="0.1166" data-mae="10.2557" data-r2="0.45"><td>0.1</td><td>14</td><td>0.1166±0.0197</td><td>10.2557±0.1084</td><td>0.4500±0.0079</td></tr><tr data-loss="12.4553" data-mae="10.2823" data-r2="0.4496"><td>10</td><td>16</td><td>12.4553±2.2348</td><td>10.2823±0.1605</td><td>0.4496±0.0144</td></tr><tr data-loss="0.6869" data-mae="10.2959" data-r2="0.4493"><td>1</td><td>12</td><td>0.6869±0.1754</td><td>10.2959±0.1008</td><td>0.4493±0.0097</td></tr><tr data-loss="8.7566" data-mae="10.2628" data-r2="0.4492"><td>10</td><td>14</td><td>8.7566±2.1072</td><td>10.2628±0.1028</td><td>0.4492±0.0115</td></tr><tr data-loss="4.329" data-mae="10.3189" data-r2="0.449"><td>10</td><td>10</td><td>4.3290±1.1853</td><td>10.3189±0.0967</td><td>0.4490±0.0071</td></tr><tr data-loss="1.3024" data-mae="10.2965" data-r2="0.4484"><td>1</td><td>16</td><td>1.3024±0.2071</td><td>10.2965±0.1143</td><td>0.4484±0.0117</td></tr><tr data-loss="0.0349" data-mae="10.3016" data-r2="0.4478"><td>0.01</td><td>16</td><td>0.0349±0.0010</td><td>10.3016±0.0956</td><td>0.4478±0.0092</td></tr><tr data-loss="0.0191" data-mae="10.3997" data-r2="0.4472"><td>0.001</td><td>6</td><td>0.0191±0.0008</td><td>10.3997±0.2237</td><td>0.4472±0.0164</td></tr><tr data-loss="0.9262" data-mae="10.3263" data-r2="0.4462"><td>1</td><td>14</td><td>0.9262±0.2371</td><td>10.3263±0.1875</td><td>0.4462±0.0145</td></tr><tr data-loss="0.4779" data-mae="10.3873" data-r2="0.4449"><td>1</td><td>10</td><td>0.4779±0.1224</td><td>10.3873±0.3207</td><td>0.4449±0.0231</td></tr><tr data-loss="6.2799" data-mae="10.3591" data-r2="0.4434"><td>10</td><td>12</td><td>6.2799±1.3643</td><td>10.3591±0.2859</td><td>0.4434±0.0227</td></tr><tr data-loss="0.2365" data-mae="10.6793" data-r2="0.4223"><td>1</td><td>6</td><td>0.2365±0.0175</td><td>10.6793±0.2918</td><td>0.4223±0.0217</td></tr><tr data-loss="2.0447" data-mae="10.7393" data-r2="0.4199"><td>10</td><td>6</td><td>2.0447±0.1633</td><td>10.7393±0.2344</td><td>0.4199±0.0172</td></tr><tr data-loss="0.1453" data-mae="10.7561" data-r2="0.4152"><td>1</td><td>4</td><td>0.1453±0.0055</td><td>10.7561±0.2337</td><td>0.4152±0.0163</td></tr><tr data-loss="1.1155" data-mae="10.8408" data-r2="0.4088"><td>10</td><td>4</td><td>1.1155±0.1472</td><td>10.8408±0.3046</td><td>0.4088±0.0221</td></tr><tr data-loss="0.0792" data-mae="10.8971" data-r2="0.3999"><td>1</td><td>2</td><td>0.0792±0.0087</td><td>10.8971±0.0777</td><td>0.3999±0.0042</td></tr><tr data-loss="0.3639" data-mae="11.2496" data-r2="0.3527"><td>1</td><td>8</td><td>0.3639±0.0549</td><td>11.2496±1.8822</td><td>0.3527±0.1973</td></tr><tr data-loss="3.6871" data-mae="11.2759" data-r2="0.3514"><td>10</td><td>8</td><td>3.6871±0.4970</td><td>11.2759±1.8616</td><td>0.3514±0.1966</td></tr><tr data-loss="0.0232" data-mae="11.4791" data-r2="0.3513"><td>0.001</td><td>4</td><td>0.0232±0.0025</td><td>11.4791±0.7841</td><td>0.3513±0.0740</td></tr><tr data-loss="0.0642" data-mae="11.3264" data-r2="0.3507"><td>0.1</td><td>8</td><td>0.0642±0.0125</td><td>11.3264±1.8581</td><td>0.3507±0.1966</td></tr><tr data-loss="0.0282" data-mae="11.3578" data-r2="0.3473"><td>0.01</td><td>6</td><td>0.0282±0.0068</td><td>11.3578±1.8637</td><td>0.3473±0.1959</td></tr><tr data-loss="0.0219" data-mae="11.8018" data-r2="0.3147"><td>0.0001</td><td>4</td><td>0.0219±0.0035</td><td>11.8018±1.0441</td><td>0.3147±0.1141</td></tr><tr data-loss="0.4158" data-mae="11.6599" data-r2="0.3145"><td>10</td><td>2</td><td>0.4158±0.0848</td><td>11.6599±1.6745</td><td>0.3145±0.1764</td></tr><tr data-loss="0.0312" data-mae="11.7719" data-r2="0.3054"><td>0.01</td><td>4</td><td>0.0312±0.0067</td><td>11.7719±1.8326</td><td>0.3054±0.1942</td></tr><tr data-loss="0.0529" data-mae="11.8563" data-r2="0.305"><td>0.1</td><td>2</td><td>0.0529±0.0120</td><td>11.8563±1.6488</td><td>0.3050±0.1768</td></tr><tr data-loss="0.2054" data-mae="11.8106" data-r2="0.2994"><td>10</td><td>1</td><td>0.2054±0.0665</td><td>11.8106±1.6193</td><td>0.2994±0.1694</td></tr><tr data-loss="0.0263" data-mae="12.1938" data-r2="0.283"><td>0.001</td><td>2</td><td>0.0263±0.0023</td><td>12.1938±0.7981</td><td>0.2830±0.0774</td></tr><tr data-loss="0.0335" data-mae="12.1741" data-r2="0.2691"><td>0.01</td><td>2</td><td>0.0335±0.0029</td><td>12.1741±1.5196</td><td>0.2691±0.1633</td></tr><tr data-loss="0.0596" data-mae="12.2316" data-r2="0.2568"><td>0.1</td><td>6</td><td>0.0596±0.0148</td><td>12.2316±2.2123</td><td>0.2568±0.2354</td></tr><tr data-loss="0.0501" data-mae="12.3128" data-r2="0.2501"><td>0.1</td><td>4</td><td>0.0501±0.0128</td><td>12.3128±2.1575</td><td>0.2501±0.2302</td></tr><tr data-loss="0.1116" data-mae="12.4637" data-r2="0.2392"><td>1</td><td>1</td><td>0.1116±0.0335</td><td>12.4637±1.6034</td><td>0.2392±0.1747</td></tr><tr data-loss="0.025" data-mae="12.7136" data-r2="0.2266"><td>0.0001</td><td>2</td><td>0.0250±0.0038</td><td>12.7136±1.0476</td><td>0.2266±0.1114</td></tr><tr data-loss="0.0964" data-mae="12.6862" data-r2="0.218"><td>0.1</td><td>1</td><td>0.0964±0.0214</td><td>12.6862±1.4876</td><td>0.2180±0.1730</td></tr><tr data-loss="0.0291" data-mae="12.7544" data-r2="0.2054"><td>0.001</td><td>1</td><td>0.0291±0.0061</td><td>12.7544±1.4700</td><td>0.2054±0.1739</td></tr><tr data-loss="0.0273" data-mae="13.2507" data-r2="0.1521"><td>0.0001</td><td>1</td><td>0.0273±0.0050</td><td>13.2507±1.3924</td><td>0.1521±0.1651</td></tr><tr data-loss="0.0494" data-mae="13.2072" data-r2="0.1467"><td>0.01</td><td>1</td><td>0.0494±0.0061</td><td>13.2072±1.4227</td><td>0.1467±0.1752</td></tr>
+</tbody>
+</table>
+
+<h2>opbl</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-opbl">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-opbl">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="1.211" data-mae="10.5078" data-r2="0.4388"><td>1</td><td>16</td><td>1.2110±0.1560</td><td>10.5078±0.2708</td><td>0.4388±0.0220</td></tr><tr data-loss="9.797" data-mae="10.5946" data-r2="0.4338"><td>10</td><td>16</td><td>9.7970±2.1459</td><td>10.5946±0.3526</td><td>0.4338±0.0292</td></tr><tr data-loss="0.8935" data-mae="10.681" data-r2="0.4277"><td>1</td><td>14</td><td>0.8935±0.1529</td><td>10.6810±0.3370</td><td>0.4277±0.0292</td></tr><tr data-loss="9.0702" data-mae="10.7041" data-r2="0.4256"><td>10</td><td>14</td><td>9.0702±1.3896</td><td>10.7041±0.3666</td><td>0.4256±0.0316</td></tr><tr data-loss="0.1075" data-mae="10.7839" data-r2="0.4146"><td>0.1</td><td>14</td><td>0.1075±0.0285</td><td>10.7839±0.2403</td><td>0.4146±0.0182</td></tr><tr data-loss="0.1007" data-mae="10.7805" data-r2="0.4146"><td>0.1</td><td>16</td><td>0.1007±0.0192</td><td>10.7805±0.6295</td><td>0.4146±0.0573</td></tr><tr data-loss="0.772" data-mae="10.9173" data-r2="0.4084"><td>1</td><td>12</td><td>0.7720±0.0794</td><td>10.9173±0.5405</td><td>0.4084±0.0472</td></tr><tr data-loss="0.0945" data-mae="10.9726" data-r2="0.3979"><td>0.1</td><td>12</td><td>0.0945±0.0230</td><td>10.9726±0.3580</td><td>0.3979±0.0351</td></tr><tr data-loss="0.0279" data-mae="11.0182" data-r2="0.3938"><td>0.01</td><td>16</td><td>0.0279±0.0015</td><td>11.0182±0.3587</td><td>0.3938±0.0296</td></tr><tr data-loss="0.0236" data-mae="11.0095" data-r2="0.3931"><td>0.01</td><td>6</td><td>0.0236±0.0006</td><td>11.0095±0.2938</td><td>0.3931±0.0195</td></tr><tr data-loss="0.0794" data-mae="11.0314" data-r2="0.3921"><td>0.1</td><td>10</td><td>0.0794±0.0120</td><td>11.0314±0.3262</td><td>0.3921±0.0309</td></tr><tr data-loss="6.6452" data-mae="11.262" data-r2="0.3752"><td>10</td><td>12</td><td>6.6452±0.8358</td><td>11.2620±0.7861</td><td>0.3752±0.0736</td></tr><tr data-loss="0.0577" data-mae="11.1777" data-r2="0.374"><td>0.1</td><td>8</td><td>0.0577±0.0033</td><td>11.1777±0.3316</td><td>0.3740±0.0297</td></tr><tr data-loss="4.9264" data-mae="11.3512" data-r2="0.3696"><td>10</td><td>10</td><td>4.9264±0.8649</td><td>11.3512±0.3792</td><td>0.3696±0.0349</td></tr><tr data-loss="0.0283" data-mae="11.2175" data-r2="0.369"><td>0.01</td><td>12</td><td>0.0283±0.0055</td><td>11.2175±0.6288</td><td>0.3690±0.0682</td></tr><tr data-loss="0.6402" data-mae="11.4523" data-r2="0.3604"><td>1</td><td>10</td><td>0.6402±0.1128</td><td>11.4523±0.2490</td><td>0.3604±0.0216</td></tr><tr data-loss="0.0227" data-mae="11.5874" data-r2="0.3268"><td>0.001</td><td>16</td><td>0.0227±0.0061</td><td>11.5874±1.6986</td><td>0.3268±0.1844</td></tr><tr data-loss="0.0542" data-mae="11.6187" data-r2="0.3185"><td>0.1</td><td>6</td><td>0.0542±0.0055</td><td>11.6187±0.4294</td><td>0.3185±0.0494</td></tr><tr data-loss="0.0324" data-mae="11.6606" data-r2="0.3164"><td>0.01</td><td>14</td><td>0.0324±0.0116</td><td>11.6606±1.6128</td><td>0.3164±0.1829</td></tr><tr data-loss="0.0227" data-mae="11.6955" data-r2="0.3161"><td>0.001</td><td>12</td><td>0.0227±0.0057</td><td>11.6955±1.6439</td><td>0.3161±0.1783</td></tr><tr data-loss="0.0226" data-mae="11.7249" data-r2="0.3154"><td>0.001</td><td>8</td><td>0.0226±0.0054</td><td>11.7249±1.6283</td><td>0.3154±0.1780</td></tr><tr data-loss="0.0227" data-mae="11.7176" data-r2="0.3154"><td>0.001</td><td>10</td><td>0.0227±0.0056</td><td>11.7176±1.6282</td><td>0.3154±0.1779</td></tr><tr data-loss="0.023" data-mae="11.7184" data-r2="0.3149"><td>0.001</td><td>14</td><td>0.0230±0.0058</td><td>11.7184±1.6272</td><td>0.3149±0.1775</td></tr><tr data-loss="0.0236" data-mae="11.7407" data-r2="0.3134"><td>0.001</td><td>2</td><td>0.0236±0.0055</td><td>11.7407±1.5783</td><td>0.3134±0.1769</td></tr><tr data-loss="0.0226" data-mae="11.7686" data-r2="0.3126"><td>0.001</td><td>6</td><td>0.0226±0.0052</td><td>11.7686±1.5886</td><td>0.3126±0.1759</td></tr><tr data-loss="0.027" data-mae="11.7254" data-r2="0.3116"><td>0.01</td><td>8</td><td>0.0270±0.0071</td><td>11.7254±1.5731</td><td>0.3116±0.1804</td></tr><tr data-loss="0.0226" data-mae="11.7644" data-r2="0.3114"><td>0.001</td><td>4</td><td>0.0226±0.0054</td><td>11.7644±1.5865</td><td>0.3114±0.1756</td></tr><tr data-loss="0.0279" data-mae="11.7672" data-r2="0.3107"><td>0.01</td><td>10</td><td>0.0279±0.0067</td><td>11.7672±1.5919</td><td>0.3107±0.1750</td></tr><tr data-loss="0.0251" data-mae="11.8617" data-r2="0.2987"><td>0.01</td><td>4</td><td>0.0251±0.0049</td><td>11.8617±1.5045</td><td>0.2987±0.1692</td></tr><tr data-loss="0.0388" data-mae="11.8198" data-r2="0.2866"><td>0.1</td><td>4</td><td>0.0388±0.0022</td><td>11.8198±0.3108</td><td>0.2866±0.0363</td></tr><tr data-loss="0.0257" data-mae="12.0092" data-r2="0.2854"><td>0.001</td><td>1</td><td>0.0257±0.0055</td><td>12.0092±1.5698</td><td>0.2854±0.1756</td></tr><tr data-loss="0.2808" data-mae="12.165" data-r2="0.2792"><td>1</td><td>6</td><td>0.2808±0.0174</td><td>12.1650±0.5538</td><td>0.2792±0.0569</td></tr><tr data-loss="0.0263" data-mae="12.1488" data-r2="0.2623"><td>0.01</td><td>2</td><td>0.0263±0.0031</td><td>12.1488±1.3621</td><td>0.2623±0.1490</td></tr><tr data-loss="4.137" data-mae="12.5046" data-r2="0.2425"><td>10</td><td>8</td><td>4.1370±1.0804</td><td>12.5046±1.2687</td><td>0.2425±0.1488</td></tr><tr data-loss="0.0244" data-mae="12.4144" data-r2="0.2412"><td>0.0001</td><td>8</td><td>0.0244±0.0043</td><td>12.4144±1.4464</td><td>0.2412±0.1624</td></tr><tr data-loss="0.0243" data-mae="12.4177" data-r2="0.241"><td>0.0001</td><td>6</td><td>0.0243±0.0042</td><td>12.4177±1.4443</td><td>0.2410±0.1623</td></tr><tr data-loss="0.0243" data-mae="12.4307" data-r2="0.2397"><td>0.0001</td><td>4</td><td>0.0243±0.0043</td><td>12.4307±1.4342</td><td>0.2397±0.1614</td></tr><tr data-loss="0.524" data-mae="12.5018" data-r2="0.2386"><td>1</td><td>8</td><td>0.5240±0.1582</td><td>12.5018±1.2783</td><td>0.2386±0.1489</td></tr><tr data-loss="2.4294" data-mae="12.5377" data-r2="0.238"><td>10</td><td>6</td><td>2.4294±0.2420</td><td>12.5377±0.2805</td><td>0.2380±0.0322</td></tr><tr data-loss="0.0245" data-mae="12.4582" data-r2="0.2373"><td>0.0001</td><td>2</td><td>0.0245±0.0042</td><td>12.4582±1.4084</td><td>0.2373±0.1594</td></tr><tr data-loss="0.0248" data-mae="12.4735" data-r2="0.2358"><td>0.0001</td><td>1</td><td>0.0248±0.0041</td><td>12.4735±1.3920</td><td>0.2358±0.1579</td></tr><tr data-loss="0.0258" data-mae="12.5075" data-r2="0.2323"><td>0.0001</td><td>14</td><td>0.0258±0.0045</td><td>12.5075±1.3930</td><td>0.2323±0.1569</td></tr><tr data-loss="0.0256" data-mae="12.5141" data-r2="0.232"><td>0.0001</td><td>10</td><td>0.0256±0.0044</td><td>12.5141±1.3860</td><td>0.2320±0.1569</td></tr><tr data-loss="0.0258" data-mae="12.5167" data-r2="0.232"><td>0.0001</td><td>12</td><td>0.0258±0.0044</td><td>12.5167±1.3822</td><td>0.2320±0.1567</td></tr><tr data-loss="0.0259" data-mae="12.5132" data-r2="0.232"><td>0.0001</td><td>16</td><td>0.0259±0.0046</td><td>12.5132±1.3861</td><td>0.2320±0.1565</td></tr><tr data-loss="0.0297" data-mae="12.5173" data-r2="0.2176"><td>0.01</td><td>1</td><td>0.0297±0.0023</td><td>12.5173±1.1961</td><td>0.2176±0.1269</td></tr><tr data-loss="0.1498" data-mae="12.8261" data-r2="0.1951"><td>1</td><td>4</td><td>0.1498±0.0093</td><td>12.8261±0.1784</td><td>0.1951±0.0280</td></tr><tr data-loss="0.0435" data-mae="12.7428" data-r2="0.1425"><td>0.1</td><td>2</td><td>0.0435±0.0032</td><td>12.7428±0.5477</td><td>0.1425±0.0863</td></tr><tr data-loss="1.1024" data-mae="13.3602" data-r2="0.1372"><td>10</td><td>4</td><td>1.1024±0.2011</td><td>13.3602±0.8490</td><td>0.1372±0.0948</td></tr><tr data-loss="0.0644" data-mae="14.035" data-r2="0.067"><td>1</td><td>2</td><td>0.0644±0.0009</td><td>14.0350±0.0389</td><td>0.0670±0.0055</td></tr><tr data-loss="0.3339" data-mae="14.2774" data-r2="0.0416"><td>10</td><td>2</td><td>0.3339±0.0225</td><td>14.2774±0.2524</td><td>0.0416±0.0267</td></tr><tr data-loss="0.041" data-mae="14.5314" data-r2="0.0143"><td>1</td><td>1</td><td>0.0410±0.0015</td><td>14.5314±0.0390</td><td>0.0143±0.0058</td></tr><tr data-loss="0.1263" data-mae="14.5425" data-r2="0.0124"><td>10</td><td>1</td><td>0.1263±0.0101</td><td>14.5425±0.0302</td><td>0.0124±0.0041</td></tr><tr data-loss="0.051" data-mae="14.0226" data-r2="-0.0214"><td>0.1</td><td>1</td><td>0.0510±0.0113</td><td>14.0226±0.7693</td><td>-0.0214±0.1096</td></tr>
+</tbody>
+</table>
+
+
+<h2>最优精度汇总</h2>
+<table>
+<thead><tr><th>模型</th><th>beta</th><th>anchor_scale</th><th>最优 R2</th></tr></thead>
+<tbody>
+<tr class="best"><td>opb</td><td>0.0001</td><td>12</td><td>0.4700±0.0072</td></tr><tr><td>opbl</td><td>1</td><td>16</td><td>0.4388±0.0220</td></tr><tr><td>cnn</td><td>-</td><td>-</td><td>0.3914±0.0194</td></tr><tr><td>ceb</td><td>0.001</td><td>-</td><td>0.3882±0.0275</td></tr><tr><td>vib</td><td>0.001</td><td>-</td><td>0.3342±0.1894</td></tr><tr><td>nib</td><td>10</td><td>-</td><td>0.3337±0.1889</td></tr><tr><td>svib</td><td>0.0001</td><td>-</td><td>0.3323±0.1870</td></tr><tr><td>dvcca</td><td>0.001</td><td>-</td><td>0.3205±0.1811</td></tr>
+</tbody>
+</table>
+
+<h2>压缩-精度对比曲线</h2>
+<style>
+.viz-root {
+  color-scheme: light;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px 10px;
+  position: relative;
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, .10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, .10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, .10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+}
+.viz-card { margin-top: 1.6em; }
+.viz-root h3 { font-size: 1.02em; margin: 0 0 2px; }
+.viz-root .viz-sub { color: var(--text-secondary); font-size: .82em; margin-bottom: 8px; }
+.viz-root svg { display: block; width: 100%; height: auto; }
+.viz-root .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 4px; }
+.viz-root .legend-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .82em; color: var(--text-secondary); cursor: pointer;
+  border: none; background: none; padding: 2px 0; font-family: inherit;
+}
+.viz-root .legend-item .key { display: inline-block; width: 18px; height: 2px; border-radius: 1px; }
+.viz-root .legend-item.off { opacity: .35; }
+.viz-root g.series.off { display: none; }
+.viz-root .tooltip {
+  position: absolute; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px; font-size: 12px; pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18); z-index: 10;
+}
+.viz-root .tooltip .tip-title { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.viz-root .tooltip .tip-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.viz-root .tooltip .tip-key { display: inline-block; width: 14px; height: 2px; flex: none; }
+.viz-root .tooltip .tip-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.viz-root .tooltip .tip-label { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.viz-root .hover-capture:focus { outline: 1px solid var(--muted); outline-offset: -1px; }
+</style>
+
+<div class="viz-card">
+<div class="viz-root">
+<h3>压缩-精度对比曲线（ceb / dvcca / opbl）</h3>
+<div class="viz-sub">y 为测试集 R²（跨 run 均值±标准差），x 为 β（对数刻度）；opbl 各画 anchor=1/6/12 三条线；单击图例可显隐系列</div>
+<svg viewBox="0 0 860 380" role="img" aria-label="压缩-精度对比曲线（ceb / dvcca / opbl）">
+<clipPath id="advclip-tune-all"><rect x="56.0" y="18.0" width="788.0" height="318.0"/></clipPath>
+<line x1="56.0" y1="18.0" x2="56.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="336.0" x2="844.0" y2="336.0" stroke="var(--baseline)"/><line x1="56.0" y1="273.7" x2="844.0" y2="273.7" stroke="var(--grid)"/><text x="50.0" y="277.7" text-anchor="end" font-size="11" fill="var(--muted)">0</text><line x1="56.0" y1="152.0" x2="844.0" y2="152.0" stroke="var(--grid)"/><text x="50.0" y="156.0" text-anchor="end" font-size="11" fill="var(--muted)">0.5</text><line x1="56.0" y1="30.2" x2="844.0" y2="30.2" stroke="var(--grid)"/><text x="50.0" y="34.2" text-anchor="end" font-size="11" fill="var(--muted)">1</text><line x1="56.0" y1="336.0" x2="56.0" y2="340.0" stroke="var(--baseline)"/><text x="56.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.0001</text><line x1="213.6" y1="336.0" x2="213.6" y2="340.0" stroke="var(--baseline)"/><text x="213.6" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.001</text><line x1="371.2" y1="336.0" x2="371.2" y2="340.0" stroke="var(--baseline)"/><text x="371.2" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.01</text><line x1="528.8" y1="336.0" x2="528.8" y2="340.0" stroke="var(--baseline)"/><text x="528.8" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">0.1</text><line x1="686.4" y1="336.0" x2="686.4" y2="340.0" stroke="var(--baseline)"/><text x="686.4" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">1</text><line x1="844.0" y1="336.0" x2="844.0" y2="340.0" stroke="var(--baseline)"/><text x="844.0" y="354.0" text-anchor="middle" font-size="11" fill="var(--muted)">10</text>
+<g clip-path="url(#advclip-tune-all)">
+<g class="series" data-series="0"><path d="M 56.0,202.6 213.6,179.2 371.2,201.3 528.8,244.2 686.4,273.7 844.0,273.9" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="172.9" x2="56.0" y2="232.4" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="172.5" x2="213.6" y2="185.9" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="160.6" x2="371.2" y2="242.1" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="212.7" x2="528.8" y2="275.7" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="686.4" y1="273.4" x2="686.4" y2="273.9" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="844.0" y1="273.9" x2="844.0" y2="274.0" stroke="var(--series-1)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="202.6" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="179.2" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="201.3" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="244.2" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="273.7" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="273.9" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="1"><path d="M 56.0,201.5 213.6,195.7 371.2,234.0 528.8,323.8 686.4,273.9 844.0,273.9" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="159.6" x2="56.0" y2="243.4" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="151.6" x2="213.6" y2="239.8" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="197.3" x2="371.2" y2="270.7" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="273.3" x2="528.8" y2="374.3" stroke="var(--series-2)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="201.5" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="195.7" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="234.0" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="323.8" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="273.9" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="273.9" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="2"><path d="M 56.0,236.7 213.6,223.7 371.2,238.0 528.8,220.6 686.4,215.5 844.0,200.8" fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="196.5" x2="56.0" y2="276.9" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="181.3" x2="213.6" y2="266.1" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="195.3" x2="371.2" y2="280.7" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="178.5" x2="528.8" y2="262.8" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="686.4" y1="172.9" x2="686.4" y2="258.0" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="844.0" y1="159.5" x2="844.0" y2="242.1" stroke="var(--series-3)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="236.7" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="223.7" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="238.0" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="220.6" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="215.5" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="200.8" r="4" fill="var(--series-3)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="3"><path d="M 56.0,162.8 213.6,164.8 371.2,189.1 528.8,211.2 686.4,170.9 844.0,171.5" fill="none" stroke="var(--series-4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="158.9" x2="56.0" y2="166.8" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="160.8" x2="213.6" y2="168.8" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="141.4" x2="371.2" y2="236.9" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="153.9" x2="528.8" y2="268.5" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="686.4" y1="165.6" x2="686.4" y2="176.2" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="844.0" y1="167.3" x2="844.0" y2="175.6" stroke="var(--series-4)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="162.8" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="164.8" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="189.1" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="211.2" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="170.9" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="171.5" r="4" fill="var(--series-4)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="4"><path d="M 56.0,159.3 213.6,161.2 371.2,162.9 528.8,163.8 686.4,164.3 844.0,165.7" fill="none" stroke="var(--series-5)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="157.5" x2="56.0" y2="161.0" stroke="var(--series-5)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="159.0" x2="213.6" y2="163.3" stroke="var(--series-5)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="160.0" x2="371.2" y2="165.8" stroke="var(--series-5)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="160.8" x2="528.8" y2="166.8" stroke="var(--series-5)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="686.4" y1="161.9" x2="686.4" y2="166.7" stroke="var(--series-5)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="844.0" y1="160.2" x2="844.0" y2="171.3" stroke="var(--series-5)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="159.3" r="4" fill="var(--series-5)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="161.2" r="4" fill="var(--series-5)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="162.9" r="4" fill="var(--series-5)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="163.8" r="4" fill="var(--series-5)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="164.3" r="4" fill="var(--series-5)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="165.7" r="4" fill="var(--series-5)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="5"><path d="M 56.0,216.3 213.6,204.2 371.2,220.7 528.8,278.9 686.4,270.2 844.0,270.7" fill="none" stroke="var(--series-6)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="177.8" x2="56.0" y2="254.8" stroke="var(--series-6)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="161.4" x2="213.6" y2="247.0" stroke="var(--series-6)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="189.8" x2="371.2" y2="251.6" stroke="var(--series-6)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="252.2" x2="528.8" y2="305.6" stroke="var(--series-6)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="686.4" y1="268.8" x2="686.4" y2="271.7" stroke="var(--series-6)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="844.0" y1="269.7" x2="844.0" y2="271.7" stroke="var(--series-6)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="216.3" r="4" fill="var(--series-6)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="204.2" r="4" fill="var(--series-6)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="220.7" r="4" fill="var(--series-6)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="278.9" r="4" fill="var(--series-6)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="270.2" r="4" fill="var(--series-6)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="270.7" r="4" fill="var(--series-6)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="6"><path d="M 56.0,215.0 213.6,197.6 371.2,178.0 528.8,196.2 686.4,205.7 844.0,215.8" fill="none" stroke="var(--series-7)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="175.5" x2="56.0" y2="254.6" stroke="var(--series-7)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="154.8" x2="213.6" y2="240.4" stroke="var(--series-7)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="173.2" x2="371.2" y2="182.7" stroke="var(--series-7)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="184.1" x2="528.8" y2="208.2" stroke="var(--series-7)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="686.4" y1="191.9" x2="686.4" y2="219.6" stroke="var(--series-7)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="844.0" y1="207.9" x2="844.0" y2="223.6" stroke="var(--series-7)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="215.0" r="4" fill="var(--series-7)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="197.6" r="4" fill="var(--series-7)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="178.0" r="4" fill="var(--series-7)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="196.2" r="4" fill="var(--series-7)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="205.7" r="4" fill="var(--series-7)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="215.8" r="4" fill="var(--series-7)" stroke="var(--surface-1)" stroke-width="2"/></g><g class="series" data-series="7"><path d="M 56.0,217.2 213.6,196.7 371.2,183.9 528.8,176.8 686.4,174.3 844.0,182.3" fill="none" stroke="var(--series-8)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><line x1="56.0" y1="179.1" x2="56.0" y2="255.4" stroke="var(--series-8)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="213.6" y1="153.3" x2="213.6" y2="240.2" stroke="var(--series-8)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="371.2" y1="167.2" x2="371.2" y2="200.5" stroke="var(--series-8)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="528.8" y1="168.3" x2="528.8" y2="185.4" stroke="var(--series-8)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="686.4" y1="162.8" x2="686.4" y2="185.8" stroke="var(--series-8)" stroke-width="1.5" stroke-opacity="0.9"/><line x1="844.0" y1="164.4" x2="844.0" y2="200.3" stroke="var(--series-8)" stroke-width="1.5" stroke-opacity="0.9"/><circle cx="56.0" cy="217.2" r="4" fill="var(--series-8)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="213.6" cy="196.7" r="4" fill="var(--series-8)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="371.2" cy="183.9" r="4" fill="var(--series-8)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="528.8" cy="176.8" r="4" fill="var(--series-8)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="686.4" cy="174.3" r="4" fill="var(--series-8)" stroke="var(--surface-1)" stroke-width="2"/><circle cx="844.0" cy="182.3" r="4" fill="var(--series-8)" stroke="var(--surface-1)" stroke-width="2"/></g>
+</g>
+
+<line class="crosshair" x1="56.0" x2="56.0" y1="18.0" y2="336.0" stroke="var(--muted)" stroke-opacity="0"/>
+<rect class="hover-capture" x="56.0" y="18.0" width="788.0" height="318.0" fill="transparent" tabindex="0" aria-label="移动光标或按左右方向键查看各系列数值"/>
+</svg>
+<div class="legend"><button type="button" class="legend-item" data-series="0"><span class="key" style="background:var(--series-1)"></span><span>ceb</span></button><button type="button" class="legend-item" data-series="1"><span class="key" style="background:var(--series-2)"></span><span>dvcca</span></button><button type="button" class="legend-item" data-series="2"><span class="key" style="background:var(--series-3)"></span><span>opb（a=1）</span></button><button type="button" class="legend-item" data-series="3"><span class="key" style="background:var(--series-4)"></span><span>opb（a=6）</span></button><button type="button" class="legend-item" data-series="4"><span class="key" style="background:var(--series-5)"></span><span>opb（a=12）</span></button><button type="button" class="legend-item" data-series="5"><span class="key" style="background:var(--series-6)"></span><span>opbl（a=1）</span></button><button type="button" class="legend-item" data-series="6"><span class="key" style="background:var(--series-7)"></span><span>opbl（a=6）</span></button><button type="button" class="legend-item" data-series="7"><span class="key" style="background:var(--series-8)"></span><span>opbl（a=12）</span></button></div>
+<div class="tooltip" hidden></div>
+<script type="application/json" class="viz-data">{"xs": [56.0, 213.6, 371.2, 528.8, 686.4, 844.0], "titles": ["β=0.0001", "β=0.001", "β=0.01", "β=0.1", "β=1", "β=10"], "series": [{"label": "ceb", "texts": ["0.2919±0.1221", "0.3882±0.0275", "0.2972±0.1672", "0.1213±0.1294", "0.0002±0.0010", "-0.0009±0.0001"], "color": "var(--series-1)"}, {"label": "dvcca", "texts": ["0.2966±0.1720", "0.3205±0.1811", "0.1632±0.1506", "-0.2057±0.2073", "-0.0008", "-0.0008"], "color": "var(--series-2)"}, {"label": "opb（a=1）", "texts": ["0.1521±0.1651", "0.2054±0.1739", "0.1467±0.1752", "0.2180±0.1730", "0.2392±0.1747", "0.2994±0.1694"], "color": "var(--series-3)"}, {"label": "opb（a=6）", "texts": ["0.4553±0.0163", "0.4472±0.0164", "0.3473±0.1959", "0.2568±0.2354", "0.4223±0.0217", "0.4199±0.0172"], "color": "var(--series-4)"}, {"label": "opb（a=12）", "texts": ["0.4700±0.0072", "0.4621±0.0088", "0.4550±0.0120", "0.4512±0.0123", "0.4493±0.0097", "0.4434±0.0227"], "color": "var(--series-5)"}, {"label": "opbl（a=1）", "texts": ["0.2358±0.1579", "0.2854±0.1756", "0.2176±0.1269", "-0.0214±0.1096", "0.0143±0.0058", "0.0124±0.0041"], "color": "var(--series-6)"}, {"label": "opbl（a=6）", "texts": ["0.2410±0.1623", "0.3126±0.1759", "0.3931±0.0195", "0.3185±0.0494", "0.2792±0.0569", "0.2380±0.0322"], "color": "var(--series-7)"}, {"label": "opbl（a=12）", "texts": ["0.2320±0.1567", "0.3161±0.1783", "0.3690±0.0682", "0.3979±0.0351", "0.4084±0.0472", "0.3752±0.0736"], "color": "var(--series-8)"}]}</script>
+</div>
+</div>
+<script>
+(function () {
+  document.querySelectorAll(".viz-card").forEach(function (card) {
+    var dataEl = card.querySelector("script.viz-data");
+    if (!dataEl) return;
+    var data = JSON.parse(dataEl.textContent);
+    var svg = card.querySelector("svg");
+    var cap = svg.querySelector(".hover-capture");
+    var hair = svg.querySelector(".crosshair");
+    var tip = card.querySelector(".tooltip");
+    var groups = Array.prototype.slice.call(svg.querySelectorAll("g.series"));
+    var viewW = svg.viewBox.baseVal.width;
+    var col = 0;
+
+    function visible(i) { return !groups[i] || !groups[i].classList.contains("off"); }
+
+    function showTooltip(j, clientX, clientY) {
+      hair.setAttribute("x1", data.xs[j]);
+      hair.setAttribute("x2", data.xs[j]);
+      hair.setAttribute("stroke-opacity", "1");
+      tip.textContent = "";
+      var title = document.createElement("div");
+      title.className = "tip-title";
+      title.textContent = data.titles[j];
+      tip.appendChild(title);
+      data.series.forEach(function (s, i) {
+        if (!visible(i)) return;
+        var row = document.createElement("div");
+        row.className = "tip-row";
+        var key = document.createElement("span");
+        key.className = "tip-key";
+        key.style.background = s.color;
+        var val = document.createElement("span");
+        val.className = "tip-val";
+        val.textContent = s.texts[j];
+        var lab = document.createElement("span");
+        lab.className = "tip-label";
+        lab.textContent = s.label;
+        row.appendChild(key);
+        row.appendChild(val);
+        row.appendChild(lab);
+        tip.appendChild(row);
+      });
+      var root = card.querySelector(".viz-root");
+      var rootRect = root.getBoundingClientRect();
+      var left = clientX - rootRect.left + 14;
+      var top = clientY - rootRect.top + 14;
+      if (left + 240 > rootRect.width) left = clientX - rootRect.left - 240;
+      if (top + 120 > rootRect.height) top = clientY - rootRect.top - 120;
+      tip.style.left = Math.max(4, left) + "px";
+      tip.style.top = Math.max(4, top) + "px";
+      tip.hidden = false;
+    }
+
+    function hideTooltip() { tip.hidden = true; hair.setAttribute("stroke-opacity", "0"); }
+
+    function nearestCol(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var x = (clientX - rect.left) * (viewW / rect.width);
+      var best = 0, bestD = Infinity;
+      data.xs.forEach(function (v, j) {
+        var d = Math.abs(v - x);
+        if (d < bestD) { bestD = d; best = j; }
+      });
+      return best;
+    }
+
+    function tooltipAt(j) {
+      var rect = svg.getBoundingClientRect();
+      showTooltip(j, rect.left + data.xs[j] * (rect.width / viewW), rect.top + rect.height * 0.2);
+    }
+
+    cap.addEventListener("pointermove", function (e) {
+      col = nearestCol(e.clientX);
+      showTooltip(col, e.clientX, e.clientY);
+    });
+    cap.addEventListener("pointerleave", hideTooltip);
+    cap.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") col = Math.max(0, col - 1);
+      else if (e.key === "ArrowRight") col = Math.min(data.xs.length - 1, col + 1);
+      else return;
+      e.preventDefault();
+      tooltipAt(col);
+    });
+    cap.addEventListener("focus", function () { tooltipAt(col); });
+    cap.addEventListener("blur", hideTooltip);
+
+    card.querySelectorAll(".legend-item").forEach(function (item) {
+      item.addEventListener("click", function () {
+        var i = Number(item.dataset.series);
+        var off = groups[i].classList.toggle("off");
+        item.classList.toggle("off", off);
+      });
+    });
+  });
+})();
+</script>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

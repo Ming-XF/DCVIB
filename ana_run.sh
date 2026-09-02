@@ -10,7 +10,7 @@ python train.py --task mnist --backbone mlp --model opb --beta 10 --anchor-scale
 
 
 #加载模型参数，使用扰动数据集部分数据，验证对抗鲁棒性泛化
-python adv_eval.py --model-dirs output/adv_mnist/mnist_mlp_vib_beta_0.01 output/adv_mnist/mnist_mlp_opb_beta_0.01_anchor_4 --eps-linf 0.1 0.2 0.3 --eps-l2 0.5 1 1.5 2 --pgd-steps 20 --n-test 1000 --runs 5 --results-dir adv_results
+python adv_eval.py --model-dirs output/adv_mnist/mnist_mlp output/adv_mnist/mnist_mlp_opb_beta0.1_scale12 output/adv_mnist/mnist_mlp_ceb_beta0.1 --eps-linf 0.05 0.1 0.15 0.2 0.25 0.3 --eps-l2 1 2 3 4 5 6 --pgd-steps 20 --n-test 1000 --runs 5 --results-dir output/adv_mnist
 
 
 #加载模型参数，验证先验分布几何
@@ -26,3 +26,7 @@ python train.py --model opb --energy-classifier --beta 10 --anchor-scale 10
 
 #最近锚点分类准确率（两个不同的分类器），分类器权重-锚点对齐，验证几何真正参与预测
 python geometry_usage.py --model-dirs output/ablation/mnist_mlp_opb_ec_a10 --anchor-scale 10 --energy-classifier --results-dir geo_results_ec
+
+
+
+#精度/压缩 权衡

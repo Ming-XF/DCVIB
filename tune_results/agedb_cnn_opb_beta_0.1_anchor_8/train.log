@@ -1,342 +1,478 @@
-2026-09-01 09:18:04 | Device: cuda
-2026-09-01 09:18:04 | Args: {'model': 'opb', 'backbone': 'cnn', 'task': 'agedb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 8.0, 'energy_classifier': False, 'max_len': 250, 'random_labels': False, 'beta': 0.1, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/agedb_cnn_opb/agedb_cnn_opb.pt', 'log_path': '/root/autodl-tmp/IB/tune_results/agedb_cnn_opb_beta_0.1_anchor_8/train.log', 'no_save': True}
-2026-09-01 09:18:04 | AgeDB 图像：16488 张，年龄 1~101 岁
-2026-09-01 09:18:04 | AgeDB 划分（60/20/20）：train 9892 / val 3298 / test 3298（共 16488 张）
-2026-09-01 09:18:04 | AgeDB 预解码缓存命中：./data/agedb/agedb_64x64_uint8.npy
-2026-09-01 09:18:04 | AgeDB 加载完成：9892/3298/3298（batch 512，RGB 64x64，ImageNet 归一化），年龄 MinMax 归一化到 [0,1]（1~101 岁）
-2026-09-01 09:18:04 | ===== Run 1/5 (seed 0) =====
-2026-09-01 09:18:08 | Epoch   1/100 | Train Loss 2.5519 | Val Loss 0.7954 MAE 21.8327 R2 -1.4244
-2026-09-01 09:18:08 |   Val R2 improved to -1.4244, model saved
-2026-09-01 09:18:09 | Epoch   2/100 | Train Loss 0.9581 | Val Loss 0.6705 MAE 14.2283 R2 -0.1021
-2026-09-01 09:18:09 |   Val R2 improved to -0.1021, model saved
-2026-09-01 09:18:11 | Epoch   3/100 | Train Loss 0.8230 | Val Loss 0.5444 MAE 13.2705 R2 0.0693
-2026-09-01 09:18:11 |   Val R2 improved to 0.0693, model saved
-2026-09-01 09:18:13 | Epoch   4/100 | Train Loss 0.6568 | Val Loss 0.3396 MAE 13.0195 R2 0.1120
-2026-09-01 09:18:13 |   Val R2 improved to 0.1120, model saved
-2026-09-01 09:18:15 | Epoch   5/100 | Train Loss 0.4302 | Val Loss 0.1231 MAE 13.3058 R2 0.0695
-2026-09-01 09:18:17 | Epoch   6/100 | Train Loss 0.3171 | Val Loss 0.1223 MAE 13.5462 R2 -0.0007
-2026-09-01 09:18:18 | Epoch   7/100 | Train Loss 0.2815 | Val Loss 0.1088 MAE 13.1738 R2 0.0593
-2026-09-01 09:18:20 | Epoch   8/100 | Train Loss 0.2612 | Val Loss 0.1006 MAE 12.4714 R2 0.1706
-2026-09-01 09:18:20 |   Val R2 improved to 0.1706, model saved
-2026-09-01 09:18:21 | Epoch   9/100 | Train Loss 0.2409 | Val Loss 0.0989 MAE 12.5691 R2 0.1481
-2026-09-01 09:18:23 | Epoch  10/100 | Train Loss 0.2214 | Val Loss 0.0934 MAE 12.2509 R2 0.1930
-2026-09-01 09:18:23 |   Val R2 improved to 0.1930, model saved
-2026-09-01 09:18:25 | Epoch  11/100 | Train Loss 0.2106 | Val Loss 0.0897 MAE 12.0514 R2 0.2231
-2026-09-01 09:18:25 |   Val R2 improved to 0.2231, model saved
-2026-09-01 09:18:26 | Epoch  12/100 | Train Loss 0.1992 | Val Loss 0.0894 MAE 12.1527 R2 0.2001
-2026-09-01 09:18:28 | Epoch  13/100 | Train Loss 0.1898 | Val Loss 0.0887 MAE 12.3347 R2 0.1703
-2026-09-01 09:18:30 | Epoch  14/100 | Train Loss 0.1782 | Val Loss 0.0890 MAE 12.1316 R2 0.1969
-2026-09-01 09:18:31 | Epoch  15/100 | Train Loss 0.1712 | Val Loss 0.0883 MAE 12.1816 R2 0.1890
-2026-09-01 09:18:33 | Epoch  16/100 | Train Loss 0.1678 | Val Loss 0.0929 MAE 12.5653 R2 0.1287
-2026-09-01 09:18:35 | Epoch  17/100 | Train Loss 0.1599 | Val Loss 0.0882 MAE 12.2170 R2 0.1823
-2026-09-01 09:18:36 | Epoch  18/100 | Train Loss 0.1497 | Val Loss 0.0800 MAE 11.8160 R2 0.2486
-2026-09-01 09:18:36 |   Val R2 improved to 0.2486, model saved
-2026-09-01 09:18:38 | Epoch  19/100 | Train Loss 0.1436 | Val Loss 0.0775 MAE 11.8140 R2 0.2496
-2026-09-01 09:18:38 |   Val R2 improved to 0.2496, model saved
-2026-09-01 09:18:40 | Epoch  20/100 | Train Loss 0.1402 | Val Loss 0.0735 MAE 11.5907 R2 0.2853
-2026-09-01 09:18:40 |   Val R2 improved to 0.2853, model saved
-2026-09-01 09:18:41 | Epoch  21/100 | Train Loss 0.1357 | Val Loss 0.0754 MAE 11.7377 R2 0.2627
-2026-09-01 09:18:43 | Epoch  22/100 | Train Loss 0.1321 | Val Loss 0.0757 MAE 11.7684 R2 0.2581
-2026-09-01 09:18:45 | Epoch  23/100 | Train Loss 0.1244 | Val Loss 0.0772 MAE 11.7959 R2 0.2474
-2026-09-01 09:18:47 | Epoch  24/100 | Train Loss 0.1225 | Val Loss 0.0769 MAE 11.8989 R2 0.2359
-2026-09-01 09:18:48 | Epoch  25/100 | Train Loss 0.1165 | Val Loss 0.0709 MAE 11.7011 R2 0.2718
-2026-09-01 09:18:50 | Epoch  26/100 | Train Loss 0.1155 | Val Loss 0.0679 MAE 11.4950 R2 0.3007
-2026-09-01 09:18:50 |   Val R2 improved to 0.3007, model saved
-2026-09-01 09:18:52 | Epoch  27/100 | Train Loss 0.1116 | Val Loss 0.0715 MAE 11.7307 R2 0.2607
-2026-09-01 09:18:53 | Epoch  28/100 | Train Loss 0.1060 | Val Loss 0.0682 MAE 11.6137 R2 0.2854
-2026-09-01 09:18:55 | Epoch  29/100 | Train Loss 0.1035 | Val Loss 0.0679 MAE 11.6403 R2 0.2777
-2026-09-01 09:18:56 | Epoch  30/100 | Train Loss 0.0997 | Val Loss 0.0637 MAE 11.5207 R2 0.3030
-2026-09-01 09:18:56 |   Val R2 improved to 0.3030, model saved
-2026-09-01 09:18:58 | Epoch  31/100 | Train Loss 0.0959 | Val Loss 0.0641 MAE 11.5550 R2 0.2939
-2026-09-01 09:19:00 | Epoch  32/100 | Train Loss 0.0942 | Val Loss 0.0623 MAE 11.5036 R2 0.2973
-2026-09-01 09:19:01 | Epoch  33/100 | Train Loss 0.0915 | Val Loss 0.0597 MAE 11.3226 R2 0.3298
-2026-09-01 09:19:01 |   Val R2 improved to 0.3298, model saved
-2026-09-01 09:19:03 | Epoch  34/100 | Train Loss 0.0889 | Val Loss 0.0584 MAE 11.3066 R2 0.3308
-2026-09-01 09:19:03 |   Val R2 improved to 0.3308, model saved
-2026-09-01 09:19:05 | Epoch  35/100 | Train Loss 0.0852 | Val Loss 0.0635 MAE 11.6808 R2 0.2764
-2026-09-01 09:19:07 | Epoch  36/100 | Train Loss 0.0820 | Val Loss 0.0587 MAE 11.4291 R2 0.3136
-2026-09-01 09:19:08 | Epoch  37/100 | Train Loss 0.0801 | Val Loss 0.0561 MAE 11.3697 R2 0.3258
-2026-09-01 09:19:10 | Epoch  38/100 | Train Loss 0.0792 | Val Loss 0.0565 MAE 11.3940 R2 0.3171
-2026-09-01 09:19:11 | Epoch  39/100 | Train Loss 0.0779 | Val Loss 0.0567 MAE 11.4891 R2 0.3054
-2026-09-01 09:19:13 | Epoch  40/100 | Train Loss 0.0745 | Val Loss 0.0558 MAE 11.5952 R2 0.2895
-2026-09-01 09:19:15 | Epoch  41/100 | Train Loss 0.0720 | Val Loss 0.0548 MAE 11.5392 R2 0.2981
-2026-09-01 09:19:16 | Epoch  42/100 | Train Loss 0.0712 | Val Loss 0.0524 MAE 11.3840 R2 0.3253
-2026-09-01 09:19:18 | Epoch  43/100 | Train Loss 0.0690 | Val Loss 0.0541 MAE 11.5356 R2 0.2994
-2026-09-01 09:19:20 | Epoch  44/100 | Train Loss 0.0675 | Val Loss 0.0552 MAE 11.6196 R2 0.2861
-2026-09-01 09:19:20 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 44 (best R2 0.3308 @ Epoch 34)
-2026-09-01 09:19:20 | Run 1/5 | Test (best model @ Epoch 34) | Loss 0.0608 MAE 11.5839 R2 0.3358
-2026-09-01 09:19:20 | ===== Run 2/5 (seed 1) =====
-2026-09-01 09:19:22 | Epoch   1/100 | Train Loss 4.4684 | Val Loss 0.7770 MAE 19.2013 R2 -0.9902
-2026-09-01 09:19:22 |   Val R2 improved to -0.9902, model saved
-2026-09-01 09:19:23 | Epoch   2/100 | Train Loss 0.9847 | Val Loss 0.6560 MAE 13.5406 R2 0.0140
-2026-09-01 09:19:23 |   Val R2 improved to 0.0140, model saved
-2026-09-01 09:19:25 | Epoch   3/100 | Train Loss 0.8503 | Val Loss 0.5112 MAE 13.0696 R2 0.0994
-2026-09-01 09:19:25 |   Val R2 improved to 0.0994, model saved
-2026-09-01 09:19:27 | Epoch   4/100 | Train Loss 0.6711 | Val Loss 0.2586 MAE 14.1791 R2 -0.0875
-2026-09-01 09:19:29 | Epoch   5/100 | Train Loss 0.4598 | Val Loss 0.1197 MAE 13.0800 R2 0.1134
-2026-09-01 09:19:29 |   Val R2 improved to 0.1134, model saved
-2026-09-01 09:19:30 | Epoch   6/100 | Train Loss 0.3897 | Val Loss 0.1228 MAE 13.3200 R2 0.0257
-2026-09-01 09:19:32 | Epoch   7/100 | Train Loss 0.3466 | Val Loss 0.1031 MAE 11.8245 R2 0.2537
-2026-09-01 09:19:32 |   Val R2 improved to 0.2537, model saved
-2026-09-01 09:19:34 | Epoch   8/100 | Train Loss 0.3209 | Val Loss 0.1001 MAE 11.8598 R2 0.2427
-2026-09-01 09:19:35 | Epoch   9/100 | Train Loss 0.3048 | Val Loss 0.0962 MAE 11.9296 R2 0.2224
-2026-09-01 09:19:37 | Epoch  10/100 | Train Loss 0.2884 | Val Loss 0.0919 MAE 11.7998 R2 0.2382
-2026-09-01 09:19:39 | Epoch  11/100 | Train Loss 0.2662 | Val Loss 0.0897 MAE 11.5147 R2 0.2787
-2026-09-01 09:19:39 |   Val R2 improved to 0.2787, model saved
-2026-09-01 09:19:41 | Epoch  12/100 | Train Loss 0.2529 | Val Loss 0.0869 MAE 11.3956 R2 0.2958
-2026-09-01 09:19:41 |   Val R2 improved to 0.2958, model saved
-2026-09-01 09:19:42 | Epoch  13/100 | Train Loss 0.2402 | Val Loss 0.0851 MAE 11.4722 R2 0.2879
-2026-09-01 09:19:44 | Epoch  14/100 | Train Loss 0.2267 | Val Loss 0.0821 MAE 11.3836 R2 0.3005
-2026-09-01 09:19:44 |   Val R2 improved to 0.3005, model saved
-2026-09-01 09:19:45 | Epoch  15/100 | Train Loss 0.2191 | Val Loss 0.0832 MAE 11.4580 R2 0.2848
-2026-09-01 09:19:47 | Epoch  16/100 | Train Loss 0.2044 | Val Loss 0.0898 MAE 12.2484 R2 0.1698
-2026-09-01 09:19:48 | Epoch  17/100 | Train Loss 0.2002 | Val Loss 0.0796 MAE 11.5184 R2 0.2750
-2026-09-01 09:19:50 | Epoch  18/100 | Train Loss 0.1884 | Val Loss 0.0782 MAE 11.4134 R2 0.2924
-2026-09-01 09:19:52 | Epoch  19/100 | Train Loss 0.1828 | Val Loss 0.0766 MAE 11.5288 R2 0.2787
-2026-09-01 09:19:53 | Epoch  20/100 | Train Loss 0.1747 | Val Loss 0.0755 MAE 11.2854 R2 0.3127
-2026-09-01 09:19:53 |   Val R2 improved to 0.3127, model saved
-2026-09-01 09:19:55 | Epoch  21/100 | Train Loss 0.1664 | Val Loss 0.0756 MAE 11.2639 R2 0.3106
-2026-09-01 09:19:57 | Epoch  22/100 | Train Loss 0.1611 | Val Loss 0.0723 MAE 11.2078 R2 0.3233
-2026-09-01 09:19:57 |   Val R2 improved to 0.3233, model saved
-2026-09-01 09:19:58 | Epoch  23/100 | Train Loss 0.1540 | Val Loss 0.0734 MAE 11.3098 R2 0.3086
-2026-09-01 09:20:00 | Epoch  24/100 | Train Loss 0.1474 | Val Loss 0.0700 MAE 11.0329 R2 0.3493
-2026-09-01 09:20:00 |   Val R2 improved to 0.3493, model saved
-2026-09-01 09:20:02 | Epoch  25/100 | Train Loss 0.1449 | Val Loss 0.0721 MAE 11.2458 R2 0.3162
-2026-09-01 09:20:03 | Epoch  26/100 | Train Loss 0.1376 | Val Loss 0.0694 MAE 11.0777 R2 0.3432
-2026-09-01 09:20:05 | Epoch  27/100 | Train Loss 0.1310 | Val Loss 0.0683 MAE 11.0480 R2 0.3435
-2026-09-01 09:20:07 | Epoch  28/100 | Train Loss 0.1295 | Val Loss 0.0688 MAE 11.1884 R2 0.3231
-2026-09-01 09:20:09 | Epoch  29/100 | Train Loss 0.1239 | Val Loss 0.0653 MAE 11.0540 R2 0.3527
-2026-09-01 09:20:09 |   Val R2 improved to 0.3527, model saved
-2026-09-01 09:20:10 | Epoch  30/100 | Train Loss 0.1183 | Val Loss 0.0692 MAE 11.2907 R2 0.3082
-2026-09-01 09:20:12 | Epoch  31/100 | Train Loss 0.1128 | Val Loss 0.0704 MAE 11.4495 R2 0.2876
-2026-09-01 09:20:14 | Epoch  32/100 | Train Loss 0.1106 | Val Loss 0.0630 MAE 10.9914 R2 0.3584
-2026-09-01 09:20:14 |   Val R2 improved to 0.3584, model saved
-2026-09-01 09:20:15 | Epoch  33/100 | Train Loss 0.1063 | Val Loss 0.0628 MAE 11.0379 R2 0.3474
-2026-09-01 09:20:17 | Epoch  34/100 | Train Loss 0.1006 | Val Loss 0.0617 MAE 11.0717 R2 0.3489
-2026-09-01 09:20:19 | Epoch  35/100 | Train Loss 0.0985 | Val Loss 0.0654 MAE 11.4778 R2 0.2870
-2026-09-01 09:20:20 | Epoch  36/100 | Train Loss 0.0966 | Val Loss 0.0594 MAE 10.9282 R2 0.3656
-2026-09-01 09:20:20 |   Val R2 improved to 0.3656, model saved
-2026-09-01 09:20:22 | Epoch  37/100 | Train Loss 0.0914 | Val Loss 0.0593 MAE 11.1396 R2 0.3421
-2026-09-01 09:20:24 | Epoch  38/100 | Train Loss 0.0881 | Val Loss 0.0638 MAE 11.5068 R2 0.2850
-2026-09-01 09:20:25 | Epoch  39/100 | Train Loss 0.0850 | Val Loss 0.0571 MAE 11.0098 R2 0.3602
-2026-09-01 09:20:27 | Epoch  40/100 | Train Loss 0.0828 | Val Loss 0.0564 MAE 10.9826 R2 0.3602
-2026-09-01 09:20:29 | Epoch  41/100 | Train Loss 0.0781 | Val Loss 0.0572 MAE 11.1257 R2 0.3407
-2026-09-01 09:20:30 | Epoch  42/100 | Train Loss 0.0762 | Val Loss 0.0572 MAE 11.2692 R2 0.3187
-2026-09-01 09:20:32 | Epoch  43/100 | Train Loss 0.0748 | Val Loss 0.0551 MAE 10.9768 R2 0.3677
-2026-09-01 09:20:32 |   Val R2 improved to 0.3677, model saved
-2026-09-01 09:20:34 | Epoch  44/100 | Train Loss 0.0733 | Val Loss 0.0554 MAE 11.1333 R2 0.3394
-2026-09-01 09:20:35 | Epoch  45/100 | Train Loss 0.0695 | Val Loss 0.0535 MAE 11.0370 R2 0.3550
-2026-09-01 09:20:37 | Epoch  46/100 | Train Loss 0.0682 | Val Loss 0.0551 MAE 11.3125 R2 0.3149
-2026-09-01 09:20:39 | Epoch  47/100 | Train Loss 0.0659 | Val Loss 0.0540 MAE 11.2785 R2 0.3262
-2026-09-01 09:20:41 | Epoch  48/100 | Train Loss 0.0641 | Val Loss 0.0522 MAE 11.1418 R2 0.3438
-2026-09-01 09:20:42 | Epoch  49/100 | Train Loss 0.0622 | Val Loss 0.0520 MAE 11.0987 R2 0.3464
-2026-09-01 09:20:44 | Epoch  50/100 | Train Loss 0.0627 | Val Loss 0.0515 MAE 11.1307 R2 0.3470
-2026-09-01 09:20:46 | Epoch  51/100 | Train Loss 0.0594 | Val Loss 0.0514 MAE 11.2965 R2 0.3237
-2026-09-01 09:20:47 | Epoch  52/100 | Train Loss 0.0596 | Val Loss 0.0509 MAE 11.2554 R2 0.3286
-2026-09-01 09:20:49 | Epoch  53/100 | Train Loss 0.0575 | Val Loss 0.0503 MAE 11.2289 R2 0.3325
-2026-09-01 09:20:49 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 53 (best R2 0.3677 @ Epoch 43)
-2026-09-01 09:20:49 | Run 2/5 | Test (best model @ Epoch 43) | Loss 0.0566 MAE 11.1879 R2 0.3749
-2026-09-01 09:20:49 | ===== Run 3/5 (seed 2) =====
-2026-09-01 09:20:51 | Epoch   1/100 | Train Loss 3.3336 | Val Loss 0.8239 MAE 21.3187 R2 -1.3591
-2026-09-01 09:20:51 |   Val R2 improved to -1.3591, model saved
-2026-09-01 09:20:53 | Epoch   2/100 | Train Loss 1.0352 | Val Loss 0.6896 MAE 14.2688 R2 -0.1247
-2026-09-01 09:20:53 |   Val R2 improved to -0.1247, model saved
-2026-09-01 09:20:55 | Epoch   3/100 | Train Loss 0.8953 | Val Loss 0.5751 MAE 12.5059 R2 0.1566
-2026-09-01 09:20:55 |   Val R2 improved to 0.1566, model saved
-2026-09-01 09:20:56 | Epoch   4/100 | Train Loss 0.7692 | Val Loss 0.4476 MAE 12.1070 R2 0.2158
-2026-09-01 09:20:56 |   Val R2 improved to 0.2158, model saved
-2026-09-01 09:20:58 | Epoch   5/100 | Train Loss 0.6375 | Val Loss 0.3104 MAE 12.1709 R2 0.2005
-2026-09-01 09:21:00 | Epoch   6/100 | Train Loss 0.4804 | Val Loss 0.1845 MAE 11.8919 R2 0.2439
-2026-09-01 09:21:00 |   Val R2 improved to 0.2439, model saved
-2026-09-01 09:21:01 | Epoch   7/100 | Train Loss 0.3754 | Val Loss 0.1035 MAE 11.8984 R2 0.2374
-2026-09-01 09:21:03 | Epoch   8/100 | Train Loss 0.3323 | Val Loss 0.1049 MAE 12.3791 R2 0.1612
-2026-09-01 09:21:05 | Epoch   9/100 | Train Loss 0.2984 | Val Loss 0.1055 MAE 12.4945 R2 0.1418
-2026-09-01 09:21:06 | Epoch  10/100 | Train Loss 0.2798 | Val Loss 0.0936 MAE 11.7122 R2 0.2548
-2026-09-01 09:21:06 |   Val R2 improved to 0.2548, model saved
-2026-09-01 09:21:08 | Epoch  11/100 | Train Loss 0.2597 | Val Loss 0.0975 MAE 12.4612 R2 0.1459
-2026-09-01 09:21:10 | Epoch  12/100 | Train Loss 0.2497 | Val Loss 0.0845 MAE 11.3657 R2 0.3083
-2026-09-01 09:21:10 |   Val R2 improved to 0.3083, model saved
-2026-09-01 09:21:11 | Epoch  13/100 | Train Loss 0.2343 | Val Loss 0.0882 MAE 11.6870 R2 0.2544
-2026-09-01 09:21:13 | Epoch  14/100 | Train Loss 0.2235 | Val Loss 0.0860 MAE 11.6710 R2 0.2566
-2026-09-01 09:21:15 | Epoch  15/100 | Train Loss 0.2091 | Val Loss 0.0840 MAE 11.6982 R2 0.2518
-2026-09-01 09:21:17 | Epoch  16/100 | Train Loss 0.1973 | Val Loss 0.0784 MAE 11.2213 R2 0.3221
-2026-09-01 09:21:17 |   Val R2 improved to 0.3221, model saved
-2026-09-01 09:21:18 | Epoch  17/100 | Train Loss 0.1866 | Val Loss 0.0795 MAE 11.4192 R2 0.2903
-2026-09-01 09:21:20 | Epoch  18/100 | Train Loss 0.1802 | Val Loss 0.0767 MAE 11.2854 R2 0.3099
-2026-09-01 09:21:22 | Epoch  19/100 | Train Loss 0.1759 | Val Loss 0.0854 MAE 12.1724 R2 0.1846
-2026-09-01 09:21:23 | Epoch  20/100 | Train Loss 0.1652 | Val Loss 0.0772 MAE 11.4244 R2 0.2887
-2026-09-01 09:21:25 | Epoch  21/100 | Train Loss 0.1576 | Val Loss 0.0810 MAE 11.9215 R2 0.2196
-2026-09-01 09:21:27 | Epoch  22/100 | Train Loss 0.1515 | Val Loss 0.0730 MAE 11.2414 R2 0.3160
-2026-09-01 09:21:28 | Epoch  23/100 | Train Loss 0.1439 | Val Loss 0.0759 MAE 11.7095 R2 0.2488
-2026-09-01 09:21:30 | Epoch  24/100 | Train Loss 0.1375 | Val Loss 0.0751 MAE 11.5141 R2 0.2756
-2026-09-01 09:21:31 | Epoch  25/100 | Train Loss 0.1366 | Val Loss 0.0693 MAE 11.2010 R2 0.3223
-2026-09-01 09:21:31 |   Val R2 improved to 0.3223, model saved
-2026-09-01 09:21:33 | Epoch  26/100 | Train Loss 0.1317 | Val Loss 0.0705 MAE 11.3223 R2 0.3028
-2026-09-01 09:21:35 | Epoch  27/100 | Train Loss 0.1256 | Val Loss 0.0708 MAE 11.3481 R2 0.2998
-2026-09-01 09:21:36 | Epoch  28/100 | Train Loss 0.1193 | Val Loss 0.0683 MAE 11.2773 R2 0.3084
-2026-09-01 09:21:38 | Epoch  29/100 | Train Loss 0.1158 | Val Loss 0.0666 MAE 11.1066 R2 0.3317
-2026-09-01 09:21:38 |   Val R2 improved to 0.3317, model saved
-2026-09-01 09:21:40 | Epoch  30/100 | Train Loss 0.1133 | Val Loss 0.0657 MAE 11.1773 R2 0.3230
-2026-09-01 09:21:41 | Epoch  31/100 | Train Loss 0.1093 | Val Loss 0.0674 MAE 11.3490 R2 0.2979
-2026-09-01 09:21:43 | Epoch  32/100 | Train Loss 0.1069 | Val Loss 0.0665 MAE 11.3798 R2 0.2948
-2026-09-01 09:21:45 | Epoch  33/100 | Train Loss 0.1031 | Val Loss 0.0691 MAE 11.6091 R2 0.2615
-2026-09-01 09:21:46 | Epoch  34/100 | Train Loss 0.1032 | Val Loss 0.0619 MAE 11.0210 R2 0.3429
-2026-09-01 09:21:46 |   Val R2 improved to 0.3429, model saved
-2026-09-01 09:21:48 | Epoch  35/100 | Train Loss 0.0985 | Val Loss 0.0605 MAE 11.0706 R2 0.3411
-2026-09-01 09:21:50 | Epoch  36/100 | Train Loss 0.0941 | Val Loss 0.0610 MAE 11.0533 R2 0.3386
-2026-09-01 09:21:51 | Epoch  37/100 | Train Loss 0.0923 | Val Loss 0.0595 MAE 11.0407 R2 0.3439
-2026-09-01 09:21:51 |   Val R2 improved to 0.3439, model saved
-2026-09-01 09:21:53 | Epoch  38/100 | Train Loss 0.0912 | Val Loss 0.0577 MAE 10.9016 R2 0.3666
-2026-09-01 09:21:53 |   Val R2 improved to 0.3666, model saved
-2026-09-01 09:21:55 | Epoch  39/100 | Train Loss 0.0884 | Val Loss 0.0590 MAE 11.2020 R2 0.3252
-2026-09-01 09:21:56 | Epoch  40/100 | Train Loss 0.0852 | Val Loss 0.0594 MAE 11.2495 R2 0.3173
-2026-09-01 09:21:58 | Epoch  41/100 | Train Loss 0.0822 | Val Loss 0.0575 MAE 11.1630 R2 0.3319
-2026-09-01 09:22:00 | Epoch  42/100 | Train Loss 0.0820 | Val Loss 0.0600 MAE 11.3782 R2 0.3004
-2026-09-01 09:22:01 | Epoch  43/100 | Train Loss 0.0779 | Val Loss 0.0578 MAE 11.2582 R2 0.3175
-2026-09-01 09:22:03 | Epoch  44/100 | Train Loss 0.0782 | Val Loss 0.0541 MAE 10.9159 R2 0.3691
-2026-09-01 09:22:03 |   Val R2 improved to 0.3691, model saved
-2026-09-01 09:22:05 | Epoch  45/100 | Train Loss 0.0749 | Val Loss 0.0549 MAE 11.0583 R2 0.3451
-2026-09-01 09:22:07 | Epoch  46/100 | Train Loss 0.0737 | Val Loss 0.0530 MAE 10.9109 R2 0.3707
-2026-09-01 09:22:07 |   Val R2 improved to 0.3707, model saved
-2026-09-01 09:22:08 | Epoch  47/100 | Train Loss 0.0732 | Val Loss 0.0553 MAE 11.2689 R2 0.3212
-2026-09-01 09:22:10 | Epoch  48/100 | Train Loss 0.0715 | Val Loss 0.0545 MAE 11.3268 R2 0.3141
-2026-09-01 09:22:12 | Epoch  49/100 | Train Loss 0.0697 | Val Loss 0.0522 MAE 11.0393 R2 0.3578
-2026-09-01 09:22:13 | Epoch  50/100 | Train Loss 0.0674 | Val Loss 0.0531 MAE 11.2225 R2 0.3304
-2026-09-01 09:22:15 | Epoch  51/100 | Train Loss 0.0652 | Val Loss 0.0524 MAE 11.2713 R2 0.3278
-2026-09-01 09:22:17 | Epoch  52/100 | Train Loss 0.0654 | Val Loss 0.0538 MAE 11.4209 R2 0.3033
-2026-09-01 09:22:18 | Epoch  53/100 | Train Loss 0.0648 | Val Loss 0.0520 MAE 11.2064 R2 0.3323
-2026-09-01 09:22:20 | Epoch  54/100 | Train Loss 0.0616 | Val Loss 0.0513 MAE 11.2424 R2 0.3319
-2026-09-01 09:22:22 | Epoch  55/100 | Train Loss 0.0603 | Val Loss 0.0499 MAE 11.1452 R2 0.3493
-2026-09-01 09:22:24 | Epoch  56/100 | Train Loss 0.0598 | Val Loss 0.0499 MAE 11.2091 R2 0.3417
-2026-09-01 09:22:24 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 56 (best R2 0.3707 @ Epoch 46)
-2026-09-01 09:22:24 | Run 3/5 | Test (best model @ Epoch 46) | Loss 0.0540 MAE 11.1092 R2 0.3845
-2026-09-01 09:22:24 | ===== Run 4/5 (seed 3) =====
-2026-09-01 09:22:26 | Epoch   1/100 | Train Loss 3.0573 | Val Loss 0.8406 MAE 25.4453 R2 -2.0875
-2026-09-01 09:22:26 |   Val R2 improved to -2.0875, model saved
-2026-09-01 09:22:27 | Epoch   2/100 | Train Loss 1.0375 | Val Loss 0.7011 MAE 14.2991 R2 -0.1243
-2026-09-01 09:22:27 |   Val R2 improved to -0.1243, model saved
-2026-09-01 09:22:29 | Epoch   3/100 | Train Loss 0.8910 | Val Loss 0.5705 MAE 13.1978 R2 0.0848
-2026-09-01 09:22:29 |   Val R2 improved to 0.0848, model saved
-2026-09-01 09:22:31 | Epoch   4/100 | Train Loss 0.7190 | Val Loss 0.3823 MAE 12.9354 R2 0.1345
-2026-09-01 09:22:31 |   Val R2 improved to 0.1345, model saved
-2026-09-01 09:22:32 | Epoch   5/100 | Train Loss 0.5115 | Val Loss 0.1626 MAE 12.6832 R2 0.1535
-2026-09-01 09:22:32 |   Val R2 improved to 0.1535, model saved
-2026-09-01 09:22:34 | Epoch   6/100 | Train Loss 0.3738 | Val Loss 0.1143 MAE 12.1010 R2 0.2236
-2026-09-01 09:22:34 |   Val R2 improved to 0.2236, model saved
-2026-09-01 09:22:36 | Epoch   7/100 | Train Loss 0.3287 | Val Loss 0.1092 MAE 12.3486 R2 0.1704
-2026-09-01 09:22:38 | Epoch   8/100 | Train Loss 0.3038 | Val Loss 0.1001 MAE 11.8776 R2 0.2453
-2026-09-01 09:22:38 |   Val R2 improved to 0.2453, model saved
-2026-09-01 09:22:39 | Epoch   9/100 | Train Loss 0.2826 | Val Loss 0.1047 MAE 12.5287 R2 0.1370
-2026-09-01 09:22:41 | Epoch  10/100 | Train Loss 0.2700 | Val Loss 0.0978 MAE 12.2014 R2 0.1878
-2026-09-01 09:22:43 | Epoch  11/100 | Train Loss 0.2458 | Val Loss 0.0947 MAE 12.1592 R2 0.1925
-2026-09-01 09:22:44 | Epoch  12/100 | Train Loss 0.2341 | Val Loss 0.0858 MAE 11.5749 R2 0.2921
-2026-09-01 09:22:44 |   Val R2 improved to 0.2921, model saved
-2026-09-01 09:22:46 | Epoch  13/100 | Train Loss 0.2176 | Val Loss 0.0887 MAE 11.9453 R2 0.2227
-2026-09-01 09:22:48 | Epoch  14/100 | Train Loss 0.2096 | Val Loss 0.0835 MAE 11.7536 R2 0.2546
-2026-09-01 09:22:49 | Epoch  15/100 | Train Loss 0.1931 | Val Loss 0.0862 MAE 11.9797 R2 0.2180
-2026-09-01 09:22:51 | Epoch  16/100 | Train Loss 0.1841 | Val Loss 0.0828 MAE 11.8738 R2 0.2331
-2026-09-01 09:22:53 | Epoch  17/100 | Train Loss 0.1748 | Val Loss 0.0774 MAE 11.4797 R2 0.2961
-2026-09-01 09:22:53 |   Val R2 improved to 0.2961, model saved
-2026-09-01 09:22:55 | Epoch  18/100 | Train Loss 0.1671 | Val Loss 0.0856 MAE 12.0936 R2 0.1971
-2026-09-01 09:22:56 | Epoch  19/100 | Train Loss 0.1578 | Val Loss 0.0760 MAE 11.4760 R2 0.2955
-2026-09-01 09:22:58 | Epoch  20/100 | Train Loss 0.1534 | Val Loss 0.0829 MAE 12.0629 R2 0.2014
-2026-09-01 09:23:00 | Epoch  21/100 | Train Loss 0.1470 | Val Loss 0.0748 MAE 11.5703 R2 0.2776
-2026-09-01 09:23:01 | Epoch  22/100 | Train Loss 0.1402 | Val Loss 0.0735 MAE 11.4747 R2 0.2934
-2026-09-01 09:23:03 | Epoch  23/100 | Train Loss 0.1315 | Val Loss 0.0739 MAE 11.6037 R2 0.2699
-2026-09-01 09:23:05 | Epoch  24/100 | Train Loss 0.1319 | Val Loss 0.0751 MAE 11.7838 R2 0.2428
-2026-09-01 09:23:07 | Epoch  25/100 | Train Loss 0.1247 | Val Loss 0.0694 MAE 11.3607 R2 0.3076
-2026-09-01 09:23:07 |   Val R2 improved to 0.3076, model saved
-2026-09-01 09:23:08 | Epoch  26/100 | Train Loss 0.1213 | Val Loss 0.0688 MAE 11.3818 R2 0.3064
-2026-09-01 09:23:10 | Epoch  27/100 | Train Loss 0.1169 | Val Loss 0.0690 MAE 11.4074 R2 0.2967
-2026-09-01 09:23:12 | Epoch  28/100 | Train Loss 0.1136 | Val Loss 0.0676 MAE 11.3644 R2 0.3042
-2026-09-01 09:23:13 | Epoch  29/100 | Train Loss 0.1077 | Val Loss 0.0679 MAE 11.4919 R2 0.2835
-2026-09-01 09:23:15 | Epoch  30/100 | Train Loss 0.1062 | Val Loss 0.0663 MAE 11.4056 R2 0.2981
-2026-09-01 09:23:17 | Epoch  31/100 | Train Loss 0.1004 | Val Loss 0.0641 MAE 11.3245 R2 0.3092
-2026-09-01 09:23:17 |   Val R2 improved to 0.3092, model saved
-2026-09-01 09:23:18 | Epoch  32/100 | Train Loss 0.0988 | Val Loss 0.0647 MAE 11.3770 R2 0.3008
-2026-09-01 09:23:20 | Epoch  33/100 | Train Loss 0.0958 | Val Loss 0.0627 MAE 11.3142 R2 0.3114
-2026-09-01 09:23:20 |   Val R2 improved to 0.3114, model saved
-2026-09-01 09:23:22 | Epoch  34/100 | Train Loss 0.0945 | Val Loss 0.0643 MAE 11.5737 R2 0.2746
-2026-09-01 09:23:23 | Epoch  35/100 | Train Loss 0.0900 | Val Loss 0.0599 MAE 11.2153 R2 0.3255
-2026-09-01 09:23:23 |   Val R2 improved to 0.3255, model saved
-2026-09-01 09:23:25 | Epoch  36/100 | Train Loss 0.0872 | Val Loss 0.0594 MAE 11.2602 R2 0.3209
-2026-09-01 09:23:27 | Epoch  37/100 | Train Loss 0.0849 | Val Loss 0.0586 MAE 11.2398 R2 0.3245
-2026-09-01 09:23:29 | Epoch  38/100 | Train Loss 0.0831 | Val Loss 0.0573 MAE 11.1878 R2 0.3303
-2026-09-01 09:23:29 |   Val R2 improved to 0.3303, model saved
-2026-09-01 09:23:30 | Epoch  39/100 | Train Loss 0.0802 | Val Loss 0.0569 MAE 11.2696 R2 0.3214
-2026-09-01 09:23:32 | Epoch  40/100 | Train Loss 0.0793 | Val Loss 0.0554 MAE 11.1227 R2 0.3427
-2026-09-01 09:23:32 |   Val R2 improved to 0.3427, model saved
-2026-09-01 09:23:34 | Epoch  41/100 | Train Loss 0.0781 | Val Loss 0.0545 MAE 11.1034 R2 0.3478
-2026-09-01 09:23:34 |   Val R2 improved to 0.3478, model saved
-2026-09-01 09:23:35 | Epoch  42/100 | Train Loss 0.0756 | Val Loss 0.0552 MAE 11.3138 R2 0.3168
-2026-09-01 09:23:37 | Epoch  43/100 | Train Loss 0.0740 | Val Loss 0.0534 MAE 11.1471 R2 0.3430
-2026-09-01 09:23:38 | Epoch  44/100 | Train Loss 0.0708 | Val Loss 0.0533 MAE 11.2167 R2 0.3313
-2026-09-01 09:23:40 | Epoch  45/100 | Train Loss 0.0693 | Val Loss 0.0561 MAE 11.5550 R2 0.2824
-2026-09-01 09:23:42 | Epoch  46/100 | Train Loss 0.0686 | Val Loss 0.0542 MAE 11.4642 R2 0.2967
-2026-09-01 09:23:43 | Epoch  47/100 | Train Loss 0.0665 | Val Loss 0.0517 MAE 11.1495 R2 0.3410
-2026-09-01 09:23:45 | Epoch  48/100 | Train Loss 0.0658 | Val Loss 0.0522 MAE 11.3594 R2 0.3139
-2026-09-01 09:23:47 | Epoch  49/100 | Train Loss 0.0640 | Val Loss 0.0510 MAE 11.2601 R2 0.3299
-2026-09-01 09:23:49 | Epoch  50/100 | Train Loss 0.0628 | Val Loss 0.0513 MAE 11.3573 R2 0.3161
-2026-09-01 09:23:50 | Epoch  51/100 | Train Loss 0.0613 | Val Loss 0.0512 MAE 11.3542 R2 0.3143
-2026-09-01 09:23:50 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 51 (best R2 0.3478 @ Epoch 41)
-2026-09-01 09:23:51 | Run 4/5 | Test (best model @ Epoch 41) | Loss 0.0557 MAE 11.3271 R2 0.3592
-2026-09-01 09:23:51 | ===== Run 5/5 (seed 4) =====
-2026-09-01 09:23:52 | Epoch   1/100 | Train Loss 2.7442 | Val Loss 0.8701 MAE 31.2521 R2 -3.4254
-2026-09-01 09:23:52 |   Val R2 improved to -3.4254, model saved
-2026-09-01 09:23:54 | Epoch   2/100 | Train Loss 1.0122 | Val Loss 0.6711 MAE 16.2046 R2 -0.4277
-2026-09-01 09:23:54 |   Val R2 improved to -0.4277, model saved
-2026-09-01 09:23:56 | Epoch   3/100 | Train Loss 0.8255 | Val Loss 0.4834 MAE 13.3007 R2 0.0684
-2026-09-01 09:23:56 |   Val R2 improved to 0.0684, model saved
-2026-09-01 09:23:58 | Epoch   4/100 | Train Loss 0.5953 | Val Loss 0.2044 MAE 13.0395 R2 0.0753
-2026-09-01 09:23:58 |   Val R2 improved to 0.0753, model saved
-2026-09-01 09:23:59 | Epoch   5/100 | Train Loss 0.3771 | Val Loss 0.1070 MAE 11.8944 R2 0.2342
-2026-09-01 09:23:59 |   Val R2 improved to 0.2342, model saved
-2026-09-01 09:24:01 | Epoch   6/100 | Train Loss 0.2953 | Val Loss 0.0966 MAE 11.5423 R2 0.2771
-2026-09-01 09:24:01 |   Val R2 improved to 0.2771, model saved
-2026-09-01 09:24:03 | Epoch   7/100 | Train Loss 0.2649 | Val Loss 0.0984 MAE 12.3936 R2 0.1540
-2026-09-01 09:24:04 | Epoch   8/100 | Train Loss 0.2418 | Val Loss 0.0871 MAE 11.2168 R2 0.3126
-2026-09-01 09:24:04 |   Val R2 improved to 0.3126, model saved
-2026-09-01 09:24:06 | Epoch   9/100 | Train Loss 0.2253 | Val Loss 0.0900 MAE 11.7557 R2 0.2348
-2026-09-01 09:24:08 | Epoch  10/100 | Train Loss 0.2103 | Val Loss 0.0841 MAE 11.2447 R2 0.2964
-2026-09-01 09:24:09 | Epoch  11/100 | Train Loss 0.1934 | Val Loss 0.0835 MAE 11.4060 R2 0.2750
-2026-09-01 09:24:11 | Epoch  12/100 | Train Loss 0.1855 | Val Loss 0.0880 MAE 12.1270 R2 0.1856
-2026-09-01 09:24:13 | Epoch  13/100 | Train Loss 0.1787 | Val Loss 0.0781 MAE 11.0377 R2 0.3252
-2026-09-01 09:24:13 |   Val R2 improved to 0.3252, model saved
-2026-09-01 09:24:14 | Epoch  14/100 | Train Loss 0.1632 | Val Loss 0.0799 MAE 11.4776 R2 0.2679
-2026-09-01 09:24:16 | Epoch  15/100 | Train Loss 0.1579 | Val Loss 0.0748 MAE 10.7996 R2 0.3550
-2026-09-01 09:24:16 |   Val R2 improved to 0.3550, model saved
-2026-09-01 09:24:18 | Epoch  16/100 | Train Loss 0.1489 | Val Loss 0.0806 MAE 11.6479 R2 0.2462
-2026-09-01 09:24:20 | Epoch  17/100 | Train Loss 0.1431 | Val Loss 0.0732 MAE 10.7664 R2 0.3568
-2026-09-01 09:24:20 |   Val R2 improved to 0.3568, model saved
-2026-09-01 09:24:21 | Epoch  18/100 | Train Loss 0.1383 | Val Loss 0.0756 MAE 11.3404 R2 0.2852
-2026-09-01 09:24:23 | Epoch  19/100 | Train Loss 0.1321 | Val Loss 0.0733 MAE 11.0764 R2 0.3181
-2026-09-01 09:24:25 | Epoch  20/100 | Train Loss 0.1255 | Val Loss 0.0707 MAE 10.7607 R2 0.3575
-2026-09-01 09:24:25 |   Val R2 improved to 0.3575, model saved
-2026-09-01 09:24:26 | Epoch  21/100 | Train Loss 0.1213 | Val Loss 0.0694 MAE 10.6933 R2 0.3707
-2026-09-01 09:24:26 |   Val R2 improved to 0.3707, model saved
-2026-09-01 09:24:28 | Epoch  22/100 | Train Loss 0.1158 | Val Loss 0.0707 MAE 10.9619 R2 0.3353
-2026-09-01 09:24:30 | Epoch  23/100 | Train Loss 0.1151 | Val Loss 0.0701 MAE 10.9851 R2 0.3326
-2026-09-01 09:24:31 | Epoch  24/100 | Train Loss 0.1095 | Val Loss 0.0693 MAE 10.9600 R2 0.3347
-2026-09-01 09:24:33 | Epoch  25/100 | Train Loss 0.1052 | Val Loss 0.0689 MAE 10.9874 R2 0.3332
-2026-09-01 09:24:34 | Epoch  26/100 | Train Loss 0.1015 | Val Loss 0.0666 MAE 10.7003 R2 0.3722
-2026-09-01 09:24:34 |   Val R2 improved to 0.3722, model saved
-2026-09-01 09:24:36 | Epoch  27/100 | Train Loss 0.0976 | Val Loss 0.0667 MAE 10.7782 R2 0.3605
-2026-09-01 09:24:38 | Epoch  28/100 | Train Loss 0.0943 | Val Loss 0.0692 MAE 11.1007 R2 0.3133
-2026-09-01 09:24:39 | Epoch  29/100 | Train Loss 0.0922 | Val Loss 0.0698 MAE 11.2804 R2 0.2933
-2026-09-01 09:24:41 | Epoch  30/100 | Train Loss 0.0884 | Val Loss 0.0682 MAE 10.9705 R2 0.3317
-2026-09-01 09:24:43 | Epoch  31/100 | Train Loss 0.0847 | Val Loss 0.0667 MAE 11.0126 R2 0.3246
-2026-09-01 09:24:44 | Epoch  32/100 | Train Loss 0.0830 | Val Loss 0.0629 MAE 10.6198 R2 0.3777
-2026-09-01 09:24:44 |   Val R2 improved to 0.3777, model saved
-2026-09-01 09:24:46 | Epoch  33/100 | Train Loss 0.0830 | Val Loss 0.0644 MAE 10.8552 R2 0.3530
-2026-09-01 09:24:48 | Epoch  34/100 | Train Loss 0.0790 | Val Loss 0.0635 MAE 10.9383 R2 0.3404
-2026-09-01 09:24:49 | Epoch  35/100 | Train Loss 0.0765 | Val Loss 0.0627 MAE 10.7596 R2 0.3654
-2026-09-01 09:24:51 | Epoch  36/100 | Train Loss 0.0757 | Val Loss 0.0631 MAE 10.8640 R2 0.3490
-2026-09-01 09:24:53 | Epoch  37/100 | Train Loss 0.0741 | Val Loss 0.0687 MAE 11.6008 R2 0.2532
-2026-09-01 09:24:54 | Epoch  38/100 | Train Loss 0.0699 | Val Loss 0.0608 MAE 10.7819 R2 0.3612
-2026-09-01 09:24:56 | Epoch  39/100 | Train Loss 0.0695 | Val Loss 0.0606 MAE 10.8248 R2 0.3639
-2026-09-01 09:24:57 | Epoch  40/100 | Train Loss 0.0654 | Val Loss 0.0618 MAE 11.0746 R2 0.3263
-2026-09-01 09:24:59 | Epoch  41/100 | Train Loss 0.0661 | Val Loss 0.0594 MAE 10.7956 R2 0.3691
-2026-09-01 09:25:01 | Epoch  42/100 | Train Loss 0.0642 | Val Loss 0.0602 MAE 10.9917 R2 0.3389
-2026-09-01 09:25:01 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 42 (best R2 0.3777 @ Epoch 32)
-2026-09-01 09:25:01 | Run 5/5 | Test (best model @ Epoch 32) | Loss 0.0617 MAE 10.6801 R2 0.4156
-2026-09-01 09:25:01 | Average over 5 runs | Test Loss 0.0577±0.0033 MAE 11.1777±0.3316 R2 0.3740±0.0297
+2026-09-02 07:17:50 | Device: cuda
+2026-09-02 07:17:50 | Args: {'model': 'opb', 'backbone': 'cnn', 'task': 'agedb', 'epochs': 100, 'batch_size': 512, 'lr': 0.001, 'hidden_dims': [512, 256], 'dropout': 0.2, 'z_dim': 256, 'anchor_scale': 8.0, 'energy_classifier': False, 'tied_head': True, 'max_len': 250, 'random_labels': False, 'beta': 0.1, 'patience': 10, 'runs': 5, 'seed': 0, 'data_dir': './data', 'save_path': 'output/agedb_cnn_opb/agedb_cnn_opb.pt', 'log_path': '/root/autodl-tmp/IB/tune_results/agedb_cnn_opb_beta_0.1_anchor_8/train.log', 'no_save': True}
+2026-09-02 07:17:50 | AgeDB 图像：16488 张，年龄 1~101 岁
+2026-09-02 07:17:50 | AgeDB 划分（60/20/20）：train 9892 / val 3298 / test 3298（共 16488 张）
+2026-09-02 07:17:50 | AgeDB 预解码缓存命中：./data/agedb/agedb_64x64_uint8.npy
+2026-09-02 07:17:50 | AgeDB 加载完成：9892/3298/3298（batch 512，RGB 64x64，ImageNet 归一化），年龄 MinMax 归一化到 [0,1]（1~101 岁）
+2026-09-02 07:17:50 | ===== Run 1/5 (seed 0) =====
+2026-09-02 07:17:53 | Epoch   1/100 | Train Loss 1.3971 | Val Loss 0.9053 MAE 43.0915 R2 -6.2980
+2026-09-02 07:17:53 |   Val R2 improved to -6.2980, model saved
+2026-09-02 07:17:54 | Epoch   2/100 | Train Loss 0.8259 | Val Loss 0.6136 MAE 32.4875 R2 -3.5376
+2026-09-02 07:17:54 |   Val R2 improved to -3.5376, model saved
+2026-09-02 07:17:56 | Epoch   3/100 | Train Loss 0.4428 | Val Loss 0.1413 MAE 14.5842 R2 -0.1508
+2026-09-02 07:17:56 |   Val R2 improved to -0.1508, model saved
+2026-09-02 07:17:58 | Epoch   4/100 | Train Loss 0.2280 | Val Loss 0.1187 MAE 13.4944 R2 0.0148
+2026-09-02 07:17:58 |   Val R2 improved to 0.0148, model saved
+2026-09-02 07:17:59 | Epoch   5/100 | Train Loss 0.1896 | Val Loss 0.1034 MAE 12.5893 R2 0.1455
+2026-09-02 07:17:59 |   Val R2 improved to 0.1455, model saved
+2026-09-02 07:18:01 | Epoch   6/100 | Train Loss 0.1710 | Val Loss 0.0962 MAE 12.1836 R2 0.1954
+2026-09-02 07:18:01 |   Val R2 improved to 0.1954, model saved
+2026-09-02 07:18:03 | Epoch   7/100 | Train Loss 0.1573 | Val Loss 0.0926 MAE 11.9557 R2 0.2206
+2026-09-02 07:18:03 |   Val R2 improved to 0.2206, model saved
+2026-09-02 07:18:04 | Epoch   8/100 | Train Loss 0.1499 | Val Loss 0.0837 MAE 11.3530 R2 0.3068
+2026-09-02 07:18:04 |   Val R2 improved to 0.3068, model saved
+2026-09-02 07:18:06 | Epoch   9/100 | Train Loss 0.1445 | Val Loss 0.0825 MAE 11.2638 R2 0.3072
+2026-09-02 07:18:06 |   Val R2 improved to 0.3072, model saved
+2026-09-02 07:18:08 | Epoch  10/100 | Train Loss 0.1387 | Val Loss 0.0830 MAE 11.2401 R2 0.3009
+2026-09-02 07:18:09 | Epoch  11/100 | Train Loss 0.1329 | Val Loss 0.0797 MAE 11.0367 R2 0.3264
+2026-09-02 07:18:09 |   Val R2 improved to 0.3264, model saved
+2026-09-02 07:18:11 | Epoch  12/100 | Train Loss 0.1344 | Val Loss 0.0867 MAE 11.5533 R2 0.2619
+2026-09-02 07:18:13 | Epoch  13/100 | Train Loss 0.1286 | Val Loss 0.0768 MAE 10.9161 R2 0.3458
+2026-09-02 07:18:13 |   Val R2 improved to 0.3458, model saved
+2026-09-02 07:18:14 | Epoch  14/100 | Train Loss 0.1233 | Val Loss 0.0735 MAE 10.6628 R2 0.3744
+2026-09-02 07:18:14 |   Val R2 improved to 0.3744, model saved
+2026-09-02 07:18:16 | Epoch  15/100 | Train Loss 0.1216 | Val Loss 0.0804 MAE 11.1680 R2 0.3088
+2026-09-02 07:18:18 | Epoch  16/100 | Train Loss 0.1181 | Val Loss 0.0799 MAE 11.1485 R2 0.3114
+2026-09-02 07:18:19 | Epoch  17/100 | Train Loss 0.1178 | Val Loss 0.0839 MAE 11.4246 R2 0.2752
+2026-09-02 07:18:21 | Epoch  18/100 | Train Loss 0.1166 | Val Loss 0.0698 MAE 10.6332 R2 0.3963
+2026-09-02 07:18:21 |   Val R2 improved to 0.3963, model saved
+2026-09-02 07:18:23 | Epoch  19/100 | Train Loss 0.1127 | Val Loss 0.0738 MAE 10.7284 R2 0.3621
+2026-09-02 07:18:24 | Epoch  20/100 | Train Loss 0.1074 | Val Loss 0.0666 MAE 10.2847 R2 0.4196
+2026-09-02 07:18:24 |   Val R2 improved to 0.4196, model saved
+2026-09-02 07:18:26 | Epoch  21/100 | Train Loss 0.1056 | Val Loss 0.0670 MAE 10.3118 R2 0.4135
+2026-09-02 07:18:28 | Epoch  22/100 | Train Loss 0.1028 | Val Loss 0.0663 MAE 10.2795 R2 0.4191
+2026-09-02 07:18:29 | Epoch  23/100 | Train Loss 0.1002 | Val Loss 0.0669 MAE 10.3802 R2 0.4082
+2026-09-02 07:18:31 | Epoch  24/100 | Train Loss 0.1002 | Val Loss 0.0651 MAE 10.2213 R2 0.4233
+2026-09-02 07:18:31 |   Val R2 improved to 0.4233, model saved
+2026-09-02 07:18:33 | Epoch  25/100 | Train Loss 0.0945 | Val Loss 0.0678 MAE 10.4476 R2 0.3993
+2026-09-02 07:18:34 | Epoch  26/100 | Train Loss 0.0943 | Val Loss 0.0657 MAE 10.3535 R2 0.4128
+2026-09-02 07:18:36 | Epoch  27/100 | Train Loss 0.0940 | Val Loss 0.0628 MAE 10.1446 R2 0.4381
+2026-09-02 07:18:36 |   Val R2 improved to 0.4381, model saved
+2026-09-02 07:18:38 | Epoch  28/100 | Train Loss 0.0909 | Val Loss 0.0670 MAE 10.4685 R2 0.3975
+2026-09-02 07:18:39 | Epoch  29/100 | Train Loss 0.0891 | Val Loss 0.0641 MAE 10.3231 R2 0.4201
+2026-09-02 07:18:41 | Epoch  30/100 | Train Loss 0.0853 | Val Loss 0.0620 MAE 10.1080 R2 0.4409
+2026-09-02 07:18:41 |   Val R2 improved to 0.4409, model saved
+2026-09-02 07:18:43 | Epoch  31/100 | Train Loss 0.0842 | Val Loss 0.0634 MAE 10.3217 R2 0.4223
+2026-09-02 07:18:44 | Epoch  32/100 | Train Loss 0.0864 | Val Loss 0.0612 MAE 10.0853 R2 0.4406
+2026-09-02 07:18:46 | Epoch  33/100 | Train Loss 0.0820 | Val Loss 0.0637 MAE 10.2525 R2 0.4203
+2026-09-02 07:18:48 | Epoch  34/100 | Train Loss 0.0799 | Val Loss 0.0607 MAE 10.0602 R2 0.4418
+2026-09-02 07:18:48 |   Val R2 improved to 0.4418, model saved
+2026-09-02 07:18:50 | Epoch  35/100 | Train Loss 0.0759 | Val Loss 0.0606 MAE 10.1116 R2 0.4407
+2026-09-02 07:18:51 | Epoch  36/100 | Train Loss 0.0759 | Val Loss 0.0629 MAE 10.2917 R2 0.4169
+2026-09-02 07:18:53 | Epoch  37/100 | Train Loss 0.0749 | Val Loss 0.0604 MAE 10.1115 R2 0.4397
+2026-09-02 07:18:54 | Epoch  38/100 | Train Loss 0.0733 | Val Loss 0.0603 MAE 10.1108 R2 0.4370
+2026-09-02 07:18:56 | Epoch  39/100 | Train Loss 0.0728 | Val Loss 0.0615 MAE 10.1960 R2 0.4245
+2026-09-02 07:18:58 | Epoch  40/100 | Train Loss 0.0709 | Val Loss 0.0597 MAE 10.1423 R2 0.4380
+2026-09-02 07:19:00 | Epoch  41/100 | Train Loss 0.0689 | Val Loss 0.0602 MAE 10.1982 R2 0.4318
+2026-09-02 07:19:01 | Epoch  42/100 | Train Loss 0.0698 | Val Loss 0.0601 MAE 10.1746 R2 0.4314
+2026-09-02 07:19:03 | Epoch  43/100 | Train Loss 0.0667 | Val Loss 0.0627 MAE 10.3646 R2 0.4051
+2026-09-02 07:19:05 | Epoch  44/100 | Train Loss 0.0652 | Val Loss 0.0606 MAE 10.2728 R2 0.4224
+2026-09-02 07:19:05 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 44 (best R2 0.4418 @ Epoch 34)
+2026-09-02 07:19:05 | Run 1/5 | Test (best model @ Epoch 34) | Loss 0.0620 MAE 10.2468 R2 0.4504
+2026-09-02 07:19:05 | ===== Run 2/5 (seed 1) =====
+2026-09-02 07:19:07 | Epoch   1/100 | Train Loss 1.9086 | Val Loss 0.9402 MAE 43.9750 R2 -6.5565
+2026-09-02 07:19:07 |   Val R2 improved to -6.5565, model saved
+2026-09-02 07:19:08 | Epoch   2/100 | Train Loss 0.8652 | Val Loss 0.6828 MAE 35.0962 R2 -4.1463
+2026-09-02 07:19:08 |   Val R2 improved to -4.1463, model saved
+2026-09-02 07:19:10 | Epoch   3/100 | Train Loss 0.5119 | Val Loss 0.1626 MAE 15.5828 R2 -0.3188
+2026-09-02 07:19:10 |   Val R2 improved to -0.3188, model saved
+2026-09-02 07:19:11 | Epoch   4/100 | Train Loss 0.2561 | Val Loss 0.1260 MAE 13.9392 R2 -0.0505
+2026-09-02 07:19:11 |   Val R2 improved to -0.0505, model saved
+2026-09-02 07:19:13 | Epoch   5/100 | Train Loss 0.2153 | Val Loss 0.1113 MAE 13.1219 R2 0.0703
+2026-09-02 07:19:13 |   Val R2 improved to 0.0703, model saved
+2026-09-02 07:19:15 | Epoch   6/100 | Train Loss 0.2059 | Val Loss 0.1081 MAE 12.9255 R2 0.0929
+2026-09-02 07:19:15 |   Val R2 improved to 0.0929, model saved
+2026-09-02 07:19:16 | Epoch   7/100 | Train Loss 0.1881 | Val Loss 0.1043 MAE 12.6635 R2 0.1275
+2026-09-02 07:19:16 |   Val R2 improved to 0.1275, model saved
+2026-09-02 07:19:18 | Epoch   8/100 | Train Loss 0.1802 | Val Loss 0.0989 MAE 12.3401 R2 0.1718
+2026-09-02 07:19:18 |   Val R2 improved to 0.1718, model saved
+2026-09-02 07:19:20 | Epoch   9/100 | Train Loss 0.1756 | Val Loss 0.0994 MAE 12.3363 R2 0.1649
+2026-09-02 07:19:22 | Epoch  10/100 | Train Loss 0.1722 | Val Loss 0.0915 MAE 11.8383 R2 0.2361
+2026-09-02 07:19:22 |   Val R2 improved to 0.2361, model saved
+2026-09-02 07:19:23 | Epoch  11/100 | Train Loss 0.1646 | Val Loss 0.0896 MAE 11.6900 R2 0.2541
+2026-09-02 07:19:23 |   Val R2 improved to 0.2541, model saved
+2026-09-02 07:19:25 | Epoch  12/100 | Train Loss 0.1601 | Val Loss 0.0890 MAE 11.6343 R2 0.2595
+2026-09-02 07:19:25 |   Val R2 improved to 0.2595, model saved
+2026-09-02 07:19:27 | Epoch  13/100 | Train Loss 0.1553 | Val Loss 0.0897 MAE 11.6712 R2 0.2526
+2026-09-02 07:19:28 | Epoch  14/100 | Train Loss 0.1512 | Val Loss 0.0860 MAE 11.4400 R2 0.2864
+2026-09-02 07:19:28 |   Val R2 improved to 0.2864, model saved
+2026-09-02 07:19:30 | Epoch  15/100 | Train Loss 0.1475 | Val Loss 0.0878 MAE 11.5352 R2 0.2717
+2026-09-02 07:19:32 | Epoch  16/100 | Train Loss 0.1459 | Val Loss 0.0898 MAE 11.6591 R2 0.2529
+2026-09-02 07:19:33 | Epoch  17/100 | Train Loss 0.1422 | Val Loss 0.0802 MAE 11.0589 R2 0.3388
+2026-09-02 07:19:33 |   Val R2 improved to 0.3388, model saved
+2026-09-02 07:19:35 | Epoch  18/100 | Train Loss 0.1354 | Val Loss 0.0791 MAE 11.0494 R2 0.3414
+2026-09-02 07:19:35 |   Val R2 improved to 0.3414, model saved
+2026-09-02 07:19:37 | Epoch  19/100 | Train Loss 0.1360 | Val Loss 0.0777 MAE 10.9731 R2 0.3514
+2026-09-02 07:19:37 |   Val R2 improved to 0.3514, model saved
+2026-09-02 07:19:38 | Epoch  20/100 | Train Loss 0.1313 | Val Loss 0.0817 MAE 11.1956 R2 0.3161
+2026-09-02 07:19:40 | Epoch  21/100 | Train Loss 0.1278 | Val Loss 0.0821 MAE 11.2129 R2 0.3103
+2026-09-02 07:19:42 | Epoch  22/100 | Train Loss 0.1266 | Val Loss 0.0748 MAE 10.7933 R2 0.3705
+2026-09-02 07:19:42 |   Val R2 improved to 0.3705, model saved
+2026-09-02 07:19:43 | Epoch  23/100 | Train Loss 0.1222 | Val Loss 0.0737 MAE 10.7712 R2 0.3746
+2026-09-02 07:19:43 |   Val R2 improved to 0.3746, model saved
+2026-09-02 07:19:45 | Epoch  24/100 | Train Loss 0.1150 | Val Loss 0.0720 MAE 10.7020 R2 0.3818
+2026-09-02 07:19:45 |   Val R2 improved to 0.3818, model saved
+2026-09-02 07:19:47 | Epoch  25/100 | Train Loss 0.1176 | Val Loss 0.0714 MAE 10.6711 R2 0.3873
+2026-09-02 07:19:47 |   Val R2 improved to 0.3873, model saved
+2026-09-02 07:19:49 | Epoch  26/100 | Train Loss 0.1118 | Val Loss 0.0724 MAE 10.7337 R2 0.3774
+2026-09-02 07:19:50 | Epoch  27/100 | Train Loss 0.1110 | Val Loss 0.0698 MAE 10.6351 R2 0.3927
+2026-09-02 07:19:50 |   Val R2 improved to 0.3927, model saved
+2026-09-02 07:19:52 | Epoch  28/100 | Train Loss 0.1092 | Val Loss 0.0694 MAE 10.6506 R2 0.3902
+2026-09-02 07:19:54 | Epoch  29/100 | Train Loss 0.1041 | Val Loss 0.0693 MAE 10.6578 R2 0.3892
+2026-09-02 07:19:55 | Epoch  30/100 | Train Loss 0.1027 | Val Loss 0.0733 MAE 10.9491 R2 0.3515
+2026-09-02 07:19:57 | Epoch  31/100 | Train Loss 0.1016 | Val Loss 0.0715 MAE 10.8687 R2 0.3626
+2026-09-02 07:19:58 | Epoch  32/100 | Train Loss 0.1007 | Val Loss 0.0662 MAE 10.5659 R2 0.4051
+2026-09-02 07:19:58 |   Val R2 improved to 0.4051, model saved
+2026-09-02 07:20:00 | Epoch  33/100 | Train Loss 0.0985 | Val Loss 0.0644 MAE 10.4852 R2 0.4172
+2026-09-02 07:20:00 |   Val R2 improved to 0.4172, model saved
+2026-09-02 07:20:02 | Epoch  34/100 | Train Loss 0.0962 | Val Loss 0.0665 MAE 10.6431 R2 0.3948
+2026-09-02 07:20:03 | Epoch  35/100 | Train Loss 0.0957 | Val Loss 0.0658 MAE 10.5596 R2 0.4010
+2026-09-02 07:20:05 | Epoch  36/100 | Train Loss 0.0934 | Val Loss 0.0644 MAE 10.4717 R2 0.4096
+2026-09-02 07:20:07 | Epoch  37/100 | Train Loss 0.0924 | Val Loss 0.0624 MAE 10.3925 R2 0.4259
+2026-09-02 07:20:07 |   Val R2 improved to 0.4259, model saved
+2026-09-02 07:20:09 | Epoch  38/100 | Train Loss 0.0898 | Val Loss 0.0657 MAE 10.6354 R2 0.3915
+2026-09-02 07:20:10 | Epoch  39/100 | Train Loss 0.0902 | Val Loss 0.0631 MAE 10.4544 R2 0.4151
+2026-09-02 07:20:12 | Epoch  40/100 | Train Loss 0.0877 | Val Loss 0.0625 MAE 10.4088 R2 0.4188
+2026-09-02 07:20:14 | Epoch  41/100 | Train Loss 0.0860 | Val Loss 0.0625 MAE 10.4192 R2 0.4164
+2026-09-02 07:20:15 | Epoch  42/100 | Train Loss 0.0857 | Val Loss 0.0653 MAE 10.6387 R2 0.3878
+2026-09-02 07:20:17 | Epoch  43/100 | Train Loss 0.0872 | Val Loss 0.0606 MAE 10.3779 R2 0.4247
+2026-09-02 07:20:19 | Epoch  44/100 | Train Loss 0.0831 | Val Loss 0.0599 MAE 10.3163 R2 0.4298
+2026-09-02 07:20:19 |   Val R2 improved to 0.4298, model saved
+2026-09-02 07:20:20 | Epoch  45/100 | Train Loss 0.0823 | Val Loss 0.0591 MAE 10.2833 R2 0.4330
+2026-09-02 07:20:20 |   Val R2 improved to 0.4330, model saved
+2026-09-02 07:20:22 | Epoch  46/100 | Train Loss 0.0797 | Val Loss 0.0592 MAE 10.3644 R2 0.4278
+2026-09-02 07:20:24 | Epoch  47/100 | Train Loss 0.0808 | Val Loss 0.0585 MAE 10.3401 R2 0.4309
+2026-09-02 07:20:25 | Epoch  48/100 | Train Loss 0.0783 | Val Loss 0.0582 MAE 10.2903 R2 0.4320
+2026-09-02 07:20:27 | Epoch  49/100 | Train Loss 0.0773 | Val Loss 0.0599 MAE 10.4664 R2 0.4120
+2026-09-02 07:20:29 | Epoch  50/100 | Train Loss 0.0771 | Val Loss 0.0585 MAE 10.3943 R2 0.4226
+2026-09-02 07:20:30 | Epoch  51/100 | Train Loss 0.0732 | Val Loss 0.0576 MAE 10.3096 R2 0.4289
+2026-09-02 07:20:32 | Epoch  52/100 | Train Loss 0.0729 | Val Loss 0.0594 MAE 10.4820 R2 0.4086
+2026-09-02 07:20:34 | Epoch  53/100 | Train Loss 0.0729 | Val Loss 0.0585 MAE 10.4466 R2 0.4147
+2026-09-02 07:20:35 | Epoch  54/100 | Train Loss 0.0725 | Val Loss 0.0608 MAE 10.6402 R2 0.3885
+2026-09-02 07:20:37 | Epoch  55/100 | Train Loss 0.0724 | Val Loss 0.0573 MAE 10.3596 R2 0.4225
+2026-09-02 07:20:37 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 55 (best R2 0.4330 @ Epoch 45)
+2026-09-02 07:20:37 | Run 2/5 | Test (best model @ Epoch 45) | Loss 0.0614 MAE 10.5247 R2 0.4326
+2026-09-02 07:20:37 | ===== Run 3/5 (seed 2) =====
+2026-09-02 07:20:39 | Epoch   1/100 | Train Loss 1.3642 | Val Loss 0.9452 MAE 44.3537 R2 -6.6799
+2026-09-02 07:20:39 |   Val R2 improved to -6.6799, model saved
+2026-09-02 07:20:41 | Epoch   2/100 | Train Loss 0.9082 | Val Loss 0.8443 MAE 41.7265 R2 -5.9152
+2026-09-02 07:20:41 |   Val R2 improved to -5.9152, model saved
+2026-09-02 07:20:43 | Epoch   3/100 | Train Loss 0.7670 | Val Loss 0.6038 MAE 31.1330 R2 -3.2581
+2026-09-02 07:20:43 |   Val R2 improved to -3.2581, model saved
+2026-09-02 07:20:44 | Epoch   4/100 | Train Loss 0.5240 | Val Loss 0.3269 MAE 19.7994 R2 -1.0547
+2026-09-02 07:20:44 |   Val R2 improved to -1.0547, model saved
+2026-09-02 07:20:46 | Epoch   5/100 | Train Loss 0.3136 | Val Loss 0.1359 MAE 14.4590 R2 -0.1435
+2026-09-02 07:20:46 |   Val R2 improved to -0.1435, model saved
+2026-09-02 07:20:47 | Epoch   6/100 | Train Loss 0.2368 | Val Loss 0.1281 MAE 13.9265 R2 -0.0646
+2026-09-02 07:20:47 |   Val R2 improved to -0.0646, model saved
+2026-09-02 07:20:49 | Epoch   7/100 | Train Loss 0.2208 | Val Loss 0.1185 MAE 13.5346 R2 -0.0003
+2026-09-02 07:20:49 |   Val R2 improved to -0.0003, model saved
+2026-09-02 07:20:51 | Epoch   8/100 | Train Loss 0.2093 | Val Loss 0.1167 MAE 13.3910 R2 0.0178
+2026-09-02 07:20:51 |   Val R2 improved to 0.0178, model saved
+2026-09-02 07:20:52 | Epoch   9/100 | Train Loss 0.1967 | Val Loss 0.1094 MAE 12.9777 R2 0.0818
+2026-09-02 07:20:52 |   Val R2 improved to 0.0818, model saved
+2026-09-02 07:20:54 | Epoch  10/100 | Train Loss 0.1890 | Val Loss 0.1089 MAE 12.9161 R2 0.0866
+2026-09-02 07:20:54 |   Val R2 improved to 0.0866, model saved
+2026-09-02 07:20:56 | Epoch  11/100 | Train Loss 0.1770 | Val Loss 0.1060 MAE 12.7223 R2 0.1150
+2026-09-02 07:20:56 |   Val R2 improved to 0.1150, model saved
+2026-09-02 07:20:58 | Epoch  12/100 | Train Loss 0.1699 | Val Loss 0.1000 MAE 12.3551 R2 0.1736
+2026-09-02 07:20:58 |   Val R2 improved to 0.1736, model saved
+2026-09-02 07:20:59 | Epoch  13/100 | Train Loss 0.1621 | Val Loss 0.0968 MAE 12.1588 R2 0.2033
+2026-09-02 07:20:59 |   Val R2 improved to 0.2033, model saved
+2026-09-02 07:21:01 | Epoch  14/100 | Train Loss 0.1588 | Val Loss 0.0982 MAE 12.2254 R2 0.1921
+2026-09-02 07:21:03 | Epoch  15/100 | Train Loss 0.1547 | Val Loss 0.0977 MAE 12.1669 R2 0.1997
+2026-09-02 07:21:04 | Epoch  16/100 | Train Loss 0.1499 | Val Loss 0.0927 MAE 11.9592 R2 0.2382
+2026-09-02 07:21:04 |   Val R2 improved to 0.2382, model saved
+2026-09-02 07:21:06 | Epoch  17/100 | Train Loss 0.1451 | Val Loss 0.0925 MAE 11.9183 R2 0.2435
+2026-09-02 07:21:06 |   Val R2 improved to 0.2435, model saved
+2026-09-02 07:21:08 | Epoch  18/100 | Train Loss 0.1404 | Val Loss 0.0907 MAE 11.8543 R2 0.2548
+2026-09-02 07:21:08 |   Val R2 improved to 0.2548, model saved
+2026-09-02 07:21:09 | Epoch  19/100 | Train Loss 0.1395 | Val Loss 0.0922 MAE 11.9219 R2 0.2423
+2026-09-02 07:21:11 | Epoch  20/100 | Train Loss 0.1360 | Val Loss 0.0865 MAE 11.6747 R2 0.2848
+2026-09-02 07:21:11 |   Val R2 improved to 0.2848, model saved
+2026-09-02 07:21:12 | Epoch  21/100 | Train Loss 0.1331 | Val Loss 0.0892 MAE 11.7963 R2 0.2633
+2026-09-02 07:21:14 | Epoch  22/100 | Train Loss 0.1286 | Val Loss 0.0870 MAE 11.7117 R2 0.2763
+2026-09-02 07:21:16 | Epoch  23/100 | Train Loss 0.1295 | Val Loss 0.0859 MAE 11.5997 R2 0.2886
+2026-09-02 07:21:16 |   Val R2 improved to 0.2886, model saved
+2026-09-02 07:21:17 | Epoch  24/100 | Train Loss 0.1280 | Val Loss 0.0844 MAE 11.5753 R2 0.2936
+2026-09-02 07:21:17 |   Val R2 improved to 0.2936, model saved
+2026-09-02 07:21:19 | Epoch  25/100 | Train Loss 0.1233 | Val Loss 0.0822 MAE 11.4384 R2 0.3102
+2026-09-02 07:21:19 |   Val R2 improved to 0.3102, model saved
+2026-09-02 07:21:20 | Epoch  26/100 | Train Loss 0.1215 | Val Loss 0.0773 MAE 11.2542 R2 0.3390
+2026-09-02 07:21:20 |   Val R2 improved to 0.3390, model saved
+2026-09-02 07:21:22 | Epoch  27/100 | Train Loss 0.1194 | Val Loss 0.0822 MAE 11.4440 R2 0.3048
+2026-09-02 07:21:24 | Epoch  28/100 | Train Loss 0.1181 | Val Loss 0.0767 MAE 11.2021 R2 0.3397
+2026-09-02 07:21:24 |   Val R2 improved to 0.3397, model saved
+2026-09-02 07:21:25 | Epoch  29/100 | Train Loss 0.1164 | Val Loss 0.0752 MAE 11.2302 R2 0.3411
+2026-09-02 07:21:25 |   Val R2 improved to 0.3411, model saved
+2026-09-02 07:21:27 | Epoch  30/100 | Train Loss 0.1133 | Val Loss 0.0737 MAE 11.0442 R2 0.3566
+2026-09-02 07:21:27 |   Val R2 improved to 0.3566, model saved
+2026-09-02 07:21:29 | Epoch  31/100 | Train Loss 0.1125 | Val Loss 0.0728 MAE 11.0522 R2 0.3569
+2026-09-02 07:21:29 |   Val R2 improved to 0.3569, model saved
+2026-09-02 07:21:30 | Epoch  32/100 | Train Loss 0.1113 | Val Loss 0.0727 MAE 11.0812 R2 0.3532
+2026-09-02 07:21:32 | Epoch  33/100 | Train Loss 0.1094 | Val Loss 0.0791 MAE 11.4481 R2 0.2995
+2026-09-02 07:21:34 | Epoch  34/100 | Train Loss 0.1069 | Val Loss 0.0745 MAE 11.2435 R2 0.3287
+2026-09-02 07:21:35 | Epoch  35/100 | Train Loss 0.1058 | Val Loss 0.0693 MAE 10.9396 R2 0.3667
+2026-09-02 07:21:35 |   Val R2 improved to 0.3667, model saved
+2026-09-02 07:21:37 | Epoch  36/100 | Train Loss 0.1053 | Val Loss 0.0698 MAE 10.9877 R2 0.3594
+2026-09-02 07:21:39 | Epoch  37/100 | Train Loss 0.1039 | Val Loss 0.0706 MAE 11.0876 R2 0.3470
+2026-09-02 07:21:41 | Epoch  38/100 | Train Loss 0.1020 | Val Loss 0.0657 MAE 10.8064 R2 0.3824
+2026-09-02 07:21:41 |   Val R2 improved to 0.3824, model saved
+2026-09-02 07:21:42 | Epoch  39/100 | Train Loss 0.1014 | Val Loss 0.0671 MAE 10.9538 R2 0.3653
+2026-09-02 07:21:44 | Epoch  40/100 | Train Loss 0.1005 | Val Loss 0.0648 MAE 10.8337 R2 0.3799
+2026-09-02 07:21:46 | Epoch  41/100 | Train Loss 0.1021 | Val Loss 0.0675 MAE 11.0899 R2 0.3503
+2026-09-02 07:21:47 | Epoch  42/100 | Train Loss 0.0996 | Val Loss 0.0662 MAE 11.0213 R2 0.3579
+2026-09-02 07:21:49 | Epoch  43/100 | Train Loss 0.0967 | Val Loss 0.0652 MAE 10.9911 R2 0.3613
+2026-09-02 07:21:51 | Epoch  44/100 | Train Loss 0.0968 | Val Loss 0.0634 MAE 10.8667 R2 0.3740
+2026-09-02 07:21:53 | Epoch  45/100 | Train Loss 0.0943 | Val Loss 0.0616 MAE 10.7727 R2 0.3860
+2026-09-02 07:21:53 |   Val R2 improved to 0.3860, model saved
+2026-09-02 07:21:54 | Epoch  46/100 | Train Loss 0.0935 | Val Loss 0.0599 MAE 10.7034 R2 0.3958
+2026-09-02 07:21:54 |   Val R2 improved to 0.3958, model saved
+2026-09-02 07:21:56 | Epoch  47/100 | Train Loss 0.0953 | Val Loss 0.0643 MAE 11.0989 R2 0.3494
+2026-09-02 07:21:58 | Epoch  48/100 | Train Loss 0.0931 | Val Loss 0.0587 MAE 10.6665 R2 0.3993
+2026-09-02 07:21:58 |   Val R2 improved to 0.3993, model saved
+2026-09-02 07:21:59 | Epoch  49/100 | Train Loss 0.0933 | Val Loss 0.0594 MAE 10.7881 R2 0.3880
+2026-09-02 07:22:01 | Epoch  50/100 | Train Loss 0.0926 | Val Loss 0.0576 MAE 10.6140 R2 0.4034
+2026-09-02 07:22:01 |   Val R2 improved to 0.4034, model saved
+2026-09-02 07:22:03 | Epoch  51/100 | Train Loss 0.0907 | Val Loss 0.0620 MAE 11.0718 R2 0.3544
+2026-09-02 07:22:04 | Epoch  52/100 | Train Loss 0.0906 | Val Loss 0.0608 MAE 10.9947 R2 0.3624
+2026-09-02 07:22:06 | Epoch  53/100 | Train Loss 0.0894 | Val Loss 0.0577 MAE 10.7476 R2 0.3906
+2026-09-02 07:22:08 | Epoch  54/100 | Train Loss 0.0904 | Val Loss 0.0587 MAE 10.8707 R2 0.3769
+2026-09-02 07:22:09 | Epoch  55/100 | Train Loss 0.0892 | Val Loss 0.0552 MAE 10.5565 R2 0.4107
+2026-09-02 07:22:09 |   Val R2 improved to 0.4107, model saved
+2026-09-02 07:22:11 | Epoch  56/100 | Train Loss 0.0868 | Val Loss 0.0559 MAE 10.6725 R2 0.3994
+2026-09-02 07:22:12 | Epoch  57/100 | Train Loss 0.0868 | Val Loss 0.0553 MAE 10.6425 R2 0.4027
+2026-09-02 07:22:14 | Epoch  58/100 | Train Loss 0.0864 | Val Loss 0.0604 MAE 11.1369 R2 0.3458
+2026-09-02 07:22:16 | Epoch  59/100 | Train Loss 0.0860 | Val Loss 0.0557 MAE 10.7370 R2 0.3930
+2026-09-02 07:22:17 | Epoch  60/100 | Train Loss 0.0863 | Val Loss 0.0547 MAE 10.6251 R2 0.4022
+2026-09-02 07:22:19 | Epoch  61/100 | Train Loss 0.0861 | Val Loss 0.0559 MAE 10.7834 R2 0.3862
+2026-09-02 07:22:21 | Epoch  62/100 | Train Loss 0.0843 | Val Loss 0.0566 MAE 10.8934 R2 0.3750
+2026-09-02 07:22:23 | Epoch  63/100 | Train Loss 0.0851 | Val Loss 0.0525 MAE 10.4999 R2 0.4185
+2026-09-02 07:22:23 |   Val R2 improved to 0.4185, model saved
+2026-09-02 07:22:24 | Epoch  64/100 | Train Loss 0.0829 | Val Loss 0.0521 MAE 10.4812 R2 0.4202
+2026-09-02 07:22:24 |   Val R2 improved to 0.4202, model saved
+2026-09-02 07:22:26 | Epoch  65/100 | Train Loss 0.0834 | Val Loss 0.0527 MAE 10.5623 R2 0.4112
+2026-09-02 07:22:27 | Epoch  66/100 | Train Loss 0.0845 | Val Loss 0.0536 MAE 10.6603 R2 0.3995
+2026-09-02 07:22:29 | Epoch  67/100 | Train Loss 0.0816 | Val Loss 0.0521 MAE 10.5384 R2 0.4141
+2026-09-02 07:22:31 | Epoch  68/100 | Train Loss 0.0810 | Val Loss 0.0518 MAE 10.5202 R2 0.4160
+2026-09-02 07:22:32 | Epoch  69/100 | Train Loss 0.0818 | Val Loss 0.0526 MAE 10.6285 R2 0.4055
+2026-09-02 07:22:34 | Epoch  70/100 | Train Loss 0.0792 | Val Loss 0.0529 MAE 10.6562 R2 0.3999
+2026-09-02 07:22:36 | Epoch  71/100 | Train Loss 0.0792 | Val Loss 0.0512 MAE 10.4960 R2 0.4191
+2026-09-02 07:22:38 | Epoch  72/100 | Train Loss 0.0808 | Val Loss 0.0522 MAE 10.6105 R2 0.4052
+2026-09-02 07:22:39 | Epoch  73/100 | Train Loss 0.0798 | Val Loss 0.0512 MAE 10.5078 R2 0.4158
+2026-09-02 07:22:41 | Epoch  74/100 | Train Loss 0.0776 | Val Loss 0.0516 MAE 10.5583 R2 0.4100
+2026-09-02 07:22:41 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 74 (best R2 0.4202 @ Epoch 64)
+2026-09-02 07:22:41 | Run 3/5 | Test (best model @ Epoch 64) | Loss 0.0537 MAE 10.7819 R2 0.4230
+2026-09-02 07:22:41 | ===== Run 4/5 (seed 3) =====
+2026-09-02 07:22:43 | Epoch   1/100 | Train Loss 1.5115 | Val Loss 0.9834 MAE 45.4454 R2 -7.0119
+2026-09-02 07:22:43 |   Val R2 improved to -7.0119, model saved
+2026-09-02 07:22:45 | Epoch   2/100 | Train Loss 0.9503 | Val Loss 0.9006 MAE 43.6268 R2 -6.4619
+2026-09-02 07:22:45 |   Val R2 improved to -6.4619, model saved
+2026-09-02 07:22:46 | Epoch   3/100 | Train Loss 0.8575 | Val Loss 0.7917 MAE 40.5181 R2 -5.5735
+2026-09-02 07:22:46 |   Val R2 improved to -5.5735, model saved
+2026-09-02 07:22:48 | Epoch   4/100 | Train Loss 0.7400 | Val Loss 0.6649 MAE 36.2515 R2 -4.4580
+2026-09-02 07:22:48 |   Val R2 improved to -4.4580, model saved
+2026-09-02 07:22:50 | Epoch   5/100 | Train Loss 0.6149 | Val Loss 0.5438 MAE 31.6160 R2 -3.3807
+2026-09-02 07:22:50 |   Val R2 improved to -3.3807, model saved
+2026-09-02 07:22:51 | Epoch   6/100 | Train Loss 0.5041 | Val Loss 0.4417 MAE 27.2413 R2 -2.4781
+2026-09-02 07:22:51 |   Val R2 improved to -2.4781, model saved
+2026-09-02 07:22:53 | Epoch   7/100 | Train Loss 0.4140 | Val Loss 0.3615 MAE 23.5134 R2 -1.7774
+2026-09-02 07:22:53 |   Val R2 improved to -1.7774, model saved
+2026-09-02 07:22:55 | Epoch   8/100 | Train Loss 0.3443 | Val Loss 0.3010 MAE 20.5837 R2 -1.2554
+2026-09-02 07:22:55 |   Val R2 improved to -1.2554, model saved
+2026-09-02 07:22:56 | Epoch   9/100 | Train Loss 0.2941 | Val Loss 0.2560 MAE 18.4018 R2 -0.8741
+2026-09-02 07:22:56 |   Val R2 improved to -0.8741, model saved
+2026-09-02 07:22:58 | Epoch  10/100 | Train Loss 0.2560 | Val Loss 0.2234 MAE 16.8894 R2 -0.6053
+2026-09-02 07:22:58 |   Val R2 improved to -0.6053, model saved
+2026-09-02 07:23:00 | Epoch  11/100 | Train Loss 0.2291 | Val Loss 0.1995 MAE 15.8656 R2 -0.4162
+2026-09-02 07:23:00 |   Val R2 improved to -0.4162, model saved
+2026-09-02 07:23:02 | Epoch  12/100 | Train Loss 0.2098 | Val Loss 0.1821 MAE 15.2117 R2 -0.2868
+2026-09-02 07:23:02 |   Val R2 improved to -0.2868, model saved
+2026-09-02 07:23:03 | Epoch  13/100 | Train Loss 0.1939 | Val Loss 0.1691 MAE 14.7970 R2 -0.1971
+2026-09-02 07:23:03 |   Val R2 improved to -0.1971, model saved
+2026-09-02 07:23:05 | Epoch  14/100 | Train Loss 0.1844 | Val Loss 0.1594 MAE 14.5472 R2 -0.1385
+2026-09-02 07:23:05 |   Val R2 improved to -0.1385, model saved
+2026-09-02 07:23:07 | Epoch  15/100 | Train Loss 0.1759 | Val Loss 0.1519 MAE 14.3860 R2 -0.0974
+2026-09-02 07:23:07 |   Val R2 improved to -0.0974, model saved
+2026-09-02 07:23:08 | Epoch  16/100 | Train Loss 0.1700 | Val Loss 0.1460 MAE 14.2890 R2 -0.0706
+2026-09-02 07:23:08 |   Val R2 improved to -0.0706, model saved
+2026-09-02 07:23:10 | Epoch  17/100 | Train Loss 0.1654 | Val Loss 0.1411 MAE 14.2304 R2 -0.0521
+2026-09-02 07:23:10 |   Val R2 improved to -0.0521, model saved
+2026-09-02 07:23:12 | Epoch  18/100 | Train Loss 0.1619 | Val Loss 0.1371 MAE 14.1982 R2 -0.0392
+2026-09-02 07:23:12 |   Val R2 improved to -0.0392, model saved
+2026-09-02 07:23:14 | Epoch  19/100 | Train Loss 0.1572 | Val Loss 0.1337 MAE 14.1804 R2 -0.0315
+2026-09-02 07:23:14 |   Val R2 improved to -0.0315, model saved
+2026-09-02 07:23:15 | Epoch  20/100 | Train Loss 0.1549 | Val Loss 0.1306 MAE 14.1652 R2 -0.0250
+2026-09-02 07:23:15 |   Val R2 improved to -0.0250, model saved
+2026-09-02 07:23:17 | Epoch  21/100 | Train Loss 0.1522 | Val Loss 0.1279 MAE 14.1606 R2 -0.0206
+2026-09-02 07:23:17 |   Val R2 improved to -0.0206, model saved
+2026-09-02 07:23:19 | Epoch  22/100 | Train Loss 0.1493 | Val Loss 0.1255 MAE 14.1570 R2 -0.0176
+2026-09-02 07:23:19 |   Val R2 improved to -0.0176, model saved
+2026-09-02 07:23:20 | Epoch  23/100 | Train Loss 0.1482 | Val Loss 0.1234 MAE 14.1539 R2 -0.0151
+2026-09-02 07:23:20 |   Val R2 improved to -0.0151, model saved
+2026-09-02 07:23:22 | Epoch  24/100 | Train Loss 0.1449 | Val Loss 0.1213 MAE 14.1505 R2 -0.0126
+2026-09-02 07:23:22 |   Val R2 improved to -0.0126, model saved
+2026-09-02 07:23:24 | Epoch  25/100 | Train Loss 0.1436 | Val Loss 0.1195 MAE 14.1481 R2 -0.0110
+2026-09-02 07:23:24 |   Val R2 improved to -0.0110, model saved
+2026-09-02 07:23:26 | Epoch  26/100 | Train Loss 0.1418 | Val Loss 0.1177 MAE 14.1495 R2 -0.0095
+2026-09-02 07:23:26 |   Val R2 improved to -0.0095, model saved
+2026-09-02 07:23:27 | Epoch  27/100 | Train Loss 0.1420 | Val Loss 0.1162 MAE 14.1509 R2 -0.0089
+2026-09-02 07:23:27 |   Val R2 improved to -0.0089, model saved
+2026-09-02 07:23:29 | Epoch  28/100 | Train Loss 0.1389 | Val Loss 0.1147 MAE 14.1526 R2 -0.0081
+2026-09-02 07:23:29 |   Val R2 improved to -0.0081, model saved
+2026-09-02 07:23:31 | Epoch  29/100 | Train Loss 0.1376 | Val Loss 0.1133 MAE 14.1544 R2 -0.0074
+2026-09-02 07:23:31 |   Val R2 improved to -0.0074, model saved
+2026-09-02 07:23:32 | Epoch  30/100 | Train Loss 0.1363 | Val Loss 0.1119 MAE 14.1563 R2 -0.0066
+2026-09-02 07:23:32 |   Val R2 improved to -0.0066, model saved
+2026-09-02 07:23:34 | Epoch  31/100 | Train Loss 0.1352 | Val Loss 0.1107 MAE 14.1567 R2 -0.0064
+2026-09-02 07:23:34 |   Val R2 improved to -0.0064, model saved
+2026-09-02 07:23:36 | Epoch  32/100 | Train Loss 0.1345 | Val Loss 0.1095 MAE 14.1576 R2 -0.0061
+2026-09-02 07:23:36 |   Val R2 improved to -0.0061, model saved
+2026-09-02 07:23:37 | Epoch  33/100 | Train Loss 0.1337 | Val Loss 0.1083 MAE 14.1589 R2 -0.0056
+2026-09-02 07:23:37 |   Val R2 improved to -0.0056, model saved
+2026-09-02 07:23:39 | Epoch  34/100 | Train Loss 0.1328 | Val Loss 0.1072 MAE 14.1600 R2 -0.0052
+2026-09-02 07:23:39 |   Val R2 improved to -0.0052, model saved
+2026-09-02 07:23:41 | Epoch  35/100 | Train Loss 0.1317 | Val Loss 0.1062 MAE 14.1599 R2 -0.0053
+2026-09-02 07:23:43 | Epoch  36/100 | Train Loss 0.1308 | Val Loss 0.1052 MAE 14.1607 R2 -0.0050
+2026-09-02 07:23:43 |   Val R2 improved to -0.0050, model saved
+2026-09-02 07:23:44 | Epoch  37/100 | Train Loss 0.1311 | Val Loss 0.1043 MAE 14.1606 R2 -0.0050
+2026-09-02 07:23:46 | Epoch  38/100 | Train Loss 0.1286 | Val Loss 0.1033 MAE 14.1620 R2 -0.0046
+2026-09-02 07:23:46 |   Val R2 improved to -0.0046, model saved
+2026-09-02 07:23:48 | Epoch  39/100 | Train Loss 0.1284 | Val Loss 0.1024 MAE 14.1644 R2 -0.0038
+2026-09-02 07:23:48 |   Val R2 improved to -0.0038, model saved
+2026-09-02 07:23:49 | Epoch  40/100 | Train Loss 0.1275 | Val Loss 0.1016 MAE 14.1643 R2 -0.0039
+2026-09-02 07:23:51 | Epoch  41/100 | Train Loss 0.1275 | Val Loss 0.1007 MAE 14.1656 R2 -0.0035
+2026-09-02 07:23:51 |   Val R2 improved to -0.0035, model saved
+2026-09-02 07:23:53 | Epoch  42/100 | Train Loss 0.1268 | Val Loss 0.0999 MAE 14.1666 R2 -0.0032
+2026-09-02 07:23:53 |   Val R2 improved to -0.0032, model saved
+2026-09-02 07:23:54 | Epoch  43/100 | Train Loss 0.1260 | Val Loss 0.0992 MAE 14.1653 R2 -0.0035
+2026-09-02 07:23:56 | Epoch  44/100 | Train Loss 0.1244 | Val Loss 0.0984 MAE 14.1665 R2 -0.0032
+2026-09-02 07:23:58 | Epoch  45/100 | Train Loss 0.1248 | Val Loss 0.0977 MAE 14.1666 R2 -0.0032
+2026-09-02 07:23:59 | Epoch  46/100 | Train Loss 0.1241 | Val Loss 0.0970 MAE 14.1673 R2 -0.0030
+2026-09-02 07:23:59 |   Val R2 improved to -0.0030, model saved
+2026-09-02 07:24:01 | Epoch  47/100 | Train Loss 0.1234 | Val Loss 0.0963 MAE 14.1673 R2 -0.0030
+2026-09-02 07:24:03 | Epoch  48/100 | Train Loss 0.1224 | Val Loss 0.0956 MAE 14.1678 R2 -0.0029
+2026-09-02 07:24:03 |   Val R2 improved to -0.0029, model saved
+2026-09-02 07:24:05 | Epoch  49/100 | Train Loss 0.1228 | Val Loss 0.0950 MAE 14.1684 R2 -0.0027
+2026-09-02 07:24:05 |   Val R2 improved to -0.0027, model saved
+2026-09-02 07:24:06 | Epoch  50/100 | Train Loss 0.1215 | Val Loss 0.0943 MAE 14.1677 R2 -0.0029
+2026-09-02 07:24:08 | Epoch  51/100 | Train Loss 0.1221 | Val Loss 0.0937 MAE 14.1685 R2 -0.0027
+2026-09-02 07:24:08 |   Val R2 improved to -0.0027, model saved
+2026-09-02 07:24:10 | Epoch  52/100 | Train Loss 0.1208 | Val Loss 0.0931 MAE 14.1666 R2 -0.0032
+2026-09-02 07:24:11 | Epoch  53/100 | Train Loss 0.1209 | Val Loss 0.0925 MAE 14.1678 R2 -0.0029
+2026-09-02 07:24:13 | Epoch  54/100 | Train Loss 0.1203 | Val Loss 0.0920 MAE 14.1689 R2 -0.0026
+2026-09-02 07:24:13 |   Val R2 improved to -0.0026, model saved
+2026-09-02 07:24:15 | Epoch  55/100 | Train Loss 0.1192 | Val Loss 0.0914 MAE 14.1684 R2 -0.0027
+2026-09-02 07:24:16 | Epoch  56/100 | Train Loss 0.1187 | Val Loss 0.0908 MAE 14.1689 R2 -0.0026
+2026-09-02 07:24:18 | Epoch  57/100 | Train Loss 0.1186 | Val Loss 0.0903 MAE 14.1709 R2 -0.0021
+2026-09-02 07:24:18 |   Val R2 improved to -0.0021, model saved
+2026-09-02 07:24:20 | Epoch  58/100 | Train Loss 0.1190 | Val Loss 0.0897 MAE 14.1735 R2 -0.0018
+2026-09-02 07:24:20 |   Val R2 improved to -0.0018, model saved
+2026-09-02 07:24:22 | Epoch  59/100 | Train Loss 0.1172 | Val Loss 0.0892 MAE 14.1738 R2 -0.0018
+2026-09-02 07:24:22 |   Val R2 improved to -0.0018, model saved
+2026-09-02 07:24:23 | Epoch  60/100 | Train Loss 0.1184 | Val Loss 0.0887 MAE 14.1714 R2 -0.0020
+2026-09-02 07:24:25 | Epoch  61/100 | Train Loss 0.1178 | Val Loss 0.0882 MAE 14.1732 R2 -0.0019
+2026-09-02 07:24:27 | Epoch  62/100 | Train Loss 0.1173 | Val Loss 0.0877 MAE 14.1712 R2 -0.0021
+2026-09-02 07:24:28 | Epoch  63/100 | Train Loss 0.1174 | Val Loss 0.0872 MAE 14.1719 R2 -0.0020
+2026-09-02 07:24:30 | Epoch  64/100 | Train Loss 0.1161 | Val Loss 0.0868 MAE 14.1749 R2 -0.0017
+2026-09-02 07:24:30 |   Val R2 improved to -0.0017, model saved
+2026-09-02 07:24:32 | Epoch  65/100 | Train Loss 0.1168 | Val Loss 0.0863 MAE 14.1760 R2 -0.0017
+2026-09-02 07:24:32 |   Val R2 improved to -0.0017, model saved
+2026-09-02 07:24:33 | Epoch  66/100 | Train Loss 0.1161 | Val Loss 0.0858 MAE 14.1760 R2 -0.0017
+2026-09-02 07:24:35 | Epoch  67/100 | Train Loss 0.1164 | Val Loss 0.0854 MAE 14.1720 R2 -0.0019
+2026-09-02 07:24:37 | Epoch  68/100 | Train Loss 0.1154 | Val Loss 0.0850 MAE 14.1724 R2 -0.0019
+2026-09-02 07:24:39 | Epoch  69/100 | Train Loss 0.1147 | Val Loss 0.0846 MAE 14.1722 R2 -0.0019
+2026-09-02 07:24:40 | Epoch  70/100 | Train Loss 0.1146 | Val Loss 0.0842 MAE 14.1721 R2 -0.0019
+2026-09-02 07:24:42 | Epoch  71/100 | Train Loss 0.1144 | Val Loss 0.0837 MAE 14.1752 R2 -0.0017
+2026-09-02 07:24:43 | Epoch  72/100 | Train Loss 0.1145 | Val Loss 0.0833 MAE 14.1771 R2 -0.0016
+2026-09-02 07:24:43 |   Val R2 improved to -0.0016, model saved
+2026-09-02 07:24:45 | Epoch  73/100 | Train Loss 0.1155 | Val Loss 0.0829 MAE 14.1828 R2 -0.0012
+2026-09-02 07:24:45 |   Val R2 improved to -0.0012, model saved
+2026-09-02 07:24:47 | Epoch  74/100 | Train Loss 0.1155 | Val Loss 0.0826 MAE 14.1764 R2 -0.0016
+2026-09-02 07:24:48 | Epoch  75/100 | Train Loss 0.1138 | Val Loss 0.0822 MAE 14.1730 R2 -0.0019
+2026-09-02 07:24:50 | Epoch  76/100 | Train Loss 0.1133 | Val Loss 0.0818 MAE 14.1718 R2 -0.0020
+2026-09-02 07:24:52 | Epoch  77/100 | Train Loss 0.1139 | Val Loss 0.0814 MAE 14.1789 R2 -0.0015
+2026-09-02 07:24:53 | Epoch  78/100 | Train Loss 0.1139 | Val Loss 0.0811 MAE 14.1822 R2 -0.0013
+2026-09-02 07:24:55 | Epoch  79/100 | Train Loss 0.1136 | Val Loss 0.0808 MAE 14.1778 R2 -0.0015
+2026-09-02 07:24:57 | Epoch  80/100 | Train Loss 0.1131 | Val Loss 0.0804 MAE 14.1735 R2 -0.0018
+2026-09-02 07:24:58 | Epoch  81/100 | Train Loss 0.1123 | Val Loss 0.0801 MAE 14.1772 R2 -0.0016
+2026-09-02 07:25:00 | Epoch  82/100 | Train Loss 0.1131 | Val Loss 0.0797 MAE 14.1803 R2 -0.0014
+2026-09-02 07:25:02 | Epoch  83/100 | Train Loss 0.1135 | Val Loss 0.0794 MAE 14.1781 R2 -0.0015
+2026-09-02 07:25:02 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 83 (best R2 -0.0012 @ Epoch 73)
+2026-09-02 07:25:02 | Run 4/5 | Test (best model @ Epoch 73) | Loss 0.0858 MAE 14.6324 R2 -0.0004
+2026-09-02 07:25:02 | ===== Run 5/5 (seed 4) =====
+2026-09-02 07:25:04 | Epoch   1/100 | Train Loss 1.3772 | Val Loss 0.9448 MAE 44.2871 R2 -6.6656
+2026-09-02 07:25:04 |   Val R2 improved to -6.6656, model saved
+2026-09-02 07:25:05 | Epoch   2/100 | Train Loss 0.8604 | Val Loss 0.6311 MAE 32.4303 R2 -3.6024
+2026-09-02 07:25:05 |   Val R2 improved to -3.6024, model saved
+2026-09-02 07:25:07 | Epoch   3/100 | Train Loss 0.4763 | Val Loss 0.1505 MAE 15.0943 R2 -0.2269
+2026-09-02 07:25:07 |   Val R2 improved to -0.2269, model saved
+2026-09-02 07:25:09 | Epoch   4/100 | Train Loss 0.2248 | Val Loss 0.1201 MAE 13.6325 R2 -0.0036
+2026-09-02 07:25:09 |   Val R2 improved to -0.0036, model saved
+2026-09-02 07:25:10 | Epoch   5/100 | Train Loss 0.1956 | Val Loss 0.1090 MAE 13.0024 R2 0.0877
+2026-09-02 07:25:10 |   Val R2 improved to 0.0877, model saved
+2026-09-02 07:25:12 | Epoch   6/100 | Train Loss 0.1836 | Val Loss 0.1000 MAE 12.4420 R2 0.1672
+2026-09-02 07:25:12 |   Val R2 improved to 0.1672, model saved
+2026-09-02 07:25:14 | Epoch   7/100 | Train Loss 0.1752 | Val Loss 0.0933 MAE 12.0213 R2 0.2178
+2026-09-02 07:25:14 |   Val R2 improved to 0.2178, model saved
+2026-09-02 07:25:15 | Epoch   8/100 | Train Loss 0.1632 | Val Loss 0.0865 MAE 11.6191 R2 0.2777
+2026-09-02 07:25:15 |   Val R2 improved to 0.2777, model saved
+2026-09-02 07:25:17 | Epoch   9/100 | Train Loss 0.1576 | Val Loss 0.0963 MAE 12.1347 R2 0.1884
+2026-09-02 07:25:19 | Epoch  10/100 | Train Loss 0.1554 | Val Loss 0.0831 MAE 11.3136 R2 0.3103
+2026-09-02 07:25:19 |   Val R2 improved to 0.3103, model saved
+2026-09-02 07:25:20 | Epoch  11/100 | Train Loss 0.1493 | Val Loss 0.0848 MAE 11.4022 R2 0.2889
+2026-09-02 07:25:22 | Epoch  12/100 | Train Loss 0.1433 | Val Loss 0.0862 MAE 11.4996 R2 0.2739
+2026-09-02 07:25:23 | Epoch  13/100 | Train Loss 0.1400 | Val Loss 0.0799 MAE 11.1100 R2 0.3283
+2026-09-02 07:25:23 |   Val R2 improved to 0.3283, model saved
+2026-09-02 07:25:25 | Epoch  14/100 | Train Loss 0.1334 | Val Loss 0.0813 MAE 11.1924 R2 0.3148
+2026-09-02 07:25:27 | Epoch  15/100 | Train Loss 0.1318 | Val Loss 0.0757 MAE 10.8665 R2 0.3618
+2026-09-02 07:25:27 |   Val R2 improved to 0.3618, model saved
+2026-09-02 07:25:28 | Epoch  16/100 | Train Loss 0.1287 | Val Loss 0.0777 MAE 10.9505 R2 0.3441
+2026-09-02 07:25:30 | Epoch  17/100 | Train Loss 0.1271 | Val Loss 0.0748 MAE 10.7709 R2 0.3705
+2026-09-02 07:25:30 |   Val R2 improved to 0.3705, model saved
+2026-09-02 07:25:31 | Epoch  18/100 | Train Loss 0.1213 | Val Loss 0.0757 MAE 10.8816 R2 0.3559
+2026-09-02 07:25:33 | Epoch  19/100 | Train Loss 0.1216 | Val Loss 0.0720 MAE 10.6935 R2 0.3847
+2026-09-02 07:25:33 |   Val R2 improved to 0.3847, model saved
+2026-09-02 07:25:35 | Epoch  20/100 | Train Loss 0.1154 | Val Loss 0.0717 MAE 10.6440 R2 0.3860
+2026-09-02 07:25:35 |   Val R2 improved to 0.3860, model saved
+2026-09-02 07:25:36 | Epoch  21/100 | Train Loss 0.1171 | Val Loss 0.0697 MAE 10.5464 R2 0.3994
+2026-09-02 07:25:36 |   Val R2 improved to 0.3994, model saved
+2026-09-02 07:25:38 | Epoch  22/100 | Train Loss 0.1162 | Val Loss 0.0767 MAE 10.9260 R2 0.3421
+2026-09-02 07:25:40 | Epoch  23/100 | Train Loss 0.1126 | Val Loss 0.0730 MAE 10.7842 R2 0.3627
+2026-09-02 07:25:41 | Epoch  24/100 | Train Loss 0.1094 | Val Loss 0.0701 MAE 10.6060 R2 0.3842
+2026-09-02 07:25:43 | Epoch  25/100 | Train Loss 0.1068 | Val Loss 0.0679 MAE 10.5168 R2 0.3989
+2026-09-02 07:25:45 | Epoch  26/100 | Train Loss 0.1065 | Val Loss 0.0672 MAE 10.5305 R2 0.3976
+2026-09-02 07:25:46 | Epoch  27/100 | Train Loss 0.1022 | Val Loss 0.0659 MAE 10.4086 R2 0.4116
+2026-09-02 07:25:46 |   Val R2 improved to 0.4116, model saved
+2026-09-02 07:25:48 | Epoch  28/100 | Train Loss 0.1023 | Val Loss 0.0667 MAE 10.4766 R2 0.3993
+2026-09-02 07:25:50 | Epoch  29/100 | Train Loss 0.0985 | Val Loss 0.0694 MAE 10.6877 R2 0.3707
+2026-09-02 07:25:51 | Epoch  30/100 | Train Loss 0.0990 | Val Loss 0.0700 MAE 10.7454 R2 0.3635
+2026-09-02 07:25:53 | Epoch  31/100 | Train Loss 0.0963 | Val Loss 0.0653 MAE 10.3996 R2 0.4046
+2026-09-02 07:25:55 | Epoch  32/100 | Train Loss 0.0954 | Val Loss 0.0639 MAE 10.3375 R2 0.4113
+2026-09-02 07:25:56 | Epoch  33/100 | Train Loss 0.0942 | Val Loss 0.0639 MAE 10.3941 R2 0.4085
+2026-09-02 07:25:58 | Epoch  34/100 | Train Loss 0.0923 | Val Loss 0.0646 MAE 10.4247 R2 0.4015
+2026-09-02 07:26:00 | Epoch  35/100 | Train Loss 0.0915 | Val Loss 0.0623 MAE 10.3114 R2 0.4164
+2026-09-02 07:26:00 |   Val R2 improved to 0.4164, model saved
+2026-09-02 07:26:01 | Epoch  36/100 | Train Loss 0.0914 | Val Loss 0.0611 MAE 10.3120 R2 0.4210
+2026-09-02 07:26:01 |   Val R2 improved to 0.4210, model saved
+2026-09-02 07:26:03 | Epoch  37/100 | Train Loss 0.0870 | Val Loss 0.0619 MAE 10.3314 R2 0.4119
+2026-09-02 07:26:05 | Epoch  38/100 | Train Loss 0.0863 | Val Loss 0.0656 MAE 10.6758 R2 0.3741
+2026-09-02 07:26:06 | Epoch  39/100 | Train Loss 0.0870 | Val Loss 0.0584 MAE 10.1467 R2 0.4363
+2026-09-02 07:26:06 |   Val R2 improved to 0.4363, model saved
+2026-09-02 07:26:08 | Epoch  40/100 | Train Loss 0.0838 | Val Loss 0.0585 MAE 10.1697 R2 0.4340
+2026-09-02 07:26:10 | Epoch  41/100 | Train Loss 0.0838 | Val Loss 0.0603 MAE 10.3379 R2 0.4135
+2026-09-02 07:26:11 | Epoch  42/100 | Train Loss 0.0813 | Val Loss 0.0571 MAE 10.1781 R2 0.4380
+2026-09-02 07:26:11 |   Val R2 improved to 0.4380, model saved
+2026-09-02 07:26:13 | Epoch  43/100 | Train Loss 0.0803 | Val Loss 0.0571 MAE 10.1627 R2 0.4373
+2026-09-02 07:26:15 | Epoch  44/100 | Train Loss 0.0794 | Val Loss 0.0573 MAE 10.2097 R2 0.4323
+2026-09-02 07:26:16 | Epoch  45/100 | Train Loss 0.0791 | Val Loss 0.0585 MAE 10.3447 R2 0.4207
+2026-09-02 07:26:18 | Epoch  46/100 | Train Loss 0.0779 | Val Loss 0.0615 MAE 10.4945 R2 0.3927
+2026-09-02 07:26:20 | Epoch  47/100 | Train Loss 0.0749 | Val Loss 0.0592 MAE 10.3112 R2 0.4121
+2026-09-02 07:26:21 | Epoch  48/100 | Train Loss 0.0764 | Val Loss 0.0613 MAE 10.5030 R2 0.3900
+2026-09-02 07:26:23 | Epoch  49/100 | Train Loss 0.0746 | Val Loss 0.0563 MAE 10.1739 R2 0.4362
+2026-09-02 07:26:25 | Epoch  50/100 | Train Loss 0.0739 | Val Loss 0.0567 MAE 10.1355 R2 0.4343
+2026-09-02 07:26:26 | Epoch  51/100 | Train Loss 0.0719 | Val Loss 0.0570 MAE 10.1664 R2 0.4291
+2026-09-02 07:26:28 | Epoch  52/100 | Train Loss 0.0716 | Val Loss 0.0563 MAE 10.2457 R2 0.4298
+2026-09-02 07:26:28 | Val R2 did not improve for 10 consecutive epochs, early stopping at Epoch 52 (best R2 0.4380 @ Epoch 42)
+2026-09-02 07:26:28 | Run 5/5 | Test (best model @ Epoch 42) | Loss 0.0582 MAE 10.4459 R2 0.4480
+2026-09-02 07:26:28 | Average over 5 runs | Test Loss 0.0642±0.0125 MAE 11.3264±1.8581 R2 0.3507±0.1966

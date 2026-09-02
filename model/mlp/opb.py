@@ -49,6 +49,10 @@ class OPB(nn.Module):
     logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)（paper/OPB.txt §12），τ² 取
     prior_net 方差块的逐类可学习 exp(logvar)，与 KL 共用同一套锚点和方差、
     无法绕过正交几何；self.classifier 保留为死参数（state_dict 键不变）。
+    消融（tied_head=True，仅回归）：回归头改为 tied projection head
+    y_hat_tilde = uᵀz/rho（paper/OPB-R.txt §7.1），与 KL 共用同一条等距轴、
+    无自由尺度；模型输出标准化预测 (B,1)，反标准化由训练管道的 y_scaler
+    逆归一化完成；self.classifier 保留为死参数。
     """
 
     def __init__(
@@ -61,6 +65,7 @@ class OPB(nn.Module):
         anchor_scale: float = 4.0,
         continuous_y: bool = False,
         energy_classifier: bool = False,
+        tied_head: bool = False,
     ):
         super().__init__()
         assert num_classes <= z_dim, "OPB 正交先验要求类别数不超过 z 维度"
@@ -69,10 +74,16 @@ class OPB(nn.Module):
                 "能量分类器是分类方案（paper/OPB.txt §12）的消融，回归"
                 "（continuous_y）无类别锚点表，不支持 energy_classifier"
             )
+        if tied_head and not continuous_y:
+            raise ValueError(
+                "tied 投影头是回归方案（paper/OPB-R.txt）的消融，分类"
+                "（continuous_y=False）无等距轴，不支持 tied_head"
+            )
         self.num_classes = num_classes
         self.anchor_scale = anchor_scale
         self.continuous_y = continuous_y
         self.energy_classifier = energy_classifier
+        self.tied_head = tied_head
 
         self.encoder = nn.Sequential(
             *build_hidden_layers(input_dim, hidden_dims, dropout)
@@ -152,12 +163,18 @@ class OPB(nn.Module):
         z = reparameterize(mu, logvar, stochastic)
 
         if self.continuous_y:
-            logits = self.classifier(z)
+            # 回归：等距轴先验（复用训练管道已 MinMax 归一化的连续标签）
+            u = F.normalize(self.prior_direction.weight.squeeze(-1), dim=0)  # (d,)
+            if self.tied_head:
+                # tied 投影头（paper/OPB-R.txt §7.1 消融）：y_hat_tilde = u^T z / rho，
+                # 与 KL 共用同一条等距轴、无自由尺度；反标准化由训练管道的
+                # y_scaler 逆归一化完成（模型输出标准化预测 (B,1)）
+                logits = ((z @ u) / self.anchor_scale).unsqueeze(-1)
+            else:
+                logits = self.classifier(z)
             if labels is None:
                 return logits, None
-            # 回归：等距轴先验（复用训练管道已 MinMax 归一化的连续标签）
             y_feat = labels.float().unsqueeze(-1)  # (B, 1)
-            u = F.normalize(self.prior_direction.weight.squeeze(-1), dim=0)  # (d,)
             mu_p = self.anchor_scale * y_feat * u  # (B, d)
             logvar_p = self.prior_logvar_net(y_feat)
         elif self.energy_classifier:
