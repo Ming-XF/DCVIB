@@ -33,7 +33,7 @@ TASK_NAMES = {
     "cora": "Cora",
     "imdb": "IMDb",
     "agnews": "AG News",
-    "housing": "California Housing",
+    "housing": "Cal. Housing",
     "stsb": "STS-B",
     "zinc": "ZINC",
     "agedb": "AgeDB",
@@ -50,13 +50,14 @@ ROW_ORDER = [
 ]
 
 # 表格列顺序与列名；html 里基础模型名为 mlp/cnn/gcn/rnn，统一归到 "base" 列。
-# opbl 是 opb 的 linear 消融（结果目录 tune_results 中 opb 已改名为 opbl），
-# 排在 opb 之后；"opb" 在 COLUMN_ORDER 中的位置是竖线插入点（其左侧加竖线，
-# 把 OPB/OPB-L 与前面的 baseline 方法隔开）。
+# "opb" 列在表格中显示为 GPB（分类行为 OPB、回归行为 EPB，即几何先验瓶颈的
+# 两个实例）；opbl 是 opb 的 linear 消融（结果目录 tune_results 中 opb 已改名
+# 为 opbl），排在 opb 之后；"opb" 在 COLUMN_ORDER 中的位置是竖线插入点
+# （其左侧加竖线，把 GPB/OPB-L 与前面的 baseline 方法隔开）。
 COLUMN_ORDER = ["base", "vib", "svib", "nib", "ceb", "dvcca", "opb", "opbl"]
 COLUMN_NAMES = {
     "base": "Base", "vib": "VIB", "svib": "SVIB", "nib": "NIB",
-    "ceb": "CEB", "dvcca": "DVCCA", "opb": "OPB", "opbl": "OPB-L",
+    "ceb": "CEB", "dvcca": "DVCCA", "opb": "GPB", "opbl": "OPB-L",
 }
 
 
@@ -231,7 +232,7 @@ def gen_table(grid):
         "\\label{tab:main_result}",
         "\\small",
         "{",  # 花括号限定 tabcolsep 只在本表生效，不泄漏到论文其他表格
-        "\\setlength{\\tabcolsep}{3pt}",  # 压缩列间距以收窄表格
+        "\\setlength{\\tabcolsep}{2pt}",  # 压缩列间距以收窄表格
         # opb 左侧插入竖线：OPB/OPB-L 与前面的 baseline 方法隔开
         "\\begin{tabular}{ll" + "c" * COLUMN_ORDER.index("opb") + "|"
         + "c" * (len(COLUMN_ORDER) - COLUMN_ORDER.index("opb")) + "}",
