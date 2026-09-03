@@ -26,6 +26,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack
 from pathlib import Path
 
+import numpy as np
+
 from train import get_dataset_name
 from tune import (
     BASELINES,
@@ -44,6 +46,139 @@ from tune import (
 from utils import curve_card, curve_css, curve_script, plot_bounds
 
 ROOT = Path(__file__).resolve().parent
+
+# 配对差值 95% CI 的非劣界：分类 0.2 百分点（Acc 原始值 0.002）、回归 R² 0.005
+DIFF_CI_DELTA = {"Acc": 0.002, "R2": 0.005}
+DIFF_CI_B = 10000
+DIFF_CI_SEED = 0
+
+
+def parse_run_metrics(log_path: Path):
+    """解析日志中逐 run 测试行（'Run i/N | Test ... Acc/R2 ...'），返回
+    (key, [run 值列表])；key 为 'Acc' 或 'R2'。日志无逐 run 行时返回 (None, None)。"""
+    key, vals = None, []
+    try:
+        with open(log_path, encoding="utf-8") as f:
+            for line in f:
+                heads = [p.strip() for p in line.split("|")]
+                # 日志格式：'时间戳 | Run i/N | Test (best model @ Epoch X) | Loss/Acc/R2 ...'
+                if len(heads) < 4 or not heads[1].startswith("Run") or "Test" not in heads[2]:
+                    continue
+                parts = heads[3].split()
+                metrics = {parts[i]: parts[i + 1] for i in range(0, len(parts), 2)}
+                k = "Acc" if "Acc" in metrics else ("R2" if "R2" in metrics else None)
+                if k is None or (key is not None and k != key):
+                    continue
+                try:
+                    v = float(metrics[k])
+                except ValueError:
+                    continue
+                key, vals = k, vals + [v]
+    except OSError:
+        return None, None
+    return (key, vals) if vals else (None, None)
+
+
+def paired_diff_ci(a_vals, b_vals):
+    """同 seed 配对的差值 bootstrap 95% CI（百分位法，固定 seed 可复现）。
+
+    按索引配对（train.py 的 run 顺序即 seed 0..N−1，双方同步），取 min 长度；
+    返回 (n, mean_diff, ci_low, ci_high)，n 为配对对数；n=0 时返回 None 值。
+    """
+    n = min(len(a_vals), len(b_vals))
+    if n == 0:
+        return 0, None, None, None
+    diffs = np.array(a_vals[:n]) - np.array(b_vals[:n])
+    rng = np.random.default_rng(DIFF_CI_SEED)
+    means = diffs[rng.integers(0, n, size=(DIFF_CI_B, n))].mean(axis=1)
+    return n, float(diffs.mean()), float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
+
+
+def build_diff_ci_table(args, results, results_root):
+    """GPB − 各 baseline 的配对差值 95% CI 表（追加在最优精度汇总表之后）。
+
+    双方各取默认指标均值最优的组合（与绿色高亮同规则），从 train.log 逐 run
+    测试行取同 seed 配对差值，bootstrap 百分位 CI；判定：CI 下限 > 0 显著
+    更优、> −δ（DIFF_CI_DELTA）tied、否则不宣称。
+    """
+    gp_model = next((m for m, *_ in results if m in ("opb", "opbl")), None)
+    if gp_model is None:
+        print("提示：无 opb/opbl 结果，跳过差值 CI 表")
+        return ""
+    key = next((k for _, _, _, m in results if m for k in ("Acc", "R2") if k in m), None)
+    if key is None:
+        return ""
+
+    def best_combo(model):
+        best = None
+        for m, b, a, mm in results:
+            if m != model or mm is None or key not in mm:
+                continue
+            mean = metric_mean(mm, key)
+            if best is None or mean > best[0]:
+                best = (mean, b, a)
+        return best
+
+    gp_best = best_combo(gp_model)
+    if gp_best is None:
+        return ""
+    gp_dir = results_root / combo_name(model_prefix(args, gp_model), gp_best[1], gp_best[2])
+    gp_key, gp_vals = parse_run_metrics(gp_dir / "train.log")
+    if gp_vals is None:
+        print(f"提示：{gp_dir.name} 无逐 run 测试行，跳过差值 CI 表")
+        return ""
+    if gp_key != key:
+        key = gp_key
+
+    delta = DIFF_CI_DELTA[key]
+    scale = 100.0 if key == "Acc" else 1.0
+    unit = "百分点" if key == "Acc" else "R²"
+    rows = []
+    seen = set()
+    for model, b, a, m in results:
+        # baseline = 除 GPB（opb/opbl）外的全部方法（基础骨干 + 变分 baseline），
+        # 网格重复行按模型名去重
+        if model in ("opb", "opbl") or model in seen:
+            continue
+        seen.add(model)
+        bc = best_combo(model)
+        if bc is None:
+            rows.append(f'<tr><td>{model}</td><td colspan="3">--（无结果）</td></tr>')
+            continue
+        d = results_root / combo_name(model_prefix(args, model), bc[1], bc[2])
+        _, b_vals = parse_run_metrics(d / "train.log")
+        if b_vals is None:
+            rows.append(f'<tr><td>{model}</td><td colspan="3">--（日志无逐 run 行）</td></tr>')
+            continue
+        n, mean_d, lo, hi = paired_diff_ci(gp_vals, b_vals)
+        if mean_d is None:
+            rows.append(f'<tr><td>{model}</td><td colspan="3">--（run 数不匹配）</td></tr>')
+            continue
+        if lo > 0:
+            verdict = "<span style='color:#1a7f37;font-weight:600'>* 显著更优</span>"
+        elif lo > -delta:
+            verdict = f"† tied（δ={delta * scale:g}{unit}）"
+        else:
+            verdict = "—"
+        rows.append(
+            f"<tr><td>{model}</td>"
+            f"<td>{mean_d * scale:+.2f}</td>"
+            f"<td>[{lo * scale:+.2f}, {hi * scale:+.2f}]</td>"
+            f"<td>{verdict}</td></tr>"
+        )
+    return f"""
+<h2>GPB − baseline 配对差值 95% CI</h2>
+<table>
+<thead><tr><th>baseline</th><th>均值差（{unit}）</th><th>95% CI</th><th>判定</th></tr></thead>
+<tbody>
+{''.join(rows)}
+</tbody>
+</table>
+<p style="color:#52514e;font-size:.82em;">同 seed 配对差值（双方各取默认指标最优组合，
+GPB 为 {gp_model} 的最优 {key} 配置）；bootstrap B={DIFF_CI_B}（固定 seed {DIFF_CI_SEED}，
+百分位法）；* = CI 下限 &gt; 0；† = CI 下限 &gt; −δ（非劣界 δ={delta * scale:g}{unit}）记 tied；
+否则不宣称。</p>
+"""
 
 
 def parse_summary_last(log_path: Path):
@@ -328,8 +463,8 @@ def main():
     meta = (
         f"task={args.task} backbone={args.backbone} model={'+'.join(args.model)} "
         f"runs={args.runs} epochs={args.epochs} | {len(combos)} 组组合 | "
-        "表格后附最优精度汇总表与 ceb/opb 压缩-精度对比曲线（β 对数刻度；"
-        "opb 各 a=1/6/12 一条线）"
+        "表格后附最优精度汇总表、GPB−baseline 配对差值 95% CI 表与 ceb/opb "
+        "压缩-精度对比曲线（β 对数刻度；opb 各 a=1/6/12 一条线）"
     )
     if len(args.model) == 1:
         html_name = f"{model_prefix(args, args.model[0])}_tune_results.html"
@@ -339,7 +474,14 @@ def main():
             f"{'+'.join(args.model)}_tune_results.html"
         )
     html_path = results_root / html_name
-    gen_html(results, html_path, meta, extra_html=build_summary_table(results) + build_curve_chart(results))
+    gen_html(
+        results,
+        html_path,
+        meta,
+        extra_html=build_summary_table(results)
+        + build_diff_ci_table(args, results, results_root)
+        + build_curve_chart(results),
+    )
     print(f"\n调参结果表格已生成：{html_path}")
 
     if args.rerun and failed:

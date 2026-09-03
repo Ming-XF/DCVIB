@@ -17,7 +17,7 @@ tr.best { background: #dfd; font-weight: bold; }
 </head>
 <body>
 <h1>调参结果</h1>
-<div class="meta">task=imdb backbone=rnn model=rnn+vib+nib+svib+ceb+dvcca+opb+opbl runs=5 epochs=100 | 139 组组合 | 表格后附最优精度汇总表与 ceb/opb 压缩-精度对比曲线（β 对数刻度；opb 各 a=1/6/12 一条线）（绿色高亮 = 各模型默认指标 Acc 的最佳行）</div>
+<div class="meta">task=imdb backbone=rnn model=rnn+vib+nib+svib+ceb+dvcca+opb+opbl runs=5 epochs=100 | 139 组组合 | 表格后附最优精度汇总表、GPB−baseline 配对差值 95% CI 表与 ceb/opb 压缩-精度对比曲线（β 对数刻度；opb 各 a=1/6/12 一条线）（绿色高亮 = 各模型默认指标 Acc 的最佳行）</div>
 
 <h2>rnn</h2>
 <div class="sort-row">排序指标：
@@ -131,6 +131,18 @@ tr.best { background: #dfd; font-weight: bold; }
 <tr class="best"><td>opbl</td><td>0.1</td><td>10</td><td>0.8699±0.0035</td></tr><tr><td>opb</td><td>1</td><td>10</td><td>0.8684±0.0057</td></tr><tr><td>nib</td><td>0.0001</td><td>-</td><td>0.8614±0.0092</td></tr><tr><td>svib</td><td>10</td><td>-</td><td>0.8599±0.0030</td></tr><tr><td>dvcca</td><td>0.0001</td><td>-</td><td>0.8569±0.0023</td></tr><tr><td>ceb</td><td>0.0001</td><td>-</td><td>0.8555±0.0073</td></tr><tr><td>vib</td><td>0.1</td><td>-</td><td>0.8550±0.0091</td></tr><tr><td>rnn</td><td>-</td><td>-</td><td>0.8485±0.0068</td></tr>
 </tbody>
 </table>
+
+<h2>GPB − baseline 配对差值 95% CI</h2>
+<table>
+<thead><tr><th>baseline</th><th>均值差（百分点）</th><th>95% CI</th><th>判定</th></tr></thead>
+<tbody>
+<tr><td>rnn</td><td>+1.99</td><td>[+1.23, +2.72]</td><td><span style='color:#1a7f37;font-weight:600'>* 显著更优</span></td></tr><tr><td>vib</td><td>+1.34</td><td>[+0.60, +2.28]</td><td><span style='color:#1a7f37;font-weight:600'>* 显著更优</span></td></tr><tr><td>nib</td><td>+0.70</td><td>[+0.24, +1.17]</td><td><span style='color:#1a7f37;font-weight:600'>* 显著更优</span></td></tr><tr><td>svib</td><td>+0.85</td><td>[+0.22, +1.38]</td><td><span style='color:#1a7f37;font-weight:600'>* 显著更优</span></td></tr><tr><td>ceb</td><td>+1.29</td><td>[+0.31, +2.12]</td><td><span style='color:#1a7f37;font-weight:600'>* 显著更优</span></td></tr><tr><td>dvcca</td><td>+1.15</td><td>[+0.75, +1.55]</td><td><span style='color:#1a7f37;font-weight:600'>* 显著更优</span></td></tr>
+</tbody>
+</table>
+<p style="color:#52514e;font-size:.82em;">同 seed 配对差值（双方各取默认指标最优组合，
+GPB 为 opb 的最优 Acc 配置）；bootstrap B=10000（固定 seed 0，
+百分位法）；* = CI 下限 &gt; 0；† = CI 下限 &gt; −δ（非劣界 δ=0.2百分点）记 tied；
+否则不宣称。</p>
 
 <h2>压缩-精度对比曲线</h2>
 <style>

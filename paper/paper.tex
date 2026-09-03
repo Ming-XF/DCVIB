@@ -601,8 +601,9 @@ prior of Eq.~\eqref{eq:epb-prior} with the tied projection head
 $\hat{\tilde y} = u^{\top}z/\rho$. \emph{OPB-L} is the free-head ablation: the
 identical prior and KL, with an ordinary trainable linear classifier (or regression
 head) on $z$, so prediction is free to bypass the constructed geometry. The frame is
-orthonormalized from the all-class mean matrix at every forward pass (sign-normalized
-reduced QR); the prior encoder is identity-initialized (initial anchors
+orthonormalized from the all-class mean matrix at every forward pass by the thin SVD
+polar factor of Eq.~\eqref{eq:opb-qr} ($Q_\theta = W V^{\top}$); the prior encoder is
+identity-initialized (initial anchors
 $e_1,\dots,e_K$, initial $\KL \approx a^2/2$ under unit variances), the variance
 heads are zero-initialized, and the construction is stateless --- no EMA, no
 prototypes, no batch statistics.
@@ -622,8 +623,10 @@ protocol (Base has no sweep and early-stops as usual).
 
 Table~\ref{tab:main_result} reports test accuracy (classification) and test $R^2$
 (regression), averaged over runs, for each method's best configuration; bold
-marks the best entry per row and underline the second best, and the vertical rule
-separates GPB and its free-head ablation OPB-L from the baselines.
+marks the best mean per row and underline the second best, and the vertical rule
+separates GPB and its free-head ablation OPB-L from the baselines. Statistical
+claims (best vs.\ tied) follow the paired-difference confidence intervals of
+Appendix~\ref{app:main-ci}.
 Standard deviations are omitted for width and are reported in
 Appendix~\ref{app:main-std}. Three
 observations.
@@ -631,8 +634,12 @@ observations.
 \emph{The constructed geometry is free, and it usually pays.} GPB is best or
 tied-best in $7$ of $12$ settings with mean rank $1.75$, against $4.25$ for the plain
 backbone and $5.0$--$6.5$ for the variational baselines, none of which is ever best.
-Both GPB and OPB-L dominate CEB --- the identical objective with the unconstrained
-reference --- in all $12$ settings, and GPB is best among all methods on seven rows.
+By the paired bootstrap $95\%$ CIs (Appendix~\ref{app:main-ci}), the GPB--CEB
+difference is significantly positive in $8$ of $12$ settings and within the
+non-inferiority margin in three more; only on STS-B does the interval overlap zero
+beyond the margin ($[-0.009, +0.025]$), so no setting shows a significant CEB
+advantage. GPB dominates CEB by mean in all $12$ settings and is best among all
+methods on seven rows.
 The gains concentrate where the label structure is rich or supervision is scarce:
 $+3.1$ accuracy over CEB on ImageNet-100 with the CNN backbone ($86.1$ vs.\ $83.0$),
 $+1.9$ on Cora, and $+0.08$ $R^2$ on AgeDB over the plain CNN ($0.470$ vs.\ $0.388$).
@@ -649,8 +656,9 @@ $12$ settings (the exception is ImageNet-100 CNN, $1.2$ points): the zero-parame
 anchor-energy classifier --- whose weights are the frame itself --- reaches the
 accuracy of a freely trained head in almost all settings, so the degrees of freedom
 removed by construction are not required for prediction, as claimed in the
-introduction. The three settings where OPB-L edges out GPB (IMDb, AG News,
-Cal.\ Housing) confirm that the tie does not inflate the numbers. On the five
+introduction. The three settings where OPB-L edges out GPB by mean (IMDb, AG News,
+Cal.\ Housing) do so with paired CIs overlapping zero, confirming that the tie
+does not inflate the numbers. On the five
 regression rows the tied projection head of EPB wins or matches the free
 regression head in four (the exception is Cal.\ Housing by $0.002$).
 
@@ -840,7 +848,9 @@ The code, hyperparameter grids, and evaluation protocol are described in
 Section~\ref{sec:setup}; the geometric prior is stateless (no EMA or prototypes)
 and the orthogonalization is exact wherever defined (Assumption~\ref{ass:fullrank}).
 All datasets are public, with preprocessing steps given in the release. Proofs
-of all statements are collected in the appendix.
+of all statements are collected in the appendix. Statistical claims use the
+paired bootstrap confidence intervals and non-inferiority margin described in
+Appendix~\ref{app:main-ci}.
 
 \section*{Acknowledgments}
 

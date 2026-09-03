@@ -14,7 +14,9 @@ R²（原始值），且只显示均值、不含标准差（表格较宽）；�
 平均名次，越低越好）与最优/并列最优次数（并列时各方法均计数）。输出可直接
 \input{} 的 table* 浮动体，保存到 paper/main_result.tex；同源生成带标准差的
 paper/main_result_std.tex（gen_table_std，单元格为均值±std，按列拆为
-baselines 与 CEB/DVCCA+GPB/OPB-L 两张表以适配页宽）。
+baselines 与 CEB/DVCCA+GPB/OPB-L 两张表以适配页宽）；以及配对差值表
+paper/main_result_CI.tex（gen_result_ci，GPB − 各 baseline 的 bootstrap 95% CI，
+同 seed 配对、按列拆两张表、表尾统计 */† 次数）。
 
 同时生成压缩-精度表 paper/result1.tex（gen_result1）：仅 ImageNet-100 (MLP，
 分类 Acc ×100) 与 AgeDB (MLP，回归 R²) 两个任务，行 = CEB 与 OPB 的
@@ -38,10 +40,13 @@ import re
 from html.parser import HTMLParser
 from pathlib import Path
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "tune_results"
 OUT_PATH = Path(__file__).resolve().parent / "main_result.tex"
 MAIN_RESULT_STD_PATH = Path(__file__).resolve().parent / "main_result_std.tex"
+MAIN_RESULT_CI_PATH = Path(__file__).resolve().parent / "main_result_CI.tex"
 RESULT1_PATH = Path(__file__).resolve().parent / "result1.tex"
 RESULT2_PATH = Path(__file__).resolve().parent / "result2.tex"
 RESULT3_PATH = Path(__file__).resolve().parent / "result3.tex"
@@ -321,7 +326,7 @@ def gen_result2():
         "\\centering",
         "\\caption{Adversarial robustness on MNIST: test accuracy (\\%) under untargeted "
         "projected gradient descent (PGD) attacks in $L_\\infty$ and $L_2$ norms, "
-        "evaluated on the deterministic ($z=\\mu$) path; mean $\\pm$ std.\ over runs.}",
+        "evaluated on the deterministic ($z=\\mu$) path; mean $\\pm$ std. over runs.}",
         "\\label{tab:robustness}",
         "\\small",
         "{",
@@ -502,6 +507,211 @@ def gen_result1(full):
         "\\end{table*}",
     ])
     return "\n".join(lines) + "\n"
+
+
+# 配对差值 95% CI：非劣界（分类 0.2 百分点 / 回归 R² 0.005）、bootstrap 次数与 seed
+DIFF_CI_DELTA = {"Acc": 0.002, "R2": 0.005}
+DIFF_CI_B = 10000
+DIFF_CI_SEED = 0
+# CI 表按列拆两张表：baselines（Base/VIB/SVIB/NIB）与 ceb/dvcca/opbl
+CI_COL_GROUPS = [
+    (["base", "vib"], "tab:main_result_ci_baselines"),
+    (["svib", "nib"], "tab:main_result_ci_svib_nib"),
+    (["ceb", "dvcca", "opbl"], "tab:main_result_ci_variants"),
+]
+
+
+def _combo_dir_name(task, backbone, model, beta, anchor):
+    """调参结果目录名（与 tune.combo_name 同格式）：基线为 {task}_{model}，
+    变体为 {task}_{backbone}_{model}，后缀 _beta_{b:g} / _anchor_{a:g}。"""
+    name = f"{task}_{model}" if model in ("mlp", "cnn", "gcn", "rnn") else f"{task}_{backbone}_{model}"
+    if beta is not None:
+        name += f"_beta_{beta:g}"
+    if anchor is not None:
+        name += f"_anchor_{anchor:g}"
+    return name
+
+
+def parse_run_metrics(log_path: Path):
+    """解析 train.log 逐 run 测试行（'时间戳 | Run i/N | Test ... | Acc/R2 ...'），
+    返回 (key, [run 值列表])；无逐 run 行时返回 (None, None)。"""
+    key, vals = None, []
+    try:
+        with open(log_path, encoding="utf-8") as f:
+            for line in f:
+                heads = [p.strip() for p in line.split("|")]
+                if len(heads) < 4 or not heads[1].startswith("Run") or "Test" not in heads[2]:
+                    continue
+                parts = heads[3].split()
+                metrics = {parts[i]: parts[i + 1] for i in range(0, len(parts) - 1, 2)}
+                k = "Acc" if "Acc" in metrics else ("R2" if "R2" in metrics else None)
+                if k is None or (key is not None and k != key):
+                    continue
+                try:
+                    v = float(metrics[k])
+                except ValueError:
+                    continue
+                key, vals = k, vals + [v]
+    except OSError:
+        return None, None
+    return (key, vals) if vals else (None, None)
+
+
+def paired_diff_ci(a_vals, b_vals):
+    """同 seed 配对的差值 bootstrap 95% CI（百分位法，固定 seed 可复现）。
+    返回 (n, mean_diff, ci_low, ci_high)；n=0 时均值/CI 为 None。"""
+    n = min(len(a_vals), len(b_vals))
+    if n == 0:
+        return 0, None, None, None
+    diffs = np.array(a_vals[:n]) - np.array(b_vals[:n])
+    rng = np.random.default_rng(DIFF_CI_SEED)
+    means = diffs[rng.integers(0, n, size=(DIFF_CI_B, n))].mean(axis=1)
+    return n, float(diffs.mean()), float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
+
+
+def gen_result_ci():
+    r"""生成 main_result_CI.tex：GPB − 各 baseline 的配对差值 95% CI 表。
+
+    行 = 12 个 (task, backbone) setting（分类/回归块间双横线），单元格 =
+    "均值差 [CI下限, CI上限]"（分类百分点、回归 R²）；CI 下限 > 0 加粗（显著
+    更优）、> −δ（DIFF_CI_DELTA）标 $^{\dagger}$（tied）、否则原样。因 7 个
+    差值列超页宽，按列拆两张 table*（CI_COL_GROUPS）。每表尾一行统计各列
+    "X*/Y†" 次数。双方各取默认指标均值最优组合（与主表同规则），差值按同
+    seed 配对（run 顺序即 seed 0..N−1）。数据缺失时返回 None（跳过）。
+    """
+    if not list(RESULTS_DIR.glob("*.html")):
+        return None
+    # 每个 (task, backbone) 的各模型 best 行（beta/anchor 供定位日志目录）
+    grid = {}
+    for path in sorted(RESULTS_DIR.glob("*.html")):
+        task, backbone, rows = parse_file_rows(path)
+        best = {}
+        for model, entries in rows.items():
+            bests = [e for e in entries if e[0]]
+            pool = bests or entries
+            _, key, mean, std, b, a = max(pool, key=lambda e: e[2])
+            best[model] = (key, b, a)
+        grid[(task, backbone)] = best
+    if not grid:
+        return None
+
+    order = {k: i for i, k in enumerate(ROW_ORDER)}
+    keys = sorted(grid, key=lambda k: (order.get(k, len(order)), k))
+    cls_keys = [k for k in keys if k[0] in CLASSIFICATION_TASKS]
+    reg_keys = [k for k in keys if k[0] not in CLASSIFICATION_TASKS]
+    all_keys = cls_keys + reg_keys
+
+    # 目录名用数据集名（如 housing → california），与 tune 的 get_dataset_name 一致
+    dataset = {"housing": "california"}.get
+
+    def diff_cell(task, backbone, best, col):
+        """GPB − col 的 CI 单元格（含加粗/tied 标记）；异常返回 None。"""
+        gp = best.get("opb")
+        # base 列对应基础骨干模型（html 里模型名为 mlp/cnn/gcn/rnn；
+        # gnn 骨干的基础模型名为 gcn）
+        model_key = ("gcn" if backbone == "gnn" else backbone) if col == "base" else col
+        base = best.get(model_key)
+        if gp is None or base is None:
+            return None
+        key = "Acc" if gp[0] == "Acc" else "R2"
+        gp_dir = RESULTS_DIR / _combo_dir_name(dataset(task, task), backbone, "opb", gp[1], gp[2])
+        b_dir = RESULTS_DIR / _combo_dir_name(dataset(task, task), backbone, model_key, base[1], base[2])
+        gp_key, gp_vals = parse_run_metrics(gp_dir / "train.log")
+        b_key, b_vals = parse_run_metrics(b_dir / "train.log")
+        if not gp_vals or not b_vals:
+            return None
+        n, mean_d, lo, hi = paired_diff_ci(gp_vals, b_vals)
+        if mean_d is None:
+            return None
+        scale = 100.0 if key == "Acc" else 1.0
+        delta = DIFF_CI_DELTA[key]
+        # 小数位随指标收敛（分类 1 位、回归 3 位），控制表宽
+        if key == "Acc":
+            text = f"{mean_d * scale:+.1f} [{lo * scale:+.1f}, {hi * scale:+.1f}]"
+        else:
+            text = f"{mean_d:+.3f} [{lo:+.3f}, {hi:+.3f}]"
+        if lo > 0:
+            return "\\textbf{" + text + "}", "*"
+        if lo > -delta:
+            return text + "$^{\\dagger}$", "†"
+        return text, None
+
+    def block_float(cols, caption, label):
+        lines = [
+            "\\begin{table*}[t]",
+            "\\centering",
+            "\\caption{" + caption + "}",
+            "\\label{" + label + "}",
+            "\\small",
+            "{",
+            "\\setlength{\\tabcolsep}{1pt}",
+            "\\begin{tabular}{ll" + "c" * len(cols) + "}",
+            "\\hline",
+            " & ".join(["Dataset", "Backbone"] + [COLUMN_NAMES[c] for c in cols]) + " \\\\",
+            "\\hline",
+        ]
+        counts = {c: {"*": 0, "†": 0} for c in cols}
+        for row_keys, last in ((cls_keys, False), (reg_keys, True)):
+            for task, backbone in row_keys:
+                best = grid[(task, backbone)]
+                cells = []
+                for col in cols:
+                    r = diff_cell(task, backbone, best, col)
+                    if r is None:
+                        cells.append("--")
+                    else:
+                        text, mark = r
+                        cells.append(text)
+                        if mark:
+                            counts[col][mark] += 1
+                parts = [TASK_NAMES.get(task, task), BACKBONE_NAMES.get(backbone, backbone)] + cells
+                lines.append(" & ".join(parts) + " \\\\")
+            if not last:
+                lines.append("\\hline\\hline")
+        # 表尾汇总行：每列 "X*/Y†"（显著更优/tied 次数）
+        summary = ["", ""]
+        for col in cols:
+            c = counts[col]
+            summary.append(f"{c['*']}*/{c['†']}†")
+        lines.append("\\hline")
+        lines.append(" & ".join(summary) + " \\\\")
+        lines.append("\\hline")
+        lines.extend(["\\end{tabular}", "}", "\\end{table*}", "\\par\\smallskip"])
+        return "\n".join(lines) + "\n"
+
+    head = [
+        "% 主结果差值 CI 表：由 paper/make_table.py 从 tune_results 自动生成，请勿手改。",
+        "% 行 = 12 个 setting；单元格 = GPB − baseline 的配对差值 [bootstrap 95% CI]",
+        "%（分类百分点、回归 R²）；加粗 = CI 下限 > 0（显著更优）、† = CI 下限 > −δ",
+        f"%（非劣界 δ={DIFF_CI_DELTA['Acc'] * 100:g} 百分点 / {DIFF_CI_DELTA['R2']:g}）记 tied；",
+        f"% 同 seed 配对（run 顺序即 seed 0..N−1），bootstrap B={DIFF_CI_B}（固定 seed {DIFF_CI_SEED}，百分位法）。",
+        "% 因 7 个差值列超页宽，按列拆两张表（baselines / ceb+dvcca+OPB-L）；表尾一行统计各列 */† 次数。",
+        "",
+    ]
+    out = "\n".join(head)
+    captions = {
+        "tab:main_result_ci_baselines": (
+            "Paired-difference 95\\% confidence intervals of GPB over the plain "
+            "backbone and VIB (GPB minus baseline, per setting; classification in "
+            "percentage points, regression in $R^2$). Bold: lower CI bound above "
+            "zero; $^{\\dagger}$: lower bound within the non-inferiority margin "
+            "$\\delta$ (tied)."
+        ),
+        "tab:main_result_ci_svib_nib": (
+            "Paired-difference 95\\% confidence intervals of GPB over SVIB and NIB "
+            "(GPB minus baseline, per setting; classification in percentage points, "
+            "regression in $R^2$). Bold/† as in the baselines table."
+        ),
+        "tab:main_result_ci_variants": (
+            "Paired-difference 95\\% confidence intervals of GPB over CEB, DVCCA, "
+            "and the free-head ablation OPB-L (GPB minus baseline, per setting; "
+            "classification in percentage points, regression in $R^2$). Bold/† as in "
+            "the baselines table."
+        ),
+    }
+    for cols, label in CI_COL_GROUPS:
+        out += block_float(cols, captions[label], label)
+    return out
 
 
 def rank_scores(scores):
@@ -720,6 +930,13 @@ def main():
     MAIN_RESULT_STD_PATH.write_text(gen_table_std(grid), encoding="utf-8")
     print(f"已生成 {MAIN_RESULT_STD_PATH}（主结果表带标准差版，均值±std，"
           f"加粗/下划线/排名与主表一致）")
+    result_ci = gen_result_ci()
+    if result_ci is None:
+        print(f"警告：tune_results 无可用数据，跳过差值 CI 表")
+    else:
+        MAIN_RESULT_CI_PATH.write_text(result_ci, encoding="utf-8")
+        print(f"已生成 {MAIN_RESULT_CI_PATH}（GPB − baseline 配对差值 95% CI，"
+              f"按列拆两张表；加粗 = CI 下限 > 0、† = tied）")
 
     full = collect_full(COMPRESSION_TASKS)
     RESULT1_PATH.write_text(gen_result1(full), encoding="utf-8")
