@@ -1,7 +1,7 @@
 """OPB（Orthogonal-Prior Bottleneck，正交先验信息瓶颈）MLP 模型定义。
 
-分类方案见 paper/OPB.txt：在 CEB 的条件高斯先验上增加显式的类别几何结构；
-回归方案（OPB-R）见 paper/OPB-R.txt：用一条等距先验轴表达连续标签的顺序与
+分类方案见 paper/design/OPB.txt：在 CEB 的条件高斯先验上增加显式的类别几何结构；
+回归方案（OPB-R）见 paper/design/OPB-R.txt：用一条等距先验轴表达连续标签的顺序与
 数值距离。两类任务共用同一模型类，先验构造按 continuous_y 分叉。
 """
 
@@ -24,13 +24,13 @@ class OPB(nn.Module):
     架构与 CEB 同构：编码器输出 h 后，由两个线性头得到后验 q(z|x) 的
     均值和对数方差，重参数化采样得到 z，分类器/回归头输出结果。
 
-    分类（continuous_y=False，paper/OPB.txt）：每个前向把全部 K 个类别的
+    分类（continuous_y=False，paper/design/OPB.txt）：每个前向把全部 K 个类别的
     one-hot 矩阵送入先验编码器 prior_net 得到全类别均值矩阵 M_p（K×d）与
     逐类对数方差表，对 M_p 转置后做 QR 分解得正交帧 Q_p（符号规范化，
     R 对角取正），各类先验均值取 a·Q_p[:, k]（a 为锚点尺度）；先验方差
     使用 prior_net 输出的逐类可学习 logvar。要求 num_classes <= z_dim。
 
-    回归（continuous_y=True，OPB-R，paper/OPB-R.txt）：先验均值为等距轴
+    回归（continuous_y=True，OPB-R，paper/design/OPB-R.txt）：先验均值为等距轴
     mu_p(y) = rho · y_tilde · u，其中 y_tilde 为训练管道已归一化的连续
     标签（MinMax 缩放，模型内不二次标准化），u = W/||W|| 为可训练方向
     W∈R^{d×1}（无激活、无偏置）每前向即时归一化的单位方向——任意两个
@@ -46,11 +46,11 @@ class OPB(nn.Module):
     （起点 sigma = sigma_p = 1，KL ≈ 0.5·anchor_scale²）。
 
     消融（energy_classifier=True，仅分类）：分类器改为锚点能量分类器
-    logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)（paper/OPB.txt §12），τ² 取
+    logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)（paper/design/OPB.txt §12），τ² 取
     prior_net 方差块的逐类可学习 exp(logvar)，与 KL 共用同一套锚点和方差、
     无法绕过正交几何；self.classifier 保留为死参数（state_dict 键不变）。
     消融（tied_head=True，仅回归）：回归头改为 tied projection head
-    y_hat_tilde = uᵀz/rho（paper/OPB-R.txt §7.1），与 KL 共用同一条等距轴、
+    y_hat_tilde = uᵀz/rho（paper/design/OPB-R.txt §7.1），与 KL 共用同一条等距轴、
     无自由尺度；模型输出标准化预测 (B,1)，反标准化由训练管道的 y_scaler
     逆归一化完成；self.classifier 保留为死参数。
     """
@@ -71,12 +71,12 @@ class OPB(nn.Module):
         assert num_classes <= z_dim, "OPB 正交先验要求类别数不超过 z 维度"
         if energy_classifier and continuous_y:
             raise ValueError(
-                "能量分类器是分类方案（paper/OPB.txt §12）的消融，回归"
+                "能量分类器是分类方案（paper/design/OPB.txt §12）的消融，回归"
                 "（continuous_y）无类别锚点表，不支持 energy_classifier"
             )
         if tied_head and not continuous_y:
             raise ValueError(
-                "tied 投影头是回归方案（paper/OPB-R.txt）的消融，分类"
+                "tied 投影头是回归方案（paper/design/OPB-R.txt）的消融，分类"
                 "（continuous_y=False）无等距轴，不支持 tied_head"
             )
         self.num_classes = num_classes
@@ -139,7 +139,7 @@ class OPB(nn.Module):
         return prior_mu, prior_logvar_table
 
     def _energy_logits(self, z, prior_mu, prior_logvar_table):
-        """锚点能量分类器：logit_k = −‖z − a·Q_p[:,k]‖² / (2·τ²)（paper/OPB.txt §12 消融）。
+        """锚点能量分类器：logit_k = −‖z − a·Q_p[:,k]‖² / (2·τ²)（paper/design/OPB.txt §12 消融）。
 
         τ² 取 prior_net 方差块的逐类可学习 exp(logvar)——与 KL 共用同一套锚点
         与方差、零新参数；分类器无法绕过正交几何。
@@ -166,7 +166,7 @@ class OPB(nn.Module):
             # 回归：等距轴先验（复用训练管道已 MinMax 归一化的连续标签）
             u = F.normalize(self.prior_direction.weight.squeeze(-1), dim=0)  # (d,)
             if self.tied_head:
-                # tied 投影头（paper/OPB-R.txt §7.1 消融）：y_hat_tilde = u^T z / rho，
+                # tied 投影头（paper/design/OPB-R.txt §7.1 消融）：y_hat_tilde = u^T z / rho，
                 # 与 KL 共用同一条等距轴、无自由尺度；反标准化由训练管道的
                 # y_scaler 逆归一化完成（模型输出标准化预测 (B,1)）
                 logits = ((z @ u) / self.anchor_scale).unsqueeze(-1)

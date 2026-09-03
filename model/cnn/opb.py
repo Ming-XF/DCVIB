@@ -1,6 +1,6 @@
 """OPB（Orthogonal-Prior Bottleneck，正交先验信息瓶颈）CNN 模型定义。
 
-分类方案见 paper/OPB.txt、回归方案（OPB-R）见 paper/OPB-R.txt；两类任务
+分类方案见 paper/design/OPB.txt、回归方案（OPB-R）见 paper/design/OPB-R.txt；两类任务
 共用同一模型类，先验构造按 continuous_y 分叉（与 MLP 版同构）。
 """
 
@@ -47,12 +47,12 @@ class OPB(nn.Module):
         assert num_classes <= z_dim, "OPB 正交先验要求类别数不超过 z 维度"
         if energy_classifier and continuous_y:
             raise ValueError(
-                "能量分类器是分类方案（paper/OPB.txt §12）的消融，回归"
+                "能量分类器是分类方案（paper/design/OPB.txt §12）的消融，回归"
                 "（continuous_y）无类别锚点表，不支持 energy_classifier"
             )
         if tied_head and not continuous_y:
             raise ValueError(
-                "tied 投影头是回归方案（paper/OPB-R.txt）的消融，分类"
+                "tied 投影头是回归方案（paper/design/OPB-R.txt）的消融，分类"
                 "（continuous_y=False）无等距轴，不支持 tied_head"
             )
         self.num_classes = num_classes
@@ -105,7 +105,7 @@ class OPB(nn.Module):
         return prior_mu, prior_logvar_table
 
     def _energy_logits(self, z, prior_mu, prior_logvar_table):
-        """锚点能量分类器：logit_k = −‖z − a·Q_p[:,k]‖² / (2·τ²)（paper/OPB.txt §12 消融）。
+        """锚点能量分类器：logit_k = −‖z − a·Q_p[:,k]‖² / (2·τ²)（paper/design/OPB.txt §12 消融）。
 
         τ² 取 prior_net 方差块的逐类可学习 exp(logvar)——与 KL 共用同一套锚点
         与方差、零新参数；分类器无法绕过正交几何。

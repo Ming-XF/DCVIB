@@ -475,9 +475,9 @@ def build_parser():
         "dvcca is supervised beta-DVCCA (DVMIB, JMLR 2025): VIB plus an input "
         "reconstruction decoder (loss = CE + β·KL + β·MSE_recon), "
         "not available for the RNN backbone; "
-        "opb is Orthogonal-Prior Bottleneck: classification (paper/OPB.txt) — prior "
+        "opb is Orthogonal-Prior Bottleneck: classification (paper/design/OPB.txt) — prior "
         "means are the QR-orthonormalized per-class outputs of the prior net; "
-        "regression (OPB-R, paper/OPB-R.txt) — prior means lie on an isometric axis "
+        "regression (OPB-R, paper/design/OPB-R.txt) — prior means lie on an isometric axis "
         "rho·y_tilde·normalize(W) with learnable label-conditional logvar",
     )
     parser.add_argument(
@@ -534,14 +534,14 @@ def build_parser():
     parser.add_argument(
         "--energy-classifier",
         action="store_true",
-        help="opb 消融（paper/OPB.txt §12）：分类器改为锚点能量分类器 "
+        help="opb 消融（paper/design/OPB.txt §12）：分类器改为锚点能量分类器 "
         "logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)，与 KL 共用同一套锚点、无法绕过"
         "正交几何；仅分类任务（四骨干均支持）",
     )
     parser.add_argument(
         "--tied-head",
         action="store_true",
-        help="opb 回归头消融（paper/OPB-R.txt §7.1）：回归头改为 tied projection "
+        help="opb 回归头消融（paper/design/OPB-R.txt §7.1）：回归头改为 tied projection "
         "head y_hat_tilde = uᵀz/rho，与 KL 共用同一条等距轴、无自由尺度；"
         "反标准化由训练管道的 y_scaler 逆归一化完成；仅回归任务",
     )

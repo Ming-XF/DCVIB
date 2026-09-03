@@ -249,7 +249,7 @@ def main():
         dir_args.model = model
         dir_args.backbone = backbone
         if model == "opb":
-            # OPB 固定按能量分类器重建（paper/OPB.txt §12）：energy 训练下
+            # OPB 固定按能量分类器重建（paper/design/OPB.txt §12）：energy 训练下
             # self.classifier 是死参数（随机初始化），按默认普通分类器路径会得到
             # 随机输出（clean acc ≈ 1/K）。无需命令行传 --energy-classifier；
             # anchor_scale 仍经 --anchor-scale 全局覆盖，须与训练值一致（能量

@@ -12,7 +12,9 @@ R²（原始值），且只显示均值、不含标准差（表格较宽）；�
 （Loss/AUC/Pre/Rec/MAE）一律丢弃；每行（数据集）的最优指标加粗、次优
 （并列次优全部）加下划线；表尾两行统计各方法跨数据集行的平均排名（并列取
 平均名次，越低越好）与最优/并列最优次数（并列时各方法均计数）。输出可直接
-\input{} 的 table* 浮动体，保存到 paper/main_result.tex。
+\input{} 的 table* 浮动体，保存到 paper/main_result.tex；同源生成带标准差的
+paper/main_result_std.tex（gen_table_std，单元格为均值±std，按列拆为
+baselines 与 CEB/DVCCA+GPB/OPB-L 两张表以适配页宽）。
 
 同时生成压缩-精度表 paper/result1.tex（gen_result1）：仅 ImageNet-100 (MLP，
 分类 Acc ×100) 与 AgeDB (MLP，回归 R²) 两个任务，行 = CEB 与 OPB 的
@@ -39,6 +41,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "tune_results"
 OUT_PATH = Path(__file__).resolve().parent / "main_result.tex"
+MAIN_RESULT_STD_PATH = Path(__file__).resolve().parent / "main_result_std.tex"
 RESULT1_PATH = Path(__file__).resolve().parent / "result1.tex"
 RESULT2_PATH = Path(__file__).resolve().parent / "result2.tex"
 RESULT3_PATH = Path(__file__).resolve().parent / "result3.tex"
@@ -282,8 +285,9 @@ def gen_result2():
     r"""从 ADV_CSV_PATH 生成对抗鲁棒性表 result2.tex（CSV 缺失时返回 None）。
 
     行 = 攻击强度（clean + L∞/L2 各 ε，网格随 CSV 自适应），列 = CSV 中的
-    模型配置（数量自适应、Base 居首其余按名排序）；值为跨 run 平均鲁棒精度
-    （Acc ×100），每行最优加粗。tab:robustness，可直接 \input{}。
+    模型配置（数量自适应、Base 居首其余按名排序）；值为跨 run 鲁棒精度
+    （Acc ×100）均值±标准差，每行按均值最优加粗。tab:robustness，可直接
+    \input{}。
     """
     if not ADV_CSV_PATH.exists():
         return None
@@ -298,18 +302,26 @@ def gen_result2():
     for r in rows:
         accs.setdefault((r["config"], r["norm"], float(r["eps"])), []).append(float(r["acc"]))
 
-    def fmt(c, norm, eps):
+    def mean_std(c, norm, eps):
         vals = accs.get((c, norm, eps))
-        return f"{sum(vals) / len(vals) * 100:.2f}" if vals else "--"
+        if not vals:
+            return None
+        m = sum(vals) / len(vals)
+        s = (sum((v - m) ** 2 for v in vals) / len(vals)) ** 0.5
+        return m, s
+
+    def fmt(c, norm, eps):
+        ms = mean_std(c, norm, eps)
+        return f"{ms[0] * 100:.2f}$\\pm${ms[1] * 100:.2f}" if ms else "--"
 
     lines = [
         "% 对抗鲁棒性表：由 paper/make_table.py 从 output/adv_mnist/mnist_adv.csv 自动生成，请勿手改。",
-        "% 值为跨 run 平均鲁棒精度（%），每行最优加粗；行 = 攻击强度，列 = 模型配置（数量自适应）。",
+        "% 值为跨 run 鲁棒精度（%）均值±标准差，每行按均值最优加粗；行 = 攻击强度，列 = 模型配置（数量自适应）。",
         "\\begin{table*}[t]",
         "\\centering",
         "\\caption{Adversarial robustness on MNIST: test accuracy (\\%) under untargeted "
         "projected gradient descent (PGD) attacks in $L_\\infty$ and $L_2$ norms, "
-        "evaluated on the deterministic ($z=\\mu$) path; means over runs.}",
+        "evaluated on the deterministic ($z=\\mu$) path; mean $\\pm$ std.\ over runs.}",
         "\\label{tab:robustness}",
         "\\small",
         "{",
@@ -325,10 +337,15 @@ def gen_result2():
         else:
             math_norm = "\\ell_\\infty" if norm == "linf" else "\\ell_2"
             label = f"${math_norm}$ $\\varepsilon={eps:g}$"
-        cells = [fmt(c, norm, eps) for c in configs]
-        vals = [float(v) for v in cells if v != "--"]
-        best = max(vals) if vals else None
-        cells = [f"\\textbf{{{v}}}" if v != "--" and float(v) == best else v for v in cells]
+        # 加粗按均值判定（带 ± 的字符串不能直接 float 比较）
+        means = [mean_std(c, norm, eps) for c in configs]
+        best = max((m[0] for m in means if m), default=None)
+        cells = [
+            f"\\textbf{{{fmt(c, norm, eps)}}}"
+            if means[i] and means[i][0] == best
+            else fmt(c, norm, eps)
+            for i, c in enumerate(configs)
+        ]
         lines.append(f"{label} & " + " & ".join(cells) + " \\\\")
     lines.extend([
         "\\hline",
@@ -510,24 +527,67 @@ def fmt(key, mean, std):
     return f"{mean:.4f}"
 
 
-def gen_table(grid):
-    r"""生成 main_result.tex 内容（table* 浮动体，可直接 \input{}）。"""
+def fmt_std(key, mean, std):
+    """Acc 显示为百分比、R² 保留原值；均带标准差（均值±std，供 std 表使用）。"""
+    if key == "Acc":
+        return f"{mean * 100:.2f}$\\pm${std * 100:.2f}"
+    return f"{mean:.4f}$\\pm${std:.4f}"
+
+
+def _block_lines(grid, row_keys, fmt_fn, col_subset=None):
+    """生成表格主体行；col_subset 缺省用全部列，子集用于拆表（std 版按列拆两表）。
+
+    加粗/次优下划线始终按该行全部列（grid 全列）的均值判定，与主表一致——
+    拆表不改变最优/次优归属。
+    """
+    cols = col_subset or COLUMN_ORDER
+    out = []
+    for task, backbone in row_keys:
+        label = TASK_NAMES.get(task, task)
+        backbone_label = BACKBONE_NAMES.get(backbone, backbone)
+        cells = grid[(task, backbone)]
+        best_mean = max(mean for _, mean, _ in cells.values())
+        # 次优 = 去重得分的第二档；并列次优（同分）全部加下划线
+        uniques = sorted({mean for _, mean, _ in cells.values()}, reverse=True)
+        second_mean = uniques[1] if len(uniques) > 1 else None
+        parts = [label, backbone_label]
+        for col in cols:
+            entry = cells.get(col)
+            if entry is None:
+                parts.append("--")
+                continue
+            key, mean, std = entry
+            text = fmt_fn(key, mean, std)
+            if mean == best_mean:
+                text = "\\textbf{" + text + "}"
+            elif mean == second_mean:
+                text = "\\underline{" + text + "}"
+            parts.append(text)
+        out.append(" & ".join(parts) + " \\\\")
+    return out
+
+
+def _gen_table(grid, fmt_fn, with_std):
+    """主结果表公共生成逻辑：gen_table（仅均值）与 gen_table_std（均值±标准差）
+    共用；with_std 决定文件头注释、caption 与 label。"""
     order = {k: i for i, k in enumerate(ROW_ORDER)}
     keys = sorted(grid, key=lambda k: (order.get(k, len(order)), k))
     cls_keys = [k for k in keys if k[0] in CLASSIFICATION_TASKS]
     reg_keys = [k for k in keys if k[0] not in CLASSIFICATION_TASKS]
 
+    std_note = "均值±标准差" if with_std else "多次运行均值（不含标准差）"
     lines = [
         "% 主结果表：由 paper/make_table.py 从 tune_results/*.html 自动生成，请勿手改。",
-        "% 分类任务为测试 Acc（%）、回归任务为测试 R²；均为 5 次运行均值（不含标准差）。",
+        f"% 分类任务为测试 Acc（%）、回归任务为测试 R²；均为 {std_note}。",
         "% 每格取该模型在 β / anchor-scale 调参网格上的最优配置（tune_results 各表绿色高亮行），",
         "% 每行（数据集）的最优指标加粗、次优（并列次优全部）加下划线；表尾两行统计各方法跨行的平均排名（越低越好）与最优/并列最优次数。",
         "\\begin{table*}[t]",
         "\\centering",
         "\\caption{Test accuracy (\\%) on classification tasks and test $R^2$ on regression "
-        "tasks (mean over 5 runs). Each entry reports the best configuration over "
+        + ("tasks (mean over runs" if not with_std else "tasks (mean $\\pm$ std. over runs")
+        + "). Each entry reports the best configuration over "
         "the tuned $\\beta$ (and anchor-scale) grid; the best entry per dataset is bolded.}",
-        "\\label{tab:main_result}",
+        "\\label{tab:main_result_std}" if with_std else "\\label{tab:main_result}",
         "\\small",
         "{",  # 花括号限定 tabcolsep 只在本表生效，不泄漏到论文其他表格
         "\\setlength{\\tabcolsep}{2pt}",  # 压缩列间距以收窄表格
@@ -539,35 +599,9 @@ def gen_table(grid):
         "\\hline",
     ]
 
-    def block_lines(row_keys):
-        out = []
-        for task, backbone in row_keys:
-            label = TASK_NAMES.get(task, task)
-            backbone_label = BACKBONE_NAMES.get(backbone, backbone)
-            cells = grid[(task, backbone)]
-            best_mean = max(mean for _, mean, _ in cells.values())
-            # 次优 = 去重得分的第二档；并列次优（同分）全部加下划线
-            uniques = sorted({mean for _, mean, _ in cells.values()}, reverse=True)
-            second_mean = uniques[1] if len(uniques) > 1 else None
-            parts = [label, backbone_label]
-            for col in COLUMN_ORDER:
-                entry = cells.get(col)
-                if entry is None:
-                    parts.append("--")
-                    continue
-                key, mean, std = entry
-                text = fmt(key, mean, std)
-                if mean == best_mean:
-                    text = "\\textbf{" + text + "}"
-                elif mean == second_mean:
-                    text = "\\underline{" + text + "}"
-                parts.append(text)
-            out.append(" & ".join(parts) + " \\\\")
-        return out
-
-    lines.extend(block_lines(cls_keys))
+    lines.extend(_block_lines(grid, cls_keys, fmt_fn))
     lines.append("\\hline\\hline")  # 分类块与回归块的分界（上方 Acc、下方 R²）
-    lines.extend(block_lines(reg_keys))
+    lines.extend(_block_lines(grid, reg_keys, fmt_fn))
     lines.append("\\hline")
 
     # 表尾两行汇总：各方法在所有数据集行上的平均排名（并列取平均名次，越小越好）
@@ -597,6 +631,80 @@ def gen_table(grid):
     return "\n".join(lines) + "\n"
 
 
+def gen_table(grid):
+    r"""生成 main_result.tex 内容（仅均值，table* 浮动体，可直接 \input{}）。"""
+    return _gen_table(grid, fmt, False)
+
+
+def gen_table_std(grid):
+    r"""生成 main_result_std.tex 内容：主结果带标准差版，因 8 方法列 ×
+    (均值±std) 超出页宽，按列拆成两张 table* 浮动体——
+    (a) baselines（Base/VIB/SVIB/NIB，tab:main_result_std_baselines）与
+    (b) CEB/DVCCA | GPB/OPB-L（tab:main_result_std_variants，竖线分隔同主表）；
+    每表含全部 12 行（分类/回归块间双横线），加粗/下划线按该行全部 8 列的均值
+    判定、与 main_result.tex 一致；表尾排名行省略（与主表重复）。"""
+    order = {k: i for i, k in enumerate(ROW_ORDER)}
+    keys = sorted(grid, key=lambda k: (order.get(k, len(order)), k))
+    cls_keys = [k for k in keys if k[0] in CLASSIFICATION_TASKS]
+    reg_keys = [k for k in keys if k[0] not in CLASSIFICATION_TASKS]
+
+    def block_float(col_subset, caption, label):
+        # 列规格：竖线插在 opb 左侧（与主表同位置）；无 opb 的子集无竖线
+        colspec = (
+            "ll" + "c" * len(col_subset)
+            if "opb" not in col_subset
+            else "ll" + "c" * col_subset.index("opb") + "|"
+            + "c" * (len(col_subset) - col_subset.index("opb"))
+        )
+        lines = [
+            "\\begin{table*}[t]",
+            "\\centering",
+            "\\caption{" + caption + "}",
+            "\\label{" + label + "}",
+            "\\small",
+            "{",
+            "\\setlength{\\tabcolsep}{2pt}",
+            "\\begin{tabular}{" + colspec + "}",
+            "\\hline",
+            " & ".join(["Dataset", "Backbone"] + [COLUMN_NAMES[c] for c in col_subset]) + " \\\\",
+            "\\hline",
+        ]
+        lines.extend(_block_lines(grid, cls_keys, fmt_std, col_subset))
+        lines.append("\\hline\\hline")
+        lines.extend(_block_lines(grid, reg_keys, fmt_std, col_subset))
+        lines.append("\\hline")
+        lines.extend(["\\end{tabular}", "}", "\\end{table*}", "\\par\\smallskip"])
+        return "\n".join(lines) + "\n"
+
+    head = [
+        "% 主结果表（带标准差）：由 paper/make_table.py 从 tune_results/*.html 自动生成，请勿手改。",
+        "% 因 8 方法列 × (均值±std) 超出页宽，按列拆为两张表：",
+        "% (a) baselines（Base/VIB/SVIB/NIB，tab:main_result_std_baselines）；",
+        "% (b) CEB/DVCCA 与 GPB/OPB-L（tab:main_result_std_variants，竖线分隔同主表）。",
+        "% 每表含全部 12 行；分类 Acc（%）、回归 R²，单元格为均值±std；",
+        "% 加粗/下划线按该行全部 8 列的均值判定（与 main_result.tex 一致）；",
+        "% 表尾排名行省略（与主表重复）。",
+        "",
+    ]
+    out = "\n".join(head)
+    out += block_float(
+        ["base", "vib", "svib", "nib"],
+        "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
+        "the plain backbone and the variational baselines; same configurations as "
+        "Table~\\ref{tab:main_result}.",
+        "tab:main_result_std_baselines",
+    )
+    out += block_float(
+        ["ceb", "dvcca", "opb", "opbl"],
+        "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
+        "CEB, DVCCA, and our method; same configurations as "
+        "Table~\\ref{tab:main_result}. GPB and OPB-L are separated from the "
+        "references by the vertical rule.",
+        "tab:main_result_std_variants",
+    )
+    return out
+
+
 def main():
     if not list(RESULTS_DIR.glob("*.html")):
         raise SystemExit(f"{RESULTS_DIR} 下未找到 html 文件")
@@ -609,6 +717,9 @@ def main():
         print(f"{task:12s} {backbone:8s} | {detail}")
     OUT_PATH.write_text(gen_table(grid), encoding="utf-8")
     print(f"\n已生成 {OUT_PATH}")
+    MAIN_RESULT_STD_PATH.write_text(gen_table_std(grid), encoding="utf-8")
+    print(f"已生成 {MAIN_RESULT_STD_PATH}（主结果表带标准差版，均值±std，"
+          f"加粗/下划线/排名与主表一致）")
 
     full = collect_full(COMPRESSION_TASKS)
     RESULT1_PATH.write_text(gen_result1(full), encoding="utf-8")

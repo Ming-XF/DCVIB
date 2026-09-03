@@ -1,0 +1,65 @@
+% 主结果表（带标准差）：由 paper/make_table.py 从 tune_results/*.html 自动生成，请勿手改。
+% 因 8 方法列 × (均值±std) 超出页宽，按列拆为两张表：
+% (a) baselines（Base/VIB/SVIB/NIB，tab:main_result_std_baselines）；
+% (b) CEB/DVCCA 与 GPB/OPB-L（tab:main_result_std_variants，竖线分隔同主表）。
+% 每表含全部 12 行；分类 Acc（%）、回归 R²，单元格为均值±std；
+% 加粗/下划线按该行全部 8 列的均值判定（与 main_result.tex 一致）；
+% 表尾排名行省略（与主表重复）。
+\begin{table*}[t]
+\centering
+\caption{Test accuracy (\%) and test $R^2$ with standard deviations over runs: the plain backbone and the variational baselines; same configurations as Table~\ref{tab:main_result}.}
+\label{tab:main_result_std_baselines}
+\small
+{
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{llcccc}
+\hline
+Dataset & Backbone & Base & VIB & SVIB & NIB \\
+\hline
+MNIST & MLP & 98.33$\pm$0.12 & 98.28$\pm$0.11 & 98.15$\pm$0.13 & 98.27$\pm$0.07 \\
+MNIST & CNN & 99.13$\pm$0.05 & 99.28$\pm$0.09 & 99.23$\pm$0.03 & 99.22$\pm$0.06 \\
+ImageNet-100 & MLP & 83.12$\pm$0.14 & 82.84$\pm$0.44 & 83.02$\pm$0.37 & 82.35$\pm$0.27 \\
+ImageNet-100 & CNN & 83.40$\pm$0.13 & 82.94$\pm$0.37 & 83.11$\pm$0.86 & 82.91$\pm$0.35 \\
+Cora & GCN & 87.68$\pm$0.46 & 86.83$\pm$0.28 & 86.46$\pm$1.87 & 86.35$\pm$0.68 \\
+IMDb & RNN & 84.85$\pm$0.68 & 85.50$\pm$0.91 & 85.99$\pm$0.30 & 86.14$\pm$0.92 \\
+AG News & RNN & \textbf{92.94$\pm$0.15} & 92.72$\pm$0.17 & 92.86$\pm$0.21 & 92.91$\pm$0.22 \\
+\hline\hline
+Cal. Housing & MLP & 0.7618$\pm$0.0238 & \underline{0.7901$\pm$0.0049} & 0.7897$\pm$0.0058 & 0.7862$\pm$0.0035 \\
+STS-B & RNN & \textbf{0.2899$\pm$0.0113} & 0.2719$\pm$0.0164 & 0.2697$\pm$0.0202 & 0.2417$\pm$0.0221 \\
+ZINC & GCN & \textbf{0.6348$\pm$0.0044} & 0.6339$\pm$0.0033 & 0.6325$\pm$0.0026 & 0.6178$\pm$0.0099 \\
+AgeDB & MLP & 0.2180$\pm$0.0409 & 0.3173$\pm$0.0101 & \underline{0.3385$\pm$0.0286} & 0.2710$\pm$0.0235 \\
+AgeDB & CNN & 0.3914$\pm$0.0194 & 0.3342$\pm$0.1894 & 0.3323$\pm$0.1870 & 0.3337$\pm$0.1889 \\
+\hline
+\end{tabular}
+}
+\end{table*}
+\par\smallskip
+\begin{table*}[t]
+\centering
+\caption{Test accuracy (\%) and test $R^2$ with standard deviations over runs: CEB, DVCCA, and our method; same configurations as Table~\ref{tab:main_result}. GPB and OPB-L are separated from the references by the vertical rule.}
+\label{tab:main_result_std_variants}
+\small
+{
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{llcc|cc}
+\hline
+Dataset & Backbone & CEB & DVCCA & GPB & OPB-L \\
+\hline
+MNIST & MLP & \underline{98.43$\pm$0.08} & 98.24$\pm$0.17 & \textbf{98.54$\pm$0.09} & \underline{98.43$\pm$0.07} \\
+MNIST & CNN & 99.30$\pm$0.05 & 99.29$\pm$0.10 & \textbf{99.32$\pm$0.05} & \underline{99.31$\pm$0.05} \\
+ImageNet-100 & MLP & 82.77$\pm$0.22 & 82.99$\pm$0.43 & \textbf{84.40$\pm$0.21} & \underline{84.01$\pm$0.23} \\
+ImageNet-100 & CNN & 82.97$\pm$0.67 & 83.21$\pm$0.70 & \textbf{86.08$\pm$0.21} & \underline{84.88$\pm$0.80} \\
+Cora & GCN & 86.27$\pm$0.38 & 86.90$\pm$0.94 & \textbf{88.12$\pm$0.55} & \underline{87.86$\pm$0.87} \\
+IMDb & RNN & 85.55$\pm$0.73 & 85.69$\pm$0.23 & \underline{86.84$\pm$0.57} & \textbf{86.99$\pm$0.35} \\
+AG News & RNN & 92.83$\pm$0.11 & 92.78$\pm$0.15 & 92.87$\pm$0.12 & \underline{92.92$\pm$0.14} \\
+\hline\hline
+Cal. Housing & MLP & 0.7894$\pm$0.0018 & 0.7878$\pm$0.0048 & 0.7895$\pm$0.0051 & \textbf{0.7914$\pm$0.0034} \\
+STS-B & RNN & 0.2668$\pm$0.0127 & 0.2713$\pm$0.0218 & \underline{0.2762$\pm$0.0152} & 0.2755$\pm$0.0134 \\
+ZINC & GCN & 0.6257$\pm$0.0044 & 0.6294$\pm$0.0026 & \underline{0.6344$\pm$0.0031} & 0.6323$\pm$0.0016 \\
+AgeDB & MLP & 0.3317$\pm$0.0251 & 0.3180$\pm$0.0228 & \textbf{0.3536$\pm$0.0076} & 0.3320$\pm$0.0080 \\
+AgeDB & CNN & 0.3882$\pm$0.0275 & 0.3205$\pm$0.1811 & \textbf{0.4700$\pm$0.0072} & \underline{0.4388$\pm$0.0220} \\
+\hline
+\end{tabular}
+}
+\end{table*}
+\par\smallskip

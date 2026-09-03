@@ -86,7 +86,7 @@ def qr_anchor_table(M: torch.Tensor, anchor_scale: float) -> torch.Tensor:
 
     M 为 d×K 满列秩矩阵（要求 K ≤ d）；Q 取 reduced QR 的正交因子并做
     符号规范化（R 对角取正，防止训练中列符号翻转导致锚点跳变，见
-    paper/OPB.txt §11.5），缩放 anchor_scale 后转置为按类别索引的锚点
+    paper/design/OPB.txt §11.5），缩放 anchor_scale 后转置为按类别索引的锚点
     表。梯度经 Q 回传到 M（torch.linalg.qr 可微，满列秩时反向稳定）。
     OPB 每前向对先验编码器的全类别均值矩阵调用本函数（无状态、无 EMA）。
     """
