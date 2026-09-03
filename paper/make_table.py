@@ -18,7 +18,7 @@ baselines 与 CEB/DVCCA+GPB/OPB-L 两张表以适配页宽）；以及配对差�
 paper/main_result_CI.tex（gen_result_ci，GPB − 各 baseline 的 bootstrap 95% CI，
 同 seed 配对、按列拆两张表、表尾统计 */† 次数）。
 
-同时生成压缩-精度表 paper/result1.tex（gen_result1）：仅 ImageNet-100 (MLP，
+同时生成超参数敏感性表 paper/result1.tex（gen_result1）：仅 ImageNet-100 (MLP，
 分类 Acc ×100) 与 AgeDB (MLP，回归 R²) 两个任务，行 = CEB 与 OPB 的
 a ∈ {1, 6, 12} 三条线，列 = β 网格 {1e-4, ..., 10}。
 
@@ -27,6 +27,7 @@ output/adv_mnist/mnist_adv.csv（adv_eval.py 输出），行 = 攻击强度
 （clean + L∞/L2 各 ε，随 CSV 自适应），列 = CSV 中的模型配置（数量自适应），
 值为跨 run 平均鲁棒精度（%）。
 
+以及压缩-精度评估表 paper/result4.tex（gen_result4，CE/KL 分解项）；
 以及几何机制表 paper/result3.tex（gen_result3）：读取 output/pri-pos 下
 prior_geometry.py / posterior_geometry.py 的 JSON（posterior_geometry.json
 与 prior_summary.json），行 = 四个机制对照配置（MNIST CEB/OPB、Housing
@@ -50,6 +51,7 @@ MAIN_RESULT_CI_PATH = Path(__file__).resolve().parent / "main_result_CI.tex"
 RESULT1_PATH = Path(__file__).resolve().parent / "result1.tex"
 RESULT2_PATH = Path(__file__).resolve().parent / "result2.tex"
 RESULT3_PATH = Path(__file__).resolve().parent / "result3.tex"
+RESULT4_PATH = Path(__file__).resolve().parent / "result4.tex"
 # 对抗鲁棒性长表（adv_eval.py 输出）：config/run/norm/eps/acc
 ADV_CSV_PATH = ROOT / "output" / "adv_mnist" / "mnist_adv.csv"
 # 几何机制表数据源（prior_geometry.py / posterior_geometry.py 输出）
@@ -61,6 +63,9 @@ PRIOR_SUMMARY_JSON = ROOT / "output" / "pri-pos" / "pri_results" / "prior_summar
 COMPRESSION_TASKS = [("imagenet100", "mlp"), ("agedb", "mlp")]
 COMPRESSION_BETAS = [1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0]
 COMPRESSION_ANCHORS = [1.0, 6.0, 12.0]
+
+# 压缩-精度评估数据（compression_eval.py 输出）：CE / KL / KL 分解项
+COMPRESSION_EVAL_CSV = ROOT / "output" / "compression_eval" / "compression_eval_summary.csv"
 
 
 def _to_float(s):
@@ -450,22 +455,21 @@ def gen_result3():
 
 
 def gen_result1(full):
-    r"""生成压缩-精度表 result1.tex（table* 浮动体，可直接 \input{}）。
+    r"""生成超参数敏感性表 result1.tex（table* 浮动体，可直接 \input{}）。
 
     行 = CEB 与 OPB 在 a ∈ {1, 6, 12} 的三条线，列 = β 网格
     （COMPRESSION_BETAS）；仅 ImageNet-100 (MLP，分类 Acc ×100) 与
     AgeDB (MLP，回归 R²) 两个任务，各自成组、组间以横线分隔。
     """
     lines = [
-        "% 压缩-精度表：由 paper/make_table.py 自动生成，请勿手改。",
+        "% 超参数敏感性表：由 paper/make_table.py 自动生成，请勿手改。",
         "% ImageNet-100 (MLP) 报告测试 Acc（%）、AgeDB (MLP) 报告测试 R²；均为 5 次运行均值。",
         "% 行 = CEB 与 OPB 的 a=1/6/12 三条线；列 = β（对数网格）。",
         "\\begin{table*}[t]",
         "\\centering",
-        "\\caption{Compression--accuracy: test metric as a function of the compression "
-        "weight $\\beta$ for CEB and for OPB at anchor scales $a\\in\\{1,6,12\\}$. "
-        "ImageNet-100 (MLP) reports test accuracy (\\%); AgeDB (MLP) reports test $R^2$; "
-        "means over five runs.}",
+        "\\caption{Hyperparameter sensitivity: test metric as a function of $\\beta$ "
+        "for CEB and for OPB at anchor scales $a\\in\\{1,6,12\\}$. ImageNet-100 (MLP) "
+        "reports test accuracy (\\%); AgeDB (MLP) reports test $R^2$; means over five runs.}",
         "\\label{tab:compression}",
         "\\small",
         "{",
@@ -644,7 +648,7 @@ def gen_result_ci():
             "\\label{" + label + "}",
             "\\small",
             "{",
-            "\\setlength{\\tabcolsep}{1pt}",
+            "\\setlength{\\tabcolsep}{0.5pt}",
             "\\begin{tabular}{ll" + "c" * len(cols) + "}",
             "\\hline",
             " & ".join(["Dataset", "Backbone"] + [COLUMN_NAMES[c] for c in cols]) + " \\\\",
@@ -712,6 +716,79 @@ def gen_result_ci():
     for cols, label in CI_COL_GROUPS:
         out += block_float(cols, captions[label], label)
     return out
+
+
+def gen_result4():
+    r"""生成压缩-精度评估表 result4.tex：CE / KL 均值失配项 / KL 方差失配项 /
+    E[KL] / 任务指标的测试集分解（compression_eval.py 输出，均值±std）。
+
+    两个任务块（ImageNet-100 MLP 分类、AgeDB MLP 回归），行 = CEB（6 个 β）
+    与 OPB（6 β × 3 a = 18 组合），块间双横线；tab:compression_decomp，
+    可直接 \input{}。CSV 缺失时返回 None（跳过）。
+    """
+    if not COMPRESSION_EVAL_CSV.exists():
+        return None
+    rows = list(csv.DictReader(open(COMPRESSION_EVAL_CSV, newline="", encoding="utf-8")))
+
+    def fmt(r, col):
+        m, s = r.get(f"{col}_mean"), r.get(f"{col}_std")
+        if not m:
+            return "--"
+        try:
+            def g(x):
+                # 大值（如方差爆炸点 KL≈1e8）用科学计数法控制表宽
+                return f"{x:.1e}" if abs(x) >= 1e4 else f"{x:.3f}"
+            if abs(float(m)) >= 1e4:
+                return g(float(m))  # 方差爆炸行只报均值（std 与之同量级，见表注）
+            return f"{g(float(m))}$\\pm${g(float(s))}"
+        except ValueError:
+            return "--"
+
+    def block(task, is_cls):
+        out = []
+        rows_t = [r for r in rows if r["task"] == task]
+        specs = [("ceb", None)] + [("opb", a) for a in COMPRESSION_ANCHORS]
+        for model, a in specs:
+            for r in rows_t:
+                if r["model"] != model or (a is not None and float(r["anchor"]) != a):
+                    continue
+                beta = float(r["beta"])
+                label = "CEB" if model == "ceb" else "OPB"
+                cfg = f"{label} ($\\beta={beta:g}$" + (f", $a={a:g}$)" if a is not None else ")")
+                metric = fmt(r, "Acc" if is_cls else "R2")
+                out.append(
+                    f"{cfg} & {fmt(r, 'CE')} & {fmt(r, 'KL_mean')} & "
+                    f"{fmt(r, 'KL_var')} & {fmt(r, 'KL')} & {metric} \\\\"
+                )
+        return out
+
+    lines = [
+        "% 压缩-精度评估表：由 paper/make_table.py 从 compression_eval.csv 自动生成，请勿手改。",
+        "% 测试集分解：CE / KL 均值失配项 / KL 方差失配项 / E[KL] / 任务指标（均值±std，跨 5 run）。",
+        "\\begin{table*}[t]",
+        "\\centering",
+        "\\caption{Test-set decomposition of the sweep configurations: prediction loss "
+        "(CE or MSE), the mean-mismatch and variance-mismatch terms of the KL, the total "
+        "$\\E[\\KL]$, and the task metric (accuracy on ImageNet-100, $R^2$ on AgeDB); "
+        "means $\\pm$ std. over runs.}",
+        "\\label{tab:compression_decomp}",
+        "\\footnotesize",
+        "{",
+        "\\setlength{\\tabcolsep}{0.5pt}",
+        "\\begin{tabular}{l c c c c c}",
+        "\\hline",
+        "Config & CE & KL mean term & KL var term & $\\E[\\KL]$ & Acc / $R^2$ \\\\",
+        "\\hline",
+    ]
+    lines.extend(block("imagenet100", True))
+    lines.append("\\hline\\hline")
+    lines.extend(block("housing", False))
+    lines.extend(["\\hline", "\\end{tabular}", "}", "\\end{table*}"])
+    lines.append(
+        "\\par\\smallskip\\textit{Note:} cells with $|\mathrm{value}| \ge 10^4$ "
+        "(the variance-explosion rows at tiny $\\beta$ with $a=1$) show the mean only."
+    )
+    return "\n".join(lines) + "\n"
 
 
 def rank_scores(scores):
@@ -950,6 +1027,15 @@ def main():
         RESULT2_PATH.write_text(result2, encoding="utf-8")
         print(f"已生成 {RESULT2_PATH}（对抗鲁棒性表：行 = 攻击强度、列 = 模型配置（自适应），"
               f"数据来自 {ADV_CSV_PATH}）")
+
+    result4 = gen_result4()
+    if result4 is None:
+        print(f"警告：{COMPRESSION_EVAL_CSV} 不存在，跳过压缩-精度评估表"
+              f"（先运行 compression_retrain.py 与 compression_eval.py 生成）")
+    else:
+        RESULT4_PATH.write_text(result4, encoding="utf-8")
+        print(f"已生成 {RESULT4_PATH}（压缩-精度评估表：CE / KL 分解项，"
+              f"数据来自 compression_eval.py）")
 
     result3 = gen_result3()
     if result3 is None:

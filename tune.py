@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parent
 TRAIN_PY = ROOT / "train.py"
 
 # 调参专属或由脚本接管路径的参数，重建 train.py 命令行时跳过
-SKIP_DESTS = {"model", "beta", "anchor_scale", "parallel", "results_dir", "save_path", "log_path", "no_save"}
+SKIP_DESTS = {"model", "beta", "anchor_scale", "parallel", "results_dir", "save_path", "log_path", "no_save", "save_root"}
 
 BASELINES = ("mlp", "cnn", "gcn", "rnn")
 
@@ -81,6 +81,12 @@ def build_tune_parser():
     parser.add_argument(
         "--results-dir", type=str, default="tune_results",
         help="调参结果根目录，每个参数组合一个子文件夹（默认 tune_results）",
+    )
+    parser.add_argument(
+        "--save-root", type=str, default=None,
+        help="保存 checkpoint 的根目录（可选）：给出时每个组合的 checkpoint 保存到 "
+        "{save-root}/{combo}/{combo}_run{i}.pt（等价于逐组合 --save-path），"
+        "并省略默认的 --no-save；不给时与旧行为一致（不保存模型参数）",
     )
     return parser
 
@@ -214,7 +220,14 @@ def build_train_cmd(parser, args, model, beta, anchor_scale, out_dir):
         cmd.extend(["--beta", str(beta)])
     if anchor_scale is not None:
         cmd.extend(["--anchor-scale", str(anchor_scale)])
-    cmd.append("--no-save")
+    if getattr(args, "save_root", None):
+        # 保存 checkpoint：每个组合独立目录，避免组合间相互覆盖；
+        # 必须带 .pt 后缀——train.py 用 splitext 拆 stem/ext 生成 _run{i}.pt，
+        # 无后缀时 dot 会被误当扩展名（如 beta_0.0001 → *_run1.0001）
+        save_stem = Path(args.save_root) / out_dir.name / out_dir.name
+        cmd.extend(["--save-path", str(save_stem) + ".pt"])
+    else:
+        cmd.append("--no-save")
     cmd.extend(["--log-path", str(out_dir / "train.log")])
     return cmd
 
