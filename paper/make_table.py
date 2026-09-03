@@ -22,9 +22,16 @@ a ∈ {1, 6, 12} 三条线，列 = β 网格 {1e-4, ..., 10}。
 output/adv_mnist/mnist_adv.csv（adv_eval.py 输出），行 = 攻击强度
 （clean + L∞/L2 各 ε，随 CSV 自适应），列 = CSV 中的模型配置（数量自适应），
 值为跨 run 平均鲁棒精度（%）。
+
+以及几何机制表 paper/result3.tex（gen_result3）：读取 output/pri-pos 下
+prior_geometry.py / posterior_geometry.py 的 JSON（posterior_geometry.json
+与 prior_summary.json），行 = 四个机制对照配置（MNIST CEB/OPB、Housing
+CEB/EPB），列 = 几何集中度 / 尺度跟随 / 跨 seed 稳定（每个任务取最有区分
+度的指标）；解释性内容（先验任意 vs 构造固定、收缩效应、轴方向旋转）已写入 paper.tex 正文（sec:mechanism），本表只保留数据。
 """
 
 import csv
+import json
 import re
 from html.parser import HTMLParser
 from pathlib import Path
@@ -34,8 +41,12 @@ RESULTS_DIR = ROOT / "tune_results"
 OUT_PATH = Path(__file__).resolve().parent / "main_result.tex"
 RESULT1_PATH = Path(__file__).resolve().parent / "result1.tex"
 RESULT2_PATH = Path(__file__).resolve().parent / "result2.tex"
+RESULT3_PATH = Path(__file__).resolve().parent / "result3.tex"
 # 对抗鲁棒性长表（adv_eval.py 输出）：config/run/norm/eps/acc
 ADV_CSV_PATH = ROOT / "output" / "adv_mnist" / "mnist_adv.csv"
+# 几何机制表数据源（prior_geometry.py / posterior_geometry.py 输出）
+POSTERIOR_JSON = ROOT / "output" / "pri-pos" / "pos_results" / "posterior_geometry.json"
+PRIOR_SUMMARY_JSON = ROOT / "output" / "pri-pos" / "pri_results" / "prior_summary.json"
 
 # 压缩-精度表（result1.tex）：仅这两个 (task, backbone) 与固定 β 网格，
 # 行 = CEB 与 OPB 的 a=1/6/12 三条线，列 = β
@@ -328,6 +339,94 @@ def gen_result2():
     return "\n".join(lines) + "\n"
 
 
+def _f4(x, nd=4):
+    """None 安全格式化（数据缺失显示 -）。"""
+    return "-" if x is None else f"{x:.{nd}f}"
+
+
+def gen_result3():
+    r"""从 output/pri-pos 的机制验证 JSON 生成几何机制表 result3.tex（table 浮动体）。
+
+    行 = 四个机制对照配置（MNIST CEB/OPB、Housing CEB/EPB），列 = 三个概念
+    指标：几何集中度（分类 mean|cos_off| / 回归离轴占比）、尺度跟随（分类 ‖c̄‖
+    对照 a / 回归斜率对照 ρ）、跨 seed 稳定（分类跨run余弦std / 回归斜率std）；
+    解释性内容（先验任意 vs 构造固定、收缩效应、轴方向旋转）在 paper.tex
+    正文 sec:mechanism 中，本表只保留数据。数据缺失时返回 None（跳过）。
+    """
+    if not POSTERIOR_JSON.exists():
+        return None
+    pos = json.loads(POSTERIOR_JSON.read_text(encoding="utf-8"))
+    results = {k: v for k, v in pos.items() if isinstance(v, dict) and "cross_run" in v}
+    meta = pos.get("meta", {})
+
+    def display(label, model, task):
+        task_short = "MNIST" if task == "mnist" else "Housing"
+        if model == "opb":
+            name = "EPB" if task != "mnist" else "OPB"
+        else:
+            name = model.upper()
+        return f"{name} ({task_short})"
+
+    lines = [
+        "% 几何机制表：由 paper/make_table.py 从 output/pri-pos 的机制验证 JSON 自动生成，请勿手改。",
+        "% 行 = 机制对照配置；列 = 几何集中度 / 尺度跟随 / 跨 seed 稳定（跨 5 run 均值±std），",
+        "% 列头括号注明分类（MNIST）与回归（Housing）各自使用的指标；解释性文字见 paper.tex 正文。",
+        "\\begin{table}[t]",
+        "\\centering",
+        "\\caption{Mechanism validation: the constructed geometry pulls the posterior "
+        "into the orthogonal frame (classification) and onto the isometric axis "
+        "(regression). Geometric concentration: mean off-diagonal cosine of the "
+        "posterior class-center Gram matrix (classification) / off-axis residual "
+        "fraction (regression). Scale following: class-center radius "
+        "$\\lVert\\bar c\\rVert$ against the anchor scale $a$ (classification) / axial "
+        "slope against $\\rho$ (regression). Cross-seed stability: std. over runs. "
+        "Means $\\pm$ std. over five runs.}",
+        "\\label{tab:mechanism}",
+        "\\small",
+        "{",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\begin{tabular}{l l c c c}",
+        "\\hline",
+        "Model (task) & Task & Geometric concentration & Scale following & Cross-seed stability \\\\",
+        "\\hline",
+    ]
+
+    for label, res in results.items():
+        cr = res["cross_run"]
+        task = res.get("task")
+        model = res.get("model")
+        a_val = meta.get(f"a_{label}") if model == "opb" else None
+        if res["mode"] == "classification":
+            conc = (
+                f"{_f4(cr.get('mean_abs_cos_offdiag_mean'))}$\\pm$"
+                f"{_f4(cr.get('mean_abs_cos_offdiag_std'))}"
+            )
+            scale = f"{_f4(cr.get('center_norm_mean_mean'), 2)}"
+            if a_val is not None:
+                scale += f" ($a={a_val:g}$)"
+            stab = _f4(cr.get("mean_pairwise_cos_std"))
+        else:
+            conc = _f4(cr.get("off_axis_frac_mean"))
+            scale = (
+                f"{_f4(cr.get('slope_mean'), 2)}$\\pm${_f4(cr.get('slope_std'), 2)}"
+            )
+            if a_val is not None:
+                scale += f" ($\\rho={a_val:g}$)"
+            stab = _f4(cr.get("slope_std"), 3)
+        lines.append(
+            f"{display(label, model, task)} & {'Classif.' if task == 'mnist' else 'Regress.'} & "
+            f"{conc} & {scale} & {stab} \\\\"
+        )
+    lines.append("\\hline")
+    lines.append("\\end{tabular}")
+    lines.append("}")
+
+    # 表注已移入正文（paper.tex sec:mechanism 的 prior/posterior 两段已含：
+    # 先验任意 vs 构造固定、收缩解释、轴方向旋转）；本表只保留数据
+    lines.append("\\end{table}")
+    return "\n".join(lines) + "\n"
+
+
 def gen_result1(full):
     r"""生成压缩-精度表 result1.tex（table* 浮动体，可直接 \input{}）。
 
@@ -523,6 +622,15 @@ def main():
         RESULT2_PATH.write_text(result2, encoding="utf-8")
         print(f"已生成 {RESULT2_PATH}（对抗鲁棒性表：行 = 攻击强度、列 = 模型配置（自适应），"
               f"数据来自 {ADV_CSV_PATH}）")
+
+    result3 = gen_result3()
+    if result3 is None:
+        print(f"警告：{POSTERIOR_JSON} 不存在，跳过几何机制表"
+              f"（先运行 prior_geometry.py 与 posterior_geometry.py 生成）")
+    else:
+        RESULT3_PATH.write_text(result3, encoding="utf-8")
+        print(f"已生成 {RESULT3_PATH}（几何机制表：行 = 机制对照配置、列 = 三个概念指标，"
+              f"数据来自 output/pri-pos 的机制验证 JSON）")
 
 
 if __name__ == "__main__":

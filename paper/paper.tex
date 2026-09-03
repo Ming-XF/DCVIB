@@ -20,6 +20,7 @@
 % 定理环境、emergencystretch 兜底行溢出、\KL 覆写为本文的 KL(·‖·) 记法
 % （math_commands.tex 默认定义为 D_KL 形式）。
 \usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx} % 机制验证图（fig:mechanism，两张 PNG 从机制报告 HTML 导出）
 \emergencystretch=1.5em
 \theoremstyle{plain}
 \newtheorem{proposition}{Proposition}[section]
@@ -1035,9 +1036,10 @@ standardization, otherwise ``isometric'' has no unique meaning.
 \label{sec:experiments}
 % =====================================================================
 
-% 已撰写：实验设置（sec:setup）与主结果（sec:main-results，\input{main_result}）。
-% 待补：压缩-精度扫参小节（β×a 网格，温和区平台 + 强压缩区大 a 救援，图占位）
-% 与机制验证小节（先验几何 / 后验传递 / 最近锚点 / 随机标签 / 对抗鲁棒性）。
+% 已撰写：实验设置（sec:setup）、主结果（sec:main-results，\input{main_result}）、
+% 压缩-精度扫参（sec:sweep，\input{result1}）、对抗鲁棒性（sec:robustness，\input{result2}）
+% 与机制验证（sec:mechanism，\input{result3} + fig:mechanism）。
+% 待补：随机标签记忆实验（supplementary）。
 
 The experiments address two questions. First, does replacing CEB's unconstrained
 reference with a constructed geometry --- an orthogonal class frame or an isometric
@@ -1047,9 +1049,9 @@ geometry by construction --- the anchor-energy classifier and the tied projectio
 head --- so that the free head's degrees of freedom are removed? The main sweep
 answers both on twelve dataset--backbone settings; the compression--accuracy sweep
 over $\beta$ and the anchor scale is reported in Section~\ref{sec:sweep},
-adversarial robustness in Section~\ref{sec:robustness}, and the remaining
-mechanism-level validation (prior geometry, posterior transfer, nearest-anchor
-sufficiency, memorization) in the supplementary analysis.
+adversarial robustness in Section~\ref{sec:robustness}, the geometric mechanism
+validation in Section~\ref{sec:mechanism}, and the remaining mechanism-level
+checks (nearest-anchor sufficiency, memorization) in the supplementary analysis.
 
 \subsection{Experimental setup}
 \label{sec:setup}
@@ -1242,6 +1244,74 @@ at the largest $L_2$ strengths ($\varepsilon = 5, 6$), where every model is near
 chance, the ordering is noisy and the plain backbone happens to sit above the
 bottleneck models. Full $\varepsilon$ grids for all configurations are in the
 release.
+
+% =====================================================================
+\subsection{Mechanism validation: the geometry drives representation and prediction}
+\label{sec:mechanism}
+% =====================================================================
+
+The main sweep established the predictive adequacy of the constructed geometry;
+here we verify the mechanism behind it, on the two representative settings of the
+analysis --- MNIST (MLP, classification) and California Housing (MLP, regression),
+trained at the matched compression $\beta = 0.1$ with anchor scale
+$a = \rho = 12$.
+
+\paragraph{The prior.} CEB's reference is arbitrary and drifts across seeds: the
+mean off-diagonal cosine of its learned class-prior table is
+$0.119 \pm 0.002$, and the scale of its learned regression axis varies by
+$2.07 \pm 0.88$ across runs. The constructed prior has no such freedom: the OPB
+class priors are exactly orthogonal (off-diagonal cosine $0$, pairwise distance
+$\sqrt{2}\,a = 16.97$), and the EPB axis is fixed at $\rho = 12.000$ with exact
+isometry through the origin --- both verified at machine precision.
+
+\input{result3}
+
+\paragraph{The posterior.} Table~\ref{tab:mechanism} shows that this geometry
+transfers to the posterior. On classification the posterior class centers are
+nearly orthogonal --- the mean off-diagonal Gram cosine is $5.9\times$ lower than
+CEB's --- and sit at radius $\lVert\bar c\rVert = 11.00$ ($92\%$ of $a$), with
+$2.5\times$ lower cross-seed drift; the Fisher ratio is comparable
+($15.3$ vs.\ $15.7$, reported as is). On regression the posterior lives
+essentially \emph{on} the isometric axis: the off-axis residual fraction is
+$141\times$ lower than CEB's, and the axial slope tracks $\rho$ with $3.8\times$
+lower cross-seed variation. The slope is $9.22$ rather than $\rho = 12$ because
+the encoder's uncertainty shrinks the posterior along the axis --- the slope
+equals $\rho \cdot R^2_{\mathrm{axis}}$ ($12 \times 0.78 \approx 9.4$) --- and the
+axis \emph{direction} itself can rotate rigidly with the representation (mean
+direction cosine $0.03$--$0.06$ for both models), so the discriminative
+stability evidence is the scale, not the direction.
+Figures~\ref{fig:mechanism-gram} and~\ref{fig:mechanism-axis} show both
+mechanisms directly.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_mechanism_gram.png}
+\caption{Pairwise-cosine Gram matrix of the posterior class centers on MNIST,
+averaged over five runs. OPB is nearly diagonal: the posterior centers are
+orthogonal; CEB shows no such structure.}
+\label{fig:mechanism-gram}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_mechanism_axis.png}
+\caption{The axial coordinate $u^{\top}\mu_q(x)$ against the normalized label on
+Housing (one representative run per model). The EPB posterior hugs the prior line
+$\rho\tilde y$, shrunk toward $\rho\,\mathbb{E}[\tilde y \mid x]$ by the
+encoder's uncertainty.}
+\label{fig:mechanism-axis}
+\end{figure*}
+
+\paragraph{Prediction reads off the geometry.} Both heads of
+Section~\ref{sec:variants} have no free parameters. At the matched configuration
+the anchor-energy classifier attains $98.44\%$ test accuracy against CEB's
+$98.16\%$ on MNIST, and the tied projection head attains $R^2 = 0.778$ against
+CEB's $0.491$ on Housing --- under this strong compression CEB collapses while the
+geometric readout retains the signal, consistent with the main-table GPB column
+(Section~\ref{sec:main-results}) and with the nearest-anchor analysis of the
+appendix. The mechanism chain is therefore complete: the constructed prior pulls
+the posterior into the declared geometry, and a zero-parameter rule that reads
+exactly that geometry carries the prediction.
 
 % =====================================================================
 \section{Related work}

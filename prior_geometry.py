@@ -22,9 +22,18 @@ v1 支持 mnist/cora 目录（其他数据集的模型构建需要数据集维�
 输出：{results-dir}/prior_geometry.csv（长表：每个 (config, run) 一行标量指标，
 矩阵类数据量大不进 csv）、prior_geometry.json（每 run 全部矩阵与跨 run 统计，
 矩阵仅存于此）与三张图（余弦热力图网格 / 非对角余弦与距离分布 / 逐类模长箱线）。
+
+回归扩展（v2，housing 目录）：continuous_y 配置（CEB/OPB-R）无类别先验表，
+改测先验轴几何——方向 d/u、学习尺度 s=‖W_mu‖（OPB-R 为构造固定 rho）、
+过原点偏移 ‖b‖、严格等距数值验证（‖μ_p(yi)−μ_p(yj)‖=scale·|yi−yj|）。
+anchor-scale 自动从训练日志 Args 读取（防目录名/CLI 与训练不一致的分析伪影）。
+另写 prior_summary.json（归一化跨 run 汇总，供 posterior_geometry.py 的 HTML
+报告的"先验一句"文字使用——论文报告形式为一张机制表 + 两句文字 + 一张图，
+先验不再单独成表）。
 """
 
 import argparse
+import ast
 import csv
 import json
 import math
@@ -35,6 +44,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
+import torch.nn.functional as F
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 from matplotlib.patches import Patch
 
@@ -104,6 +114,106 @@ def extract_prior_means(model, model_name, anchor_scale):
         M = mu_raw
         source = "prior_net(eye) 学习表"
     return M.detach(), source
+
+
+def read_trained_anchor_scale(d, fallback=None):
+    """从目录内训练日志的 Args 行读取实际 anchor-scale（取**最后一条** Args 行）。
+
+    日志为追加模式：早先失败尝试（如误传 --tied-head 直接报错退出）或旧配置
+    的 Args 行在文件前面，不可信；最后一条 Args 才是产出 checkpoint 的那次
+    运行。目录名/CLI 也可能与训练时不一致（此前 a=1 训出按 a=4 分析的伪影），
+    训练日志 Args 是唯一可靠来源；找不到时回退 fallback。
+    """
+    for log in sorted(d.glob("train_*.log")):
+        try:
+            with open(log, encoding="utf-8") as f:
+                args_lines = [l for l in f if "Args:" in l]
+            if args_lines:
+                args_dict = ast.literal_eval(
+                    args_lines[-1].split("Args:", 1)[1].strip()
+                )
+                return float(args_dict.get("anchor_scale", fallback))
+        except (OSError, ValueError, SyntaxError, TypeError):
+            continue
+    return fallback
+
+
+def extract_prior_axis(model, model_name, anchor_scale):
+    """回归先验轴提取：返回 dict(direction, scale, bias_norm, bias_proj, source)。
+
+    CEB（continuous_y）：先验均值 mu_p(y) = W_mu·y + b（仿射线），d = W_mu/‖W_mu‖、
+    scale = ‖W_mu‖（学习尺度）、bias_proj = b·d（轴坐标截距，参考线用）；
+    OPB-R：u = normalize(prior_direction)（与训练前向同路径）、scale = rho
+    （构造固定 = anchor-scale）、无 bias（严格过原点）。d/u 均为单位方向。
+    """
+    if model_name == "opb":
+        w = model.prior_direction.weight.detach().squeeze(-1)  # (z,)
+        d = F.normalize(w, dim=0)
+        return {
+            "direction": d,
+            "scale": float(anchor_scale),
+            "bias_norm": 0.0,
+            "bias_proj": 0.0,
+            "source": f"prior_direction 归一化轴 u（rho={anchor_scale:g} 构造固定）",
+        }
+    z = model.prior_net.weight.size(0) // 2
+    w = model.prior_net.weight.detach()[:z, 0]
+    b = model.prior_net.bias.detach()[:z]
+    s = w.norm().item()
+    d = w / w.norm()
+    return {
+        "direction": d,
+        "scale": s,
+        "bias_norm": b.norm().item(),
+        "bias_proj": (b * d).sum().item(),
+        "source": "prior_net(连续 y) 学习仿射线 W·y+b",
+    }
+
+
+def summarize_prior_reg(model, model_name, anchor_scale):
+    """回归单 run 先验几何：方向/尺度/过原点偏移 + 严格等距数值验证。
+
+    在 ỹ∈[0,1] 网格上把连续标签送入与训练相同的先验路径，检查
+    ‖mu_p(yi)−mu_p(yj)‖ = scale·|yi−yj|（线性先验应机器精度成立——
+    判别点不是等距本身，而是 scale 由谁决定、是否过原点）与 ‖mu_p(0)‖。
+    """
+    ax = extract_prior_axis(model, model_name, anchor_scale)
+    d, scale = ax["direction"], ax["scale"]
+    y = torch.linspace(0.0, 1.0, 11).unsqueeze(-1)  # (G, 1)
+    if model_name == "opb":
+        mu_p = anchor_scale * y * d.unsqueeze(0)  # rho·y·u，与训练前向同路径
+    else:
+        z = model.prior_net.weight.size(0) // 2
+        mu_p = y @ model.prior_net.weight.detach()[:z].t() + model.prior_net.bias.detach()[:z]
+    dist = torch.cdist(mu_p, mu_p)
+    d_y = torch.cdist(y, y).squeeze(-1)
+    iso_dev = (dist - scale * d_y).abs()
+    return {
+        "direction": d.tolist(),
+        "scale": scale,
+        "bias_norm": ax["bias_norm"],
+        "bias_proj": ax["bias_proj"],
+        "iso_max_dev": iso_dev.max().item(),
+        "origin_norm": mu_p[0].norm().item(),
+        "source": ax["source"],
+    }
+
+
+def reg_cross_run(run_summaries):
+    """回归跨 run（=跨 seed）汇总：标量均值±std + 方向一致性。
+
+    mean_dir_cos：各 run 单位方向的两两余弦均值（1 = 方向完全一致，
+    对应分类的 mean_pairwise_cos_std，语义相反：越大越稳定）。
+    """
+    dirs = torch.stack([torch.tensor(s["direction"]) for s in run_summaries])  # (R, z)
+    cos = dirs @ dirs.t()
+    iu = torch.triu_indices(len(run_summaries), len(run_summaries), offset=1)
+    out = {"mean_dir_cos": cos[iu[0], iu[1]].mean().item()}
+    for k in ["scale", "bias_norm", "bias_proj", "iso_max_dev", "origin_norm"]:
+        t = torch.tensor([s[k] for s in run_summaries], dtype=torch.float64)
+        out[f"{k}_mean"] = t.mean().item()
+        out[f"{k}_std"] = t.std().item()
+    return out
 
 
 def pairwise_gram(M):
@@ -311,10 +421,10 @@ def main():
         dataset, backbone, model_name = parse_dir_name(label)
         if model_name not in ("ceb", "opb"):
             parser.error(f"目录 '{label}' 模型为 '{model_name}'，实验一仅支持 ceb/opb")
-        if dataset not in ("mnist", "cora"):
+        if dataset not in ("mnist", "cora", "california"):
             parser.error(
-                f"目录 '{label}' 数据集为 '{dataset}'，实验一 v1 仅支持 mnist/cora "
-                "（其他数据集的模型构建需要数据集维度）"
+                f"目录 '{label}' 数据集为 '{dataset}'，实验一仅支持 mnist/cora（分类）"
+                "与 california（housing 回归）目录"
             )
         ckpts = sorted(d.glob("*_run*.pt"), key=_run_index)
         if len(ckpts) < args.runs:
@@ -323,68 +433,127 @@ def main():
             )
         ckpts = ckpts[: args.runs]
 
+        # 锚点尺度以训练日志 Args 为准（防目录名/CLI 与分析不一致的伪影）
+        a_scale = read_trained_anchor_scale(d, args.anchor_scale)
+        if a_scale is not None and abs(a_scale - args.anchor_scale) > 1e-9:
+            print(
+                f"[提示] {label} 按训练日志使用 anchor-scale={a_scale:g}"
+                f"（忽略 CLI {args.anchor_scale:g}）"
+            )
+
         # 目录名解析出的架构重建模型；task 按目录名自动推导（纯权重分析、不加载数据）
         dir_args = argparse.Namespace(**vars(args))
-        dir_args.task = dataset
+        dir_args.task = "housing" if dataset == "california" else dataset
         dir_args.model = model_name
         dir_args.backbone = backbone
         model = build_model(parser, dir_args)
-        print(f"[加载] {label} → backbone={backbone} model={model_name}，checkpoint {len(ckpts)} 个")
+        is_reg = getattr(model, "continuous_y", False)
+        mode = "regression" if is_reg else "classification"
+        print(
+            f"[加载] {label} → backbone={backbone} model={model_name} "
+            f"mode={mode}，checkpoint {len(ckpts)} 个"
+        )
 
         run_summaries = []
         for i, ckpt in enumerate(ckpts, 1):
             model.load_state_dict(torch.load(ckpt, weights_only=True, map_location="cpu"))
             model.eval()
-            M, source = extract_prior_means(model, model_name, args.anchor_scale)
-            s = summarize(M, args.anchor_scale)
+            if is_reg:
+                s = summarize_prior_reg(model, model_name, a_scale)
+                csv_rows.append(
+                    [label, i, args.seed + i - 1] + [""] * 6
+                    + [s["scale"], s["bias_norm"], s["bias_proj"],
+                       s["iso_max_dev"], s["origin_norm"]]
+                )
+                print(
+                    f"[{label}] run{i} (seed {args.seed + i - 1}) scale={s['scale']:.4f} "
+                    f"bias_norm={s['bias_norm']:.4f} iso_max_dev={s['iso_max_dev']:.2e} "
+                    f"origin_norm={s['origin_norm']:.4f}"
+                )
+            else:
+                M, source = extract_prior_means(model, model_name, a_scale)
+                s = summarize(M, a_scale)
+                csv_rows.append(
+                    [
+                        label,
+                        i,
+                        args.seed + i - 1,
+                        s["mean_abs_cos_offdiag"],
+                        s["max_abs_cos_offdiag"],
+                        s["min_dist_offdiag"],
+                        s["max_dist_offdiag"],
+                        s["norm_std"],
+                        s["n_near_pairs"],
+                    ]
+                    + [""] * 5
+                )
+                print(
+                    f"[{label}] run{i} (seed {args.seed + i - 1}) "
+                    f"mean|cos_off|={s['mean_abs_cos_offdiag']:.4f} "
+                    f"minD={s['min_dist_offdiag']:.4f} norm_std={s['norm_std']:.4f} "
+                    f"近重合对={s['n_near_pairs']}"
+                )
             s["run"] = i
             s["seed"] = args.seed + i - 1
             run_summaries.append(s)
-            # CSV 长表只存标量指标（矩阵不进 csv，见 JSON 与图）
-            csv_rows.append(
-                [
-                    label,
-                    i,
-                    s["seed"],
-                    s["mean_abs_cos_offdiag"],
-                    s["max_abs_cos_offdiag"],
-                    s["min_dist_offdiag"],
-                    s["max_dist_offdiag"],
-                    s["norm_std"],
-                    s["n_near_pairs"],
-                ]
-            )
+
+        if is_reg:
+            cr = reg_cross_run(run_summaries)
+            results[label] = {
+                "task": "housing",
+                "backbone": backbone,
+                "model": model_name,
+                "mode": mode,
+                "source": run_summaries[0]["source"],
+                "runs": run_summaries,
+                "cross_run": cr,
+            }
             print(
-                f"[{label}] run{i} (seed {s['seed']}) mean|cos_off|={s['mean_abs_cos_offdiag']:.4f} "
-                f"minD={s['min_dist_offdiag']:.4f} norm_std={s['norm_std']:.4f} "
-                f"近重合对={s['n_near_pairs']}"
+                f"[汇总] {label}: scale={cr['scale_mean']:.4f}±{cr['scale_std']:.4f} | "
+                f"bias_norm={cr['bias_norm_mean']:.4f} | "
+                f"iso_max_dev={max(s['iso_max_dev'] for s in run_summaries):.2e} | "
+                f"方向cos={cr['mean_dir_cos']:.4f}"
+            )
+        else:
+            cr = cross_run_summary(run_summaries)
+            results[label] = {
+                "task": dataset,
+                "backbone": backbone,
+                "model": model_name,
+                "mode": mode,
+                "source": source,
+                "runs": run_summaries,
+                "cross_run": cr,
+            }
+            print(
+                f"[汇总] {label} ({source}): mean|cos_off|={cr['mean_abs_cos_offdiag_mean']:.4f}"
+                f"±{cr['mean_abs_cos_offdiag_std']:.4f} | minD={cr['min_dist_offdiag_mean']:.4f}"
+                f"±{cr['min_dist_offdiag_std']:.4f} | 跨run余弦std={cr['mean_pairwise_cos_std']:.4f}"
             )
 
-        cr = cross_run_summary(run_summaries)
-        results[label] = {
-            "dataset": dataset,
-            "backbone": backbone,
-            "model": model_name,
-            "source": source,
-            "runs": run_summaries,
-            "cross_run": cr,
-        }
-        print(
-            f"[汇总] {label} ({source}): mean|cos_off|={cr['mean_abs_cos_offdiag_mean']:.4f}"
-            f"±{cr['mean_abs_cos_offdiag_std']:.4f} | minD={cr['min_dist_offdiag_mean']:.4f}"
-            f"±{cr['min_dist_offdiag_std']:.4f} | 跨run余弦std={cr['mean_pairwise_cos_std']:.4f}"
-        )
-
-    # 对照表：前提成立的判据是 CEB 非对角余弦非零且跨 run 不一致，OPB 恒 0
-    print("\n[对照] 各模型跨 run 汇总")
-    print(f"{'model':<20} {'mean|cos_off|':<18} {'minD':<18} {'跨run余弦std':<14}")
-    for label, res in results.items():
-        cr = res["cross_run"]
-        print(
-            f"{label:<20} {cr['mean_abs_cos_offdiag_mean']:.4f}±{cr['mean_abs_cos_offdiag_std']:.4f}"
-            f"{'':<4} {cr['min_dist_offdiag_mean']:.4f}±{cr['min_dist_offdiag_std']:.4f}"
-            f"{'':<4} {cr['mean_pairwise_cos_std']:.4f}"
-        )
+    # 对照表：分类判据是 CEB 非对角余弦非零且跨 run 不一致、OPB 恒 0；
+    # 回归判据是 CEB 尺度/方向随 seed 漂移、OPB-R 构造固定 rho 且严格等距
+    cls_labels = [l for l, r in results.items() if r["mode"] == "classification"]
+    reg_labels = [l for l, r in results.items() if r["mode"] == "regression"]
+    if cls_labels:
+        print("\n[对照·分类] 各模型跨 run 汇总")
+        print(f"{'model':<20} {'mean|cos_off|':<18} {'minD':<18} {'跨run余弦std':<14}")
+        for label in cls_labels:
+            cr = results[label]["cross_run"]
+            print(
+                f"{label:<20} {cr['mean_abs_cos_offdiag_mean']:.4f}±{cr['mean_abs_cos_offdiag_std']:.4f}"
+                f"{'':<4} {cr['min_dist_offdiag_mean']:.4f}±{cr['min_dist_offdiag_std']:.4f}"
+                f"{'':<4} {cr['mean_pairwise_cos_std']:.4f}"
+            )
+    if reg_labels:
+        print("\n[对照·回归] 各模型跨 run 汇总")
+        print(f"{'model':<20} {'scale':<16} {'bias_norm':<12} {'方向cos':<10}")
+        for label in reg_labels:
+            cr = results[label]["cross_run"]
+            print(
+                f"{label:<20} {cr['scale_mean']:.4f}±{cr['scale_std']:.4f}"
+                f"{'':<4} {cr['bias_norm_mean']:.4f} {'':<4} {cr['mean_dir_cos']:.4f}"
+            )
 
     out_root = ROOT / args.results_dir
     out_root.mkdir(parents=True, exist_ok=True)
@@ -415,19 +584,64 @@ def main():
                 "max_dist_offdiag",
                 "norm_std",
                 "n_near_pairs",
+                "scale",
+                "bias_norm",
+                "bias_proj",
+                "iso_max_dev",
+                "origin_norm",
             ]
         )
         w.writerows(csv_rows)
 
+    # 归一化跨 run 汇总（供 posterior_geometry.py 的 HTML 报告读取）
+    summary = {"meta": payload["meta"], "models": {}}
+    for label, res in results.items():
+        cr = res["cross_run"]
+        entry = {
+            "task": res["task"],
+            "model": res["model"],
+            "mode": res["mode"],
+        }
+        if res["mode"] == "regression":
+            entry.update(
+                {
+                    "scale_mean": cr["scale_mean"],
+                    "scale_std": cr["scale_std"],
+                    "bias_norm_mean": cr["bias_norm_mean"],
+                    "bias_proj_mean": cr["bias_proj_mean"],
+                    "iso_max_dev_max": max(s["iso_max_dev"] for s in res["runs"]),
+                    "origin_norm_mean": cr["origin_norm_mean"],
+                    "mean_dir_cos": cr["mean_dir_cos"],
+                }
+            )
+        else:
+            entry.update(
+                {
+                    "mean_abs_cos_offdiag_mean": cr["mean_abs_cos_offdiag_mean"],
+                    "mean_abs_cos_offdiag_std": cr["mean_abs_cos_offdiag_std"],
+                    "min_dist_offdiag_mean": cr["min_dist_offdiag_mean"],
+                    "mean_pairwise_cos_std": cr["mean_pairwise_cos_std"],
+                    "theory_dist": res["runs"][0]["theory_dist"],
+                }
+            )
+        summary["models"][label] = entry
+    summary_path = out_root / "prior_summary.json"
+    with open(summary_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+
     _setup_rc()
-    plot_cosine_heatmaps(results, out_root / "prior_geometry_cosine.png")
-    plot_offdiag_dists(results, out_root / "prior_geometry_offdiag.png")
-    plot_norms(results, out_root / "prior_geometry_norms.png", args.anchor_scale)
+    if cls_labels:
+        cls_results = {l: results[l] for l in cls_labels}
+        plot_cosine_heatmaps(cls_results, out_root / "prior_geometry_cosine.png")
+        plot_offdiag_dists(cls_results, out_root / "prior_geometry_offdiag.png")
+        a_used = results[cls_labels[0]]["runs"][0]["theory_dist"] / math.sqrt(2.0)
+        plot_norms(cls_results, out_root / "prior_geometry_norms.png", a_used)
+        print(f"\n图（分类）已保存：{out_root / 'prior_geometry_cosine.png'}")
+        print(f"              {out_root / 'prior_geometry_offdiag.png'}")
+        print(f"              {out_root / 'prior_geometry_norms.png'}")
     print(f"\n结果已保存：{json_path}")
     print(f"汇总表已保存：{csv_path}")
-    print(f"图已保存：{out_root / 'prior_geometry_cosine.png'}")
-    print(f"          {out_root / 'prior_geometry_offdiag.png'}")
-    print(f"          {out_root / 'prior_geometry_norms.png'}")
+    print(f"HTML 用汇总已保存：{summary_path}")
 
 
 if __name__ == "__main__":
