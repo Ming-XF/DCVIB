@@ -56,11 +56,11 @@ The conditional entropy bottleneck (CEB) compresses representations against a
 label-conditional reference whose geometry is left entirely to the optimizer. We
 show that this reference has two failure channels: in deterministic settings the
 CEB knob is dead (a known Caveat), and, more fundamentally, the certificate is
-blind to the relationships between labels --- no cross-class term constrains the
+blind to the relationships between labels: no cross-class term constrains the
 geometry among the class priors. We close this channel by declaring the geometry:
 the prior is confined to a qualified geometric family computed statelessly at
-every training step --- an orthogonal class frame (OPB) for classification and an
-isometric regression axis (EPB) for regression --- both with prediction rules tied
+every training step: an orthogonal class frame (OPB) for classification and an
+isometric regression axis (EPB) for regression, both with prediction rules tied
 to the geometry by construction (the zero-parameter anchor-energy classifier and
 the tied projection head). The framework preserves the CEB certificate, transfers
 the prior's separation to the posterior under $\beta$-controlled anchor-alignment
@@ -92,8 +92,8 @@ every compression weight selects the same corner of the information plane
 compression term, and we return to it only as a mechanism connection
 (Proposition~\ref{prop:opb-sweep}, Appendix). Second, and less recognized, \emph{the
 certificate is blind to the relationships between labels}: the CEB compression term is
-a sum of per-class matching terms --- each sample's KL touches only its own class
-prior, and no term couples two distinct class priors --- so at its class-wise matched
+a sum of per-class matching terms (each sample's KL touches only its own class
+prior, and no term couples two distinct class priors), so at its class-wise matched
 optimum it reduces to $I(X;Z|Y)$, irrespective of the inter-class geometry realized by
 those matched conditionals (Proposition~\ref{prop:geom-blind}). Class means may merge,
 coincide, or point anywhere without changing the certificate; on the family
@@ -101,13 +101,13 @@ $T_\alpha = B_\alpha\cdot Y$ that interpolates from collapse to the exact copy o
 label, the certificate reads zero across the whole retention axis
 (Proposition~\ref{prop:flat}, Appendix). CEB therefore compresses against a reference
 whose inter-class geometry the optimizer may choose at will: what a properly compressed
-representation should look like --- class means separated, ordered, or laid out on a
-frame --- is exactly what the certificate leaves unspecified.
+representation should look like (class means separated, ordered, or laid out on a
+frame) is exactly what the certificate leaves unspecified.
 
 \textbf{A geometric prior bottleneck.} We close this gap by \emph{declaring} the
 geometry of the reference. The prior $p(z|y)$ is confined to a \emph{qualified
 geometric family}: label-conditional Gaussians with a bounded diagonal covariance and
-a mean map that encodes the label structure at a fixed, declared scale --- a two-sided
+a mean map that encodes the label structure at a fixed, declared scale: a two-sided
 separation condition for discrete labels and a two-sided metric condition for
 continuous labels (Section~\ref{sec:theory}). The prior is recomputed statelessly at
 every step, so the degenerate references --- merged classes, a collapsed point, an
@@ -115,14 +115,14 @@ arbitrarily rescaled geometry --- are excluded by construction rather than by th
 optimizer's good behavior. We call this family of objectives a \emph{geometric prior
 bottleneck} (GPB). Two instantiations realize the principle: \emph{OPB} (orthogonal
 prior bottleneck) for classification, where the prior means form the scaled orthogonal
-frame $a\,q_{\theta,k}$ --- every pair of distinct classes at distance $\sqrt2\,a$,
-with class-mean Gram matrix $a^2 I_K$ by construction --- and \emph{EPB} (equidistant
+frame $a\,q_{\theta,k}$ (every pair of distinct classes at distance $\sqrt2\,a$,
+with class-mean Gram matrix $a^2 I_K$ by construction), and \emph{EPB} (equidistant
 prior bottleneck) for regression, where the prior means lie on a unit axis,
 $\rho\,\tilde y\,u$, so latent distances equal $\rho$ times standardized label
 distances exactly. Both keep the CEB posterior, a single KL, and the residual
 certificate unchanged; the classification head is the anchor-energy classifier
 $\propto \exp(-\tfrac{1}{2\tau^2}\|z - a\,q_{\theta,k}\|^2)$ and the regression head
-the tied projection $\hat{\tilde y} = u^{\top}z/\rho$ --- prediction rules tied to the
+the tied projection $\hat{\tilde y} = u^{\top}z/\rho$: prediction rules tied to the
 prior geometry by construction, with no free parameters. The constraints bind the
 \emph{reference}, not the deployed representation; the framework constrains the
 geometric \emph{form} of the label code and does not claim that the certificate meters
@@ -137,13 +137,13 @@ $C_{\mathrm{align}} \le \ln K$ in the deterministic $K$-class setting and
 $C_{\mathrm{align}} = \tau^2/\rho^2$ for the isometric axis
 (Theorem~\ref{prop:pgib-alignment}, parts (a) and (b)). Combined with a
 triangle-inequality transfer, the posterior class centers inherit the prior's
-separation --- $\|m_i - m_j\| \ge \|m_\theta(i) - m_\theta(j)\|$ minus mismatch terms
+separation: $\|m_i - m_j\| \ge \|m_\theta(i) - m_\theta(j)\|$ minus mismatch terms
 of order $1/\sqrt\beta$ (Proposition~\ref{prop:pgib-separation} and its corollaries).
 The framework pins exactly what CEB left free: the geometry of the reference.
 
 \textbf{Experiments.} Across nine datasets and four backbones, GPB is best or
 tied-best in $7$ of $12$ settings and dominates CEB in all $12$; the mechanism-level
-validation confirms the story end to end --- the constructed geometry transfers to the
+validation confirms the story end to end: the constructed geometry transfers to the
 posterior (nearly orthogonal class centers on classification, an on-axis posterior on
 regression), and prediction survives with the zero-parameter geometric heads, matching
 or exceeding the free classifier.
@@ -151,7 +151,7 @@ or exceeding the free classifier.
 Our contributions are: (1) the identification and formalization of the missing
 cross-label geometric constraint in CEB (Proposition~\ref{prop:geom-blind});
 (2) the GPB framework and its two instances, OPB and EPB, with prediction rules tied
-to the prior geometry; (3) a unified alignment-to-separation guarantee --- certificate
+to the prior geometry; (3) a unified alignment-to-separation guarantee: certificate
 preservation and $\beta$-controlled conditional separation transfer for any qualified
 geometric prior, instantiated by the orthogonal frame and the isometric axis; and
 (4) mechanism-level empirical evidence that the constructed geometry is transferred to
@@ -233,7 +233,7 @@ and for continuous labels with a declared label metric $d_Y$,
 \end{equation}
 The declared constants $\Delta, \bar\Delta, \rho_{\min}, \rho_{\max}$ are fixed before
 training and not trained. The lower bounds encode the label distinctions; the upper
-bounds close the scale escape --- without them the family would contain
+bounds close the scale escape: without them the family would contain
 $m_\theta(y) = s\,m_0(y)$ for arbitrarily large $s$, and the objective might lack a
 finite optimum, making ``geometry by construction'' vacuous. The GPB objective is
 \begin{equation}
@@ -271,7 +271,7 @@ computed via the thin SVD $U_\theta = W \Sigma V^{\top}$, $Q_\theta = W V^{\top}
 sign convention needed). The polar factor is exactly equivariant under relabeling of
 the classes, $Q_\theta(U_\theta P) = Q_\theta(U_\theta)\,P$ (derivation in
 Appendix~\ref{app:construction}), so no class index plays a distinguished role. We
-make one standing assumption, verified --- not imposed --- in the implementation:
+make one standing assumption, verified, not imposed, in the implementation:
 \begin{assumption}[Full rank]
 \label{ass:fullrank}
 $U_\theta$ has full column rank at every training step, so that
@@ -289,7 +289,7 @@ q_{\theta,k} := Q_\theta[:, k] ,
 \end{equation}
 with anchor scale $a > 0$ and \emph{fixed shared} prior variance $\tau^2$ (default
 $1.0$): a learnable per-class variance would give the reference an extra channel to
-absorb the compression cost by inflating its covariance --- precisely the degeneracy
+absorb the compression cost by inflating its covariance, precisely the degeneracy
 the construction excludes. Since $Q_\theta^{\top}Q_\theta = I_K$, the class-mean Gram
 matrix is $a^2 I_K$ by construction:
 \begin{equation}
@@ -301,7 +301,7 @@ a_i^{\top} a_j = a^2 \delta_{ij},
 \label{eq:opb-geometry}
 \end{equation}
 The frame is stateless: an immediate function of the current prior-encoder parameters,
-computed from the all-class table --- no EMA, no prototypes, no batch statistics. The
+computed from the all-class table: no EMA, no prototypes, no batch statistics. The
 single-KL objective is
 \begin{equation}
 \mathcal{L}_{\mathrm{OPB}}
@@ -322,8 +322,8 @@ s_k(z) = -\frac{\|z - a\,q_{\theta,k}\|^2}{2\tau^2} + \log \pi_k
 \label{eq:opb-energy}
 \end{equation}
 are the class-$k$ Gaussian log posterior up to a class-independent term; for uniform
-classes the equivalent linear classifier has weights $w_k = (a/\tau^2)\,q_{\theta,k}$
---- equal norms and pairwise orthogonal rows. The prediction rule therefore uses
+classes the equivalent linear classifier has weights $w_k = (a/\tau^2)\,q_{\theta,k}$:
+equal norms and pairwise orthogonal rows. The prediction rule therefore uses
 exactly the same geometry as the prior, with no free classifier scale (proof in
 Appendix~\ref{app:construction}).
 \end{proposition}
@@ -355,7 +355,7 @@ Eq.~\eqref{eq:pgib-lipschitz} with $\rho_{\min} = \rho_{\max} = \rho$ on the
 standardized label metric). The main variant uses the trainable normalized axis and no
 bias (the fixed-axis and unconstrained-scale ablations are in
 Appendix~\ref{app:construction}). The prediction head is the \emph{tied projection}
-$\hat{\tilde y} = u^{\top} z / \rho$ --- the regression analogue of the anchor-energy
+$\hat{\tilde y} = u^{\top} z / \rho$, the regression analogue of the anchor-energy
 classifier: geometrically consistent, with no free direction or scale that could
 bypass the prior; the ordinary regression head is kept as a free-head variant. The
 objective is $L_{\mathrm{reg}}(\hat y, y) + \beta\,\KL\bigl(q_\phi(z|x)\,\|\,p^{\mathrm{EPB}}(z|y)\bigr)$:
@@ -418,8 +418,8 @@ are defined for $P_Y$-a.e.\ $y$, and for $P_Y$-a.e.\ pair $y \ne y'$,
 \end{equation}
 \end{proposition}
 
-The second link shows that the objective itself forces the mismatch small --- one
-theorem, stated for the two label-space structures:
+The second link shows that the objective itself forces the mismatch small, in one theorem stated for the two label-space
+structures:
 
 \begin{theorem}[Anchor alignment at near-optima]
 \label{prop:pgib-alignment}
@@ -520,8 +520,8 @@ D_k := \frac{1}{2\tau^2}\,
 \emph{Scope.} The geometric constraints bind the reference, not the deployed
 representation: at any frame rotation there exists a full-retention label code with a
 zero certificate (Remark~\ref{rem:counterexample}, Appendix), so the framework
-constrains the geometric \emph{form} of the label code --- precisely what CEB left
-unspecified --- and does not claim that the certificate meters retained label
+constrains the geometric \emph{form} of the label code (precisely what CEB left
+unspecified), and does not claim that the certificate meters retained label
 information. The proofs, the dead-knob connection (the anchored reference supplies
 the quadratic displacement behind the strict convexity of
 Proposition~\ref{prop:opb-sweep}), and the implementation details are in the appendix.
@@ -538,11 +538,11 @@ Proposition~\ref{prop:opb-sweep}), and the implementation details are in the app
 % 待补：随机标签记忆实验（supplementary）。
 
 The experiments address two questions. First, does replacing CEB's unconstrained
-reference with a constructed geometry --- an orthogonal class frame or an isometric
-axis --- cost or gain anything in end-to-end prediction across heterogeneous
+reference with a constructed geometry (an orthogonal class frame or an isometric
+axis) cost or gain anything in end-to-end prediction across heterogeneous
 settings? Second, does prediction survive when the prediction rule is tied to that
-geometry by construction --- the anchor-energy classifier and the tied projection
-head --- so that the free head's degrees of freedom are removed? The main sweep
+geometry by construction (the anchor-energy classifier and the tied projection
+head), so that the free head's degrees of freedom are removed? The main sweep
 answers both on twelve dataset--backbone settings; the compression--accuracy curves
 at the realized $\E[\KL]$ are reported in Section~\ref{sec:sweep},
 adversarial robustness in Section~\ref{sec:robustness}, the geometric mechanism
@@ -573,7 +573,7 @@ the backbone, dropout $0.2$, and bottleneck dimension $d = 256$. Every run train
 with Adam (learning rate $10^{-3}$; $10^{-2}$ on Cora), at most $100$ epochs with
 early stopping on the validation metric (patience $10$), batch size $512$ ($128$ on
 ZINC), and evaluates the checkpoint with the best validation score on the test set.
-GPB and OPB-L train five seeds per configuration (seeds $0$--$4$); each
+GPB and GPB-L train five seeds per configuration (seeds $0$--$4$); each
 variational baseline trains fifteen seeds per $\beta$ value (seeds $0$--$14$), so
 that every method trains a matched total budget ($6\times3\times5 = 6\times15 =
 90$ runs per method). The tables report the mean over the runs. Classification
@@ -595,23 +595,23 @@ Eq.~\eqref{eq:pgib-objective}.
 \paragraph{Our variants.} \emph{GPB} denotes our method in the tables. On
 classification rows it is \emph{OPB}, the orthogonal-frame prior of
 Eq.~\eqref{eq:opb-prior} with the anchor-energy classifier of
-Eq.~\eqref{eq:opb-energy} --- the prediction rule has no free parameters, its means
+Eq.~\eqref{eq:opb-energy}: the prediction rule has no free parameters, its means
 and variances are exactly the prior's, and $K \le d$ holds in all settings
 ($\max K = 100$ on ImageNet-100); on regression rows it is \emph{EPB}, the isometric
 prior of Eq.~\eqref{eq:epb-prior} with the tied projection head
-$\hat{\tilde y} = u^{\top}z/\rho$. \emph{OPB-L} is the free-head ablation: the
+$\hat{\tilde y} = u^{\top}z/\rho$. \emph{GPB-L} is the free-head ablation: the
 identical prior and KL, with an ordinary trainable linear classifier (or regression
 head) on $z$, so prediction is free to bypass the constructed geometry. The frame is
 orthonormalized from the all-class mean matrix at every forward pass by the thin SVD
 polar factor of Eq.~\eqref{eq:opb-qr} ($Q_\theta = W V^{\top}$); the prior encoder is
 identity-initialized (initial anchors
 $e_1,\dots,e_K$, initial $\KL \approx a^2/2$ under unit variances), the variance
-heads are zero-initialized, and the construction is stateless --- no EMA, no
+heads are zero-initialized, and the construction is stateless: no EMA, no
 prototypes, no batch statistics.
 
 \paragraph{Hyperparameter selection.} Each method selects its hyperparameters on the
 validation set from a shared grid: a six-value log-spaced $\beta$ grid
-$\{10^{-4},\dots,10\}$ for every variational baseline, and, for OPB and OPB-L, an
+$\{10^{-4},\dots,10\}$ for every variational baseline, and, for GPB and GPB-L, an
 additional three-value anchor-scale grid $\{1,6,12\}$ ($6\times3$ combinations).
 The main table reports, per method and setting, the test metric of the best
 validation configuration, so all methods are compared under an identical selection
@@ -625,7 +625,7 @@ protocol (Base has no sweep and early-stops as usual).
 Table~\ref{tab:main_result} reports test accuracy (classification) and test $R^2$
 (regression), averaged over runs, for each method's best configuration; bold
 marks the best mean per row and underline the second best, and the vertical rule
-separates GPB and its free-head ablation OPB-L from the baselines. Statistical
+separates GPB and its free-head ablation GPB-L from the baselines. Statistical
 claims (best vs.\ tied) follow the paired-difference confidence intervals of
 Appendix~\ref{app:main-ci}.
 Standard deviations are omitted for width and are reported in
@@ -646,26 +646,26 @@ $+3.1$ accuracy over CEB on ImageNet-100 with the CNN backbone ($86.1$ vs.\ $83.
 $+1.9$ on Cora, and $+0.08$ $R^2$ on AgeDB over the plain CNN ($0.470$ vs.\ $0.388$).
 On saturated settings (MNIST) the margin is small but consistent, and on the three
 rows where the plain backbone remains best (STS-B, ZINC, AG News) the gap is
-marginal ($\le 0.03$) --- the geometry is neutral there rather than harmful, and two
+marginal ($\le 0.03$): the geometry is neutral there rather than harmful, and two
 of the three are regression tasks where every bottleneck method trails the plain
 backbone.
 
-\emph{Prediction does not require the free head.} OPB-L, the free linear head on the
+\emph{Prediction does not require the free head.} GPB-L, the free linear head on the
 same geometric prior, is best or tied-best in $2$ of $12$ settings (mean rank
-$2.29$), and the GPB--OPB-L gap is within $0.4$ accuracy or $R^2$ points in $11$ of
+$2.29$), and the GPB--GPB-L gap is within $0.4$ accuracy or $R^2$ points in $11$ of
 $12$ settings (the exception is ImageNet-100 CNN, $1.2$ points): the zero-parameter
 anchor-energy classifier --- whose weights are the frame itself --- reaches the
 accuracy of a freely trained head in almost all settings, so the degrees of freedom
 removed by construction are not required for prediction, as claimed in the
-introduction. The three settings where OPB-L edges out GPB by mean (IMDb, AG News,
+introduction. The three settings where GPB-L edges out GPB by mean (IMDb, AG News,
 Cal.\ Housing) do so with paired CIs overlapping zero, confirming that the tie
 does not inflate the numbers. On the five
 regression rows the tied projection head of EPB wins or matches the free
 regression head in four (the exception is Cal.\ Housing by $0.002$).
 
 \emph{The tie regularizes the high-cardinality and low-data regimes.} The two
-settings with the largest GPB margins --- ImageNet-100 ($K = 100$) and AgeDB (a
-small, high-variance regression task) --- are exactly those where an unconstrained
+settings with the largest GPB margins (ImageNet-100, with $K = 100$, and AgeDB, a
+small, high-variance regression task) are exactly those where an unconstrained
 classifier can overfit its own scale or the scarce supervision: fixing the
 prediction rule to the prior's geometry removes both escape routes, consistent with
 the fixed-scale condition under which the aligned surrogate of
@@ -680,7 +680,7 @@ regression setting (ImageNet-100 and Cal. Housing, both with the MLP backbone).
 The horizontal axis is the test-set $\E[\KL]$ --- the certificate itself --- so
 $\beta$ only parameterizes the curves. This matters because the two methods reach
 different compressions at the same $\beta$: on Housing at $\beta = 0.1$, CEB
-already sits at $\E[\KL] \approx 0.09$ while OPB ($a = 12$) is at $\approx 0.27$,
+already sits at $\E[\KL] \approx 0.09$ while EPB ($\rho = 12$) is at $\approx 0.27$,
 so a $\beta$-matched comparison would confound compression level with geometry,
 whereas the KL-matched comparison isolates the geometry. The $\beta$-grid tables
 and the full per-configuration KL decomposition are in
@@ -704,32 +704,32 @@ Figure~\ref{fig:compression}
 exhibits the two roles of the anchor scale on the realized compression axis.
 \emph{(i) Without a scale, the reference collapses.} On ImageNet-100, CEB's
 accuracy erodes to $71.5\%$ at $\E[\KL] \approx 3.6$ ($\beta = 0.1$) and its
-reference escapes entirely at $\beta \ge 0.5$ --- $\E[\KL] \to 0$ with accuracy at
-chance --- so its curve ends there; OPB at $a = 1$ collapses at the same end of
+reference escapes entirely at $\beta \ge 0.5$ ($\E[\KL] \to 0$ with accuracy at
+chance), so its curve ends there; OPB at $a = 1$ collapses at the same end of
 the axis. On Housing, CEB drops to $R^2 = 0.49$ at $\beta = 0.1$ and below $0.1$
-by $\beta \ge 0.5$, while every OPB curve keeps $R^2 \ge 0.76$ out to
-$\beta = 25$. Orthogonality alone therefore does not prevent the collapse --- the
+by $\beta \ge 0.5$, while every EPB curve keeps $R^2 \ge 0.76$ out to
+$\beta = 25$. Orthogonality alone therefore does not prevent the collapse: the
 frame is fixed up to rotation, but the anchor-energy classifier's margin is
 $a^2/\tau^2$ (Proposition~\ref{prop:opb-energy}), and at $a = 1$ that margin is
 too small to carry a solution at strong compression. \emph{(ii) The anchor scale
 controls where the collapse sets in, and at matched compression the geometry pays
 or ties.} On ImageNet-100, OPB ($a = 12$) attains $84.2\%$ at
-$\E[\KL] \approx 21$ --- above CEB's best point anywhere on its curve
-($82.8\%$ at $\E[\KL] \approx 26$) --- and still $79.4\%$ at $\beta = 25$
+$\E[\KL] \approx 21$ (above CEB's best point anywhere on its curve,
+$82.8\%$ at $\E[\KL] \approx 26$) and still $79.4\%$ at $\beta = 25$
 ($\E[\KL] \approx 2.2$); on Housing the four curves peak within half a point
-(CEB $0.789$, OPB $0.786$--$0.789$), but only OPB retains its peak into the
-strong-compression regime: the plateau is the flat OPB segment where $R^2$ stays
+(CEB $0.789$, EPB $0.786$--$0.789$), but only EPB retains its peak into the
+strong-compression regime: the plateau is the flat EPB segment where $R^2$ stays
 above $0.76$ while $\E[\KL]$ shrinks by two orders of magnitude.
 
 A visible cost remains in the weak-compression regime: on ImageNet-100 at
 $\E[\KL] \gtrsim 300$, OPB trails CEB by one to three points ($a = 6$: $81.0$ vs.\
-$82.6$; $a = 12$: $79.8$ vs.\ $82.6$) --- the price of the fixed-scale energy rule
+$82.6$; $a = 12$: $79.8$ vs.\ $82.6$): the price of the fixed-scale energy rule
 when compression is weak. The construction pays for itself in the
 strong-compression regime, where CEB is at chance.
 
 The mechanism is the one the theory predicts. At strong $\beta$ the posterior is
-pinned near the aligned solution --- Theorem~\ref{prop:pgib-alignment}(a) bounds
-the expected anchor mismatch by $(\ln K + \varepsilon)/\beta$ --- and the accuracy
+pinned near the aligned solution: Theorem~\ref{prop:pgib-alignment}(a) bounds
+the expected anchor mismatch by $(\ln K + \varepsilon)/\beta$, and the accuracy
 achievable at alignment is the aligned Gaussian mixture's accuracy, governed by the
 scale-to-noise ratio $a/\tau$ (the nearest-anchor error probability is
 $\Phi(-a/(\sqrt{2}\tau))$; appendix). With the classifier scale
@@ -737,8 +737,8 @@ fixed at $a/\tau^2$ by construction, the only remaining lever at full compressio
 $a$ itself: the anchor scale converts the compression knob from a collapse dial into
 a plateau dial. The KL decomposition (Table~\ref{tab:compression_decomp} in
 Appendix~\ref{app:hparam-tables}) shows the two channels at work: OPB's $\E[\KL]$ is
-dominated by the mean-mismatch term --- anchor displacement ($a = 12$, $\beta = 1$:
-$20.6$ mean vs.\ $0.36$ variance) --- while CEB's reference absorbs compression by
+dominated by the mean-mismatch term (anchor displacement; $a = 12$, $\beta = 1$:
+$20.6$ mean vs.\ $0.36$ variance), while CEB's reference absorbs compression by
 shrinking both terms toward zero: the reference chases the posterior, exactly the
 degeneracy the constructed geometry excludes
 (Lemma~\ref{lem:opb-kl-decomposition}). This is the empirical counterpart of the
@@ -776,7 +776,7 @@ theory identifies: at strong $\beta$ the posterior class centers are pinned near
 the aligned solution (Theorem~\ref{prop:pgib-alignment}) and inherit the
 prior's separation $\sqrt{2}\,a$ (Proposition~\ref{prop:pgib-separation}), so the
 anchor-energy classifier's decision boundaries sit midway between well-separated
-anchors with a margin governed by $a/\tau$ --- the same geometry that turns the
+anchors with a margin governed by $a/\tau$: the same geometry that turns the
 compression knob into a plateau dial in Section~\ref{sec:sweep}. We do not
 over-claim: this is a single dataset with single hyperparameter configurations;
 at the largest $L_2$ strengths ($\varepsilon = 5, 6$), where every model is near
@@ -791,7 +791,7 @@ release.
 
 The main sweep established the predictive adequacy of the constructed geometry;
 here we verify the mechanism behind it, on the two representative settings of the
-analysis --- MNIST (MLP, classification) and California Housing (MLP, regression),
+analysis, MNIST (MLP, classification) and California Housing (MLP, regression),
 trained at the matched compression $\beta = 0.1$ with anchor scale
 $a = \rho = 12$.
 
@@ -801,21 +801,21 @@ $0.119 \pm 0.002$, and the scale of its learned regression axis varies by
 $2.07 \pm 0.88$ across runs. The constructed prior has no such freedom: the OPB
 class priors are exactly orthogonal (off-diagonal cosine $0$, pairwise distance
 $\sqrt{2}\,a = 16.97$), and the EPB axis is fixed at $\rho = 12.000$ with exact
-isometry through the origin --- both verified at machine precision.
+isometry through the origin, both verified at machine precision.
 
 \input{result3}
 
 \paragraph{The posterior.} Table~\ref{tab:mechanism} shows that this geometry
 transfers to the posterior. On classification the posterior class centers are
-nearly orthogonal --- the mean off-diagonal Gram cosine is $5.9\times$ lower than
-CEB's --- and sit at radius $\lVert\bar c\rVert = 11.00$ ($92\%$ of $a$), with
+nearly orthogonal (the mean off-diagonal Gram cosine is $5.9\times$ lower than
+CEB's) and sit at radius $\lVert\bar c\rVert = 11.00$ ($92\%$ of $a$), with
 $2.5\times$ lower cross-seed drift; the Fisher ratio is comparable
 ($15.3$ vs.\ $15.7$, reported as is). On regression the posterior lives
 essentially \emph{on} the isometric axis: the off-axis residual fraction is
 $141\times$ lower than CEB's, and the axial slope tracks $\rho$ with $3.8\times$
 lower cross-seed variation. The slope is $9.22$ rather than $\rho = 12$ because
-the encoder's uncertainty shrinks the posterior along the axis --- the slope
-equals $\rho \cdot R^2_{\mathrm{axis}}$ ($12 \times 0.78 \approx 9.4$) --- and the
+the encoder's uncertainty shrinks the posterior along the axis (the slope
+equals $\rho \cdot R^2_{\mathrm{axis}}$, as $12 \times 0.78 \approx 9.4$), and the
 axis \emph{direction} itself can rotate rigidly with the representation (mean
 direction cosine $0.03$--$0.06$ for both models), so the discriminative
 stability evidence is the scale, not the direction.
@@ -845,7 +845,7 @@ encoder's uncertainty.}
 Section~\ref{sec:variants} have no free parameters. At the matched configuration
 the anchor-energy classifier attains $98.44\%$ test accuracy against CEB's
 $98.16\%$ on MNIST, and the tied projection head attains $R^2 = 0.778$ against
-CEB's $0.491$ on Housing --- under this strong compression CEB collapses while the
+CEB's $0.491$ on Housing: under this strong compression CEB collapses while the
 geometric readout retains the signal, consistent with the main-table GPB column
 (Section~\ref{sec:main-results}) and with the nearest-anchor analysis of the
 appendix. The mechanism chain is therefore complete: the constructed prior pulls

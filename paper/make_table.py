@@ -14,7 +14,7 @@ R²（原始值），且只显示均值、不含标准差（表格较宽）；�
 平均名次，越低越好）与最优/并列最优次数（并列时各方法均计数）。输出可直接
 \input{} 的 table* 浮动体，保存到 paper/main_result.tex；同源生成带标准差的
 paper/main_result_std.tex（gen_table_std，单元格为均值±std，按列拆为
-baselines 与 CEB/DVCCA+GPB/OPB-L 两张表以适配页宽）；以及配对差值表
+baselines 与 CEB/DVCCA+GPB/GPB-L 两张表以适配页宽）；以及配对差值表
 paper/main_result_CI.tex（gen_result_ci，GPB − 各 baseline 的 bootstrap 95% CI，
 同 seed 配对、按列拆两张表、表尾统计 */† 次数）。
 
@@ -102,13 +102,13 @@ ROW_ORDER = [
 
 # 表格列顺序与列名；html 里基础模型名为 mlp/cnn/gcn/rnn，统一归到 "base" 列。
 # "opb" 列在表格中显示为 GPB（分类行为 OPB、回归行为 EPB，即几何先验瓶颈的
-# 两个实例）；opbl 是 opb 的 linear 消融（结果目录 tune_results 中 opb 已改名
+# 两个实例）；opbl 是 GPB 的 free-head 消融（GPB-L；结果目录 tune_results 中 opb 已改名
 # 为 opbl），排在 opb 之后；"opb" 在 COLUMN_ORDER 中的位置是竖线插入点
-# （其左侧加竖线，把 GPB/OPB-L 与前面的 baseline 方法隔开）。
+# （其左侧加竖线，把 GPB/GPB-L 与前面的 baseline 方法隔开）。
 COLUMN_ORDER = ["base", "vib", "svib", "nib", "ceb", "dvcca", "opb", "opbl"]
 COLUMN_NAMES = {
     "base": "Base", "vib": "VIB", "svib": "SVIB", "nib": "NIB",
-    "ceb": "CEB", "dvcca": "DVCCA", "opb": "GPB", "opbl": "OPB-L",
+    "ceb": "CEB", "dvcca": "DVCCA", "opb": "GPB", "opbl": "GPB-L",
 }
 
 
@@ -457,18 +457,20 @@ def gen_result3():
 def gen_result1(full):
     r"""生成超参数敏感性表 result1.tex（table* 浮动体，可直接 \input{}）。
 
-    行 = CEB 与 OPB 在 a ∈ {1, 6, 12} 的三条线，列 = β 网格
+    行 = CEB 与 GPB（ImageNet-100 为 OPB 的 a、AgeDB 为 EPB 的 ρ）
+    在 {1, 6, 12} 的三条线，列 = β 网格
     （COMPRESSION_BETAS）；仅 ImageNet-100 (MLP，分类 Acc ×100) 与
     AgeDB (MLP，回归 R²) 两个任务，各自成组、组间以横线分隔。
     """
     lines = [
         "% 超参数敏感性表：由 paper/make_table.py 自动生成，请勿手改。",
         "% ImageNet-100 (MLP) 报告测试 Acc（%）、AgeDB (MLP) 报告测试 R²；均为 5 次运行均值。",
-        "% 行 = CEB 与 OPB 的 a=1/6/12 三条线；列 = β（对数网格）。",
+        "% 行 = CEB 与 GPB 的三条线（ImageNet-100：OPB a=1/6/12；AgeDB：EPB ρ=1/6/12）；列 = β（对数网格）。",
         "\\begin{table*}[t]",
         "\\centering",
         "\\caption{Hyperparameter sensitivity: test metric as a function of $\\beta$ "
-        "for CEB and for OPB at anchor scales $a\\in\\{1,6,12\\}$. ImageNet-100 (MLP) "
+        "for CEB and for GPB (OPB at anchor scales $a\\in\\{1,6,12\\}$ on ImageNet-100; "
+        "EPB at isometric scales $\\rho\\in\\{1,6,12\\}$ on AgeDB). ImageNet-100 (MLP) "
         "reports test accuracy (\\%); AgeDB (MLP) reports test $R^2$; means over five runs.}",
         "\\label{tab:compression}",
         "\\small",
@@ -497,8 +499,12 @@ def gen_result1(full):
         task, backbone = tb
         label = TASK_NAMES.get(task, task)
         rows = full.get(tb, {})
+        # ImageNet-100（分类）用 OPB 的锚点尺度 a，AgeDB（回归）用 EPB 的等距尺度 ρ
+        gpb_name = "OPB" if task in CLASSIFICATION_TASKS else "EPB"
+        scale_name = "a" if task in CLASSIFICATION_TASKS else "\\rho"
         specs = [("CEB", rows.get("ceb", []), None)] + [
-            (f"OPB ($a={a:g}$)", rows.get("opb", []), a) for a in COMPRESSION_ANCHORS
+            (f"{gpb_name} (${scale_name}={a:g}$)", rows.get("opb", []), a)
+            for a in COMPRESSION_ANCHORS
         ]
         for i, (name, entries, anchor) in enumerate(specs):
             first_col = label if i == 0 else ""
@@ -689,7 +695,7 @@ def gen_result_ci():
         "%（分类百分点、回归 R²）；加粗 = CI 下限 > 0（显著更优）、† = CI 下限 > −δ",
         f"%（非劣界 δ={DIFF_CI_DELTA['Acc'] * 100:g} 百分点 / {DIFF_CI_DELTA['R2']:g}）记 tied；",
         f"% 同 seed 配对（run 顺序即 seed 0..N−1），bootstrap B={DIFF_CI_B}（固定 seed {DIFF_CI_SEED}，百分位法）。",
-        "% 因 7 个差值列超页宽，按列拆两张表（baselines / ceb+dvcca+OPB-L）；表尾一行统计各列 */† 次数。",
+        "% 因 7 个差值列超页宽，按列拆两张表（baselines / ceb+dvcca+GPB-L）；表尾一行统计各列 */† 次数。",
         "",
     ]
     out = "\n".join(head)
@@ -708,7 +714,7 @@ def gen_result_ci():
         ),
         "tab:main_result_ci_variants": (
             "Paired-difference 95\\% confidence intervals of GPB over CEB, DVCCA, "
-            "and the free-head ablation OPB-L (GPB minus baseline, per setting; "
+            "and the free-head ablation GPB-L (GPB minus baseline, per setting; "
             "classification in percentage points, regression in $R^2$). Bold/† as in "
             "the baselines table."
         ),
@@ -878,7 +884,7 @@ def _gen_table(grid, fmt_fn, with_std):
         "\\small",
         "{",  # 花括号限定 tabcolsep 只在本表生效，不泄漏到论文其他表格
         "\\setlength{\\tabcolsep}{2pt}",  # 压缩列间距以收窄表格
-        # opb 左侧插入竖线：OPB/OPB-L 与前面的 baseline 方法隔开
+        # opb 左侧插入竖线：GPB/GPB-L 与前面的 baseline 方法隔开
         "\\begin{tabular}{ll" + "c" * COLUMN_ORDER.index("opb") + "|"
         + "c" * (len(COLUMN_ORDER) - COLUMN_ORDER.index("opb")) + "}",
         "\\hline",
@@ -927,7 +933,7 @@ def gen_table_std(grid):
     r"""生成 main_result_std.tex 内容：主结果带标准差版，因 8 方法列 ×
     (均值±std) 超出页宽，按列拆成两张 table* 浮动体——
     (a) baselines（Base/VIB/SVIB/NIB，tab:main_result_std_baselines）与
-    (b) CEB/DVCCA | GPB/OPB-L（tab:main_result_std_variants，竖线分隔同主表）；
+    (b) CEB/DVCCA | GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）；
     每表含全部 12 行（分类/回归块间双横线），加粗/下划线按该行全部 8 列的均值
     判定、与 main_result.tex 一致；表尾排名行省略（与主表重复）。"""
     order = {k: i for i, k in enumerate(ROW_ORDER)}
@@ -967,7 +973,7 @@ def gen_table_std(grid):
         "% 主结果表（带标准差）：由 paper/make_table.py 从 tune_results/*.html 自动生成，请勿手改。",
         "% 因 8 方法列 × (均值±std) 超出页宽，按列拆为两张表：",
         "% (a) baselines（Base/VIB/SVIB/NIB，tab:main_result_std_baselines）；",
-        "% (b) CEB/DVCCA 与 GPB/OPB-L（tab:main_result_std_variants，竖线分隔同主表）。",
+        "% (b) CEB/DVCCA 与 GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）。",
         "% 每表含全部 12 行；分类 Acc（%）、回归 R²，单元格为均值±std；",
         "% 加粗/下划线按该行全部 8 列的均值判定（与 main_result.tex 一致）；",
         "% 表尾排名行省略（与主表重复）。",
@@ -985,7 +991,7 @@ def gen_table_std(grid):
         ["ceb", "dvcca", "opb", "opbl"],
         "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
         "CEB, DVCCA, and our method; same configurations as "
-        "Table~\\ref{tab:main_result}. GPB and OPB-L are separated from the "
+        "Table~\\ref{tab:main_result}. GPB and GPB-L are separated from the "
         "references by the vertical rule.",
         "tab:main_result_std_variants",
     )
@@ -1017,7 +1023,7 @@ def main():
 
     full = collect_full(COMPRESSION_TASKS)
     RESULT1_PATH.write_text(gen_result1(full), encoding="utf-8")
-    print(f"已生成 {RESULT1_PATH}（压缩-精度表：CEB + OPB a=1/6/12 × β 网格，"
+    print(f"已生成 {RESULT1_PATH}（压缩-精度表：CEB + GPB（OPB a / EPB ρ = 1/6/12）× β 网格，"
           f"仅 {', '.join(f'{TASK_NAMES.get(t, t)} ({b})' for t, b in COMPRESSION_TASKS)}）")
 
     result2 = gen_result2()

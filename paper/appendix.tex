@@ -29,7 +29,7 @@ the objective nor the certificate records which member the optimizer reaches. In
 deterministic scenario this corner \emph{is} the MNI point, so CEB's declared target
 and the degenerate attractor coincide. The Caveats paper repairs this by squaring the
 compression term; our anchored reference supplies the same strict convexity by a
-different mechanism, without squaring --- a quadratic displacement term built into the
+different mechanism, without squaring: a quadratic displacement term built into the
 KL by construction (Proposition~\ref{prop:opb-sweep} below). We present this as a
 mechanism connection to the Caveats fix, not as a new solution of the deterministic
 degeneration.
@@ -46,13 +46,13 @@ $Z \perp X \mid Y$, a property of the encoder, not of the prior.
 \begin{proposition}[Retention blindness on $T_\alpha$]
 \label{prop:flat}
 On the manifold $T_\alpha = B_\alpha \cdot Y$ of \citet{kolchinsky2019caveats}
-(their Eq.~6) --- a family that depends on $Y$ alone --- $I(X;T_\alpha|Y) = 0$ for
+(their Eq.~6), a family that depends on $Y$ alone, $I(X;T_\alpha|Y) = 0$ for
 every $\alpha$, and with the optimal backward encoder and classifier,
 $\mathrm{ReX}(T_\alpha) = 0$ and
 $\CE(T_\alpha) = H(Y) - I(Y;T_\alpha) =: \delta_\alpha$: the certificate reads $0$
 from the total collapse ($\alpha = 0$) to the full copy ($\alpha = 1$), while the
 retained label information $I(Y;T_\alpha)$ sweeps the whole axis. Tightness of the
-certificate is therefore compatible with retaining all, part, or none of $Y$ --- the
+certificate is therefore compatible with retaining all, part, or none of $Y$: the
 certificate records nothing about how much label information the code retains.
 \end{proposition}
 
@@ -67,8 +67,8 @@ $\CE = H(Y|T_\alpha) = \delta_\alpha$.
 \begin{remark}[The objective on $T_\alpha$ is $\beta$-independent and strictly prefers the full copy]
 \label{rem:flatness}
 On $T_\alpha$ the compression term contributes nothing ($\mathrm{ReX} \equiv 0$), so
-the objective reads $L = \CE + \beta\,\mathrm{ReX} = \delta_\alpha$ --- independent of
-$\beta$, and strictly minimized at $\alpha = 1$ (the full copy). No certified residual
+the objective reads $L = \CE + \beta\,\mathrm{ReX} = \delta_\alpha$, independent of
+$\beta$ and strictly minimized at $\alpha = 1$ (the full copy). No certified residual
 is produced anywhere on the manifold; the blindness is that the certificate cannot
 tell the optimizer --- or the analyst --- where on the retention axis the code sits.
 \end{remark}
@@ -76,8 +76,8 @@ tell the optimizer --- or the analyst --- where on the retention axis the code s
 \emph{Scope of the deterministic comparison-solution argument.} In
 Theorem~\ref{prop:pgib-alignment} the comparison solution $q(z|x) =
 p_\theta(z|y)$ requires a zero-KL feasible solution. For tasks in which none exists
---- in particular for continuous regression, where the encoder cannot recover $y$
-from $x$, and where no such Bayes comparison classifier is defined --- part (a) does
+(in particular for continuous regression, where the encoder cannot recover $y$
+from $x$ and no such Bayes comparison classifier is defined), part (a) does
 not apply: there the separation transfer of
 Proposition~\ref{prop:pgib-separation} remains a conditional statement on the anchor
 mismatch, and no framework-level alignment bound is claimed. Part (b) is a separate
@@ -157,15 +157,15 @@ Minimizing over $c$ gives $c = a\sum_k\pi_k q_{\theta,k}$; by orthonormality
 $\|\sum_k\pi_k q_{\theta,k}\|^2 = \sum_k \pi_k^2$, yielding Eq.~\eqref{eq:opb-collapse}.
 \end{proof}
 
-\begin{remark}[What the framework constrains --- and what it does not]
+\begin{remark}[What the framework constrains (and what it does not)]
 \label{rem:counterexample}
 The constraints of the geometric prior bind the reference, not the deployed
 representation: for any orthonormal frame $\{q'_k\}$ and the class-constant posterior
 $q(z|Y=k) = \mathcal{N}(a\,q'_k, \tau^2 I_d)$, the trainable frame can rotate
 to match ($q_{\theta,k} \to q'_k$), yielding $\KL = 0$, $I(X;Z|Y) = 0$, and
-$I(Y;Z) > 0$ --- a full-retention label code with a zero certificate. The framework
-therefore constrains the geometric \emph{form} of the label code --- precisely what CEB
-left unspecified --- and does not claim that the certificate meters retained label
+$I(Y;Z) > 0$: a full-retention label code with a zero certificate. The framework
+therefore constrains the geometric \emph{form} of the label code (precisely what CEB
+left unspecified), and does not claim that the certificate meters retained label
 information. (With the variance fixed, the remaining freedom at certificate zero is
 the frame rotation; a learnable per-class variance would add a further circumvention
 channel and is deliberately not used.)
@@ -204,7 +204,7 @@ $\|a_i - a_j\|^2 = \|a_i\|^2 + \|a_j\|^2 - 2a_i^{\top}a_j = 2a^2$.
 \paragraph{Initialization, monitoring, and re-initialization.} The posterior logvar
 head is zero-initialized ($\sigma^2 = \tau^2 = 1$ at initialization, so training
 starts at $\KL \approx \tfrac{1}{2\tau^2} a^2$); the prior encoder is
-identity-initialized, so the initial raw matrix is $U_\theta = [e_1, \dots, e_K]$ ---
+identity-initialized, so the initial raw matrix is $U_\theta = [e_1, \dots, e_K]$,
 full column rank, with a stable polar-factor backward (the verified condition of
 Assumption~\ref{ass:fullrank}). The full-rank condition is \emph{verified, not
 imposed}: $\sigma_{\min}(U_\theta)$ is monitored along training and stays bounded
@@ -215,12 +215,12 @@ step, the recommended handling is a re-initialization of the prior encoder (the
 reported runs never triggered it).
 
 \paragraph{EPB axis choices.} Three variants of the direction: (A) \emph{fixed
-axis}, $u = [1, 0, \dots, 0]$, with no trainable prior direction --- the
+axis}, $u = [1, 0, \dots, 0]$, with no trainable prior direction: the
 theoretically cleanest ablation, at the price of prespecifying a latent coordinate;
 (B) \emph{trainable normalized axis}, $u = W/\|W\|$ with $W$ trained and normalized
-at every step --- our main variant, which keeps the scale $\rho$ exact while allowing
+at every step, our main variant, which keeps the scale $\rho$ exact while allowing
 the model to choose the axis; (C) \emph{unconstrained linear axis},
-$\mu_p(y) = W \tilde y$ --- the simplest ablation, still isometric by linearity but
+$\mu_p(y) = W \tilde y$: the simplest ablation, still isometric by linearity but
 with a free scale that can shrink and weaken the geometry. We recommend (B), use (A)
 to test whether the trainable rotation carries the benefit, and keep (C) as a
 diagnostic. The main variant uses no bias: an affine offset cancels in pairwise
@@ -228,7 +228,7 @@ distances but is a free extra degree of matching, and $\tilde y$ is already cent
 
 \paragraph{EPB isometry notes.} The isometry is exact and global: any nonzero linear
 map of a scalar label is isometric up to its norm, and the normalization fixes that
-norm to $\rho$ --- unlike fixed random-feature anchors, whose pairwise distances grow
+norm to $\rho$; unlike fixed random-feature anchors, whose pairwise distances grow
 nonlinearly and saturate, the isometric axis preserves label distances at every scale
 (with the price that anchor norms grow with $|\tilde y|$; a line and a fixed-radius
 sphere intersect in at most two points, so isometry and equal norms cannot both hold).
@@ -296,7 +296,7 @@ posterior $q_y = \mathcal{N}(s\,q_{\theta,y}, \sigma^2 I)$ ($s \ge 0$, $\sigma^2
 anchor scale $a > 0$), and the classifier is the anchor-energy classifier of
 Proposition~\ref{prop:opb-energy} (weights $w_j = c\,q_{\theta,j}$ with scale
 $c = a/\tau^2$ fixed by construction). With the \emph{stochastic training code}
-$z \sim q_y$ --- as in the actual objective, Eq.~\eqref{eq:opb-objective} --- the
+$z \sim q_y$ (as in the actual objective, Eq.~\eqref{eq:opb-objective}), the
 training cross-entropy is
 \begin{equation}
 g(s, \sigma^2) := \E_\eta\Bigl[
@@ -320,8 +320,8 @@ $a > 0$: the stochastic training objective has a well-defined optimum, in contra
 the deterministic IB Lagrangian, whose optimum is pinned at a corner for every $\beta$
 (Proposition~\ref{prop:dead}). This is a \emph{restricted surrogate result}: it
 analyzes two scalar variables on the class-symmetric aligned family, with the frame,
-the anchor scale, and the classifier scale held fixed; the full OPB objective --- with
-its nonlinear posterior, trainable frame, and non-convex degrees of freedom --- lies
+the anchor scale, and the classifier scale held fixed; the full OPB objective, with
+its nonlinear posterior, trainable frame, and non-convex degrees of freedom, lies
 outside this analysis, and the result neither establishes $\beta$-tunability of the
 full objective nor makes any claim on the information plane.
 The deterministic evaluation code ($z = \mu$) is the $\sigma \to 0$ limit, and
@@ -336,7 +336,7 @@ experiments. The fixed-scale condition holds for the main model by construction
 (Proposition~\ref{prop:opb-energy}), so the statement describes the actual training
 objective up to the aligned-family idealization. We do not analyze the free-classifier
 variant on this surrogate: under the stochastic training code, a diverging classifier
-scale does not produce a degenerate solution --- at $\operatorname{KL} \to 0$ the
+scale does not produce a degenerate solution: at $\operatorname{KL} \to 0$ the
 posterior variance is pinned at $\sigma^2 = \tau^2 > 0$, so the class-conditional
 Gaussians overlap and the training cross-entropy of a free classifier diverges with
 its scale rather than vanishing (for $K = 2$ it contains
@@ -371,17 +371,17 @@ where $p_{\mathrm{w}}$ is the error probability of the sampled code, so $s^* > 0
 \label{rem:opb-scope}
 Proposition~\ref{prop:opb-sweep} proves joint strict convexity and uniqueness of the
 optimum for the stochastic training objective in the KL--CE plane on the aligned family
-at fixed classifier scale --- a restricted surrogate result, which does not establish
+at fixed classifier scale: a restricted surrogate result, which does not establish
 $\beta$-tunability of the full OPB objective, and in any case not a statement on the
 information plane of the Caveats paper; the results of the main text
 establish a structured conditional prior, an exact KL geometry, and conditional
 separation guarantees, and they do \emph{not} establish a mutual information upper
-bound tighter than CEB's --- Eq.~\eqref{eq:opb-certificate} is the usual CEB gap
+bound tighter than CEB's: Eq.~\eqref{eq:opb-certificate} is the usual CEB gap
 identity for a particular prior family. The orthogonal-frame construction fixes all pairwise anchor
 distances, so the framework should not claim to recover arbitrary semantic class
 similarities. All geometric statements are conditional on
 Assumption~\ref{ass:fullrank}: orthonormality holds exactly by the polar construction
-wherever the factorization exists, and the condition is verified --- not imposed ---
+wherever the factorization exists, and the condition is verified, not imposed,
 along the reported runs (Section~\ref{sec:opb}); the construction is exactly
 equivariant under relabeling of the classes by Eq.~\eqref{eq:opb-equivariance}, so
 no class index plays a distinguished role. If the frame were computed from the
@@ -401,7 +401,7 @@ $\partial^2 g/\partial s\,\partial\sigma$ of the stochastic cross-entropy.
 The trainable frame and axis constitute a rotation channel that this paper does not
 address: the certificate's zero set contains the full-retention orthogonal label codes
 at any frame rotation (the reference can rotate to meet them), and the framework pins
-the \emph{geometry of the code} --- it does not claim that the certificate reads off
+the \emph{geometry of the code}; it does not claim that the certificate reads off
 the retained label information. Quantifying how much of the anchor gap is absorbed by
 frame rotation rather than by posterior motion is left to future work (a frozen-frame
 ablation isolates it).

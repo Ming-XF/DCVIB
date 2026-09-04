@@ -1,5 +1,5 @@
 """真实压缩-精度报告（审稿人建议版）：横轴 = 测试集实际 E[KL]（对数刻度）、
-纵轴 = Acc（imagenet100）/ R²（housing）；CEB 1 条线、OPB a=1/6/12 三条线。
+纵轴 = Acc（imagenet100）/ R²（housing）；CEB 1 条线、imagenet100 为 OPB a=1/6/12、housing 为 EPB ρ=1/6/12 各三条线。
 
 数据来自 compression_eval.py 的 output/compression_eval/compression_eval_summary.csv。
 输出：
@@ -38,6 +38,9 @@ SERIES_COLORS = {
     "OPB (a=1)": "#eb6834",
     "OPB (a=6)": "#4f9a5f",
     "OPB (a=12)": "#9a6ac4",
+    "EPB (ρ=1)": "#eb6834",
+    "EPB (ρ=6)": "#4f9a5f",
+    "EPB (ρ=12)": "#9a6ac4",
 }
 INK = "#0b0b0b"
 
@@ -92,7 +95,10 @@ def series_points(rows, task):
                      f"{b:g}", False)
                 )
             pts.sort(key=lambda p: p[0])  # 按 KL 升序连接
-            label = "CEB" if model == "ceb" else f"OPB (a={a})"
+            if model == "ceb":
+                label = "CEB"
+            else:
+                label = f"OPB (a={a})" if is_cls else f"EPB (ρ={a})"
             out.append((label, pts))
     return out
 
@@ -141,13 +147,15 @@ def task_table_html(task, rows):
         return f"{m:.4f}±{s:.4f}"
 
     body = []
-    for model, anchors, name in (("ceb", [None], "CEB"), ("opb", [1.0, 6.0, 12.0], "OPB")):
+    for model, anchors in (("ceb", [None]), ("opb", [1.0, 6.0, 12.0])):
         for a in anchors:
             for b in betas:
                 r = rows.get((task, model, f"{b:g}", "" if a is None else f"{a:g}"))
                 if r is None:
                     continue
-                cfg = f"{name} (β={b:g}" + (f", a={a:g})" if a is not None else ")")
+                name = "CEB" if model == "ceb" else ("OPB" if is_cls else "EPB")
+                sc = "a" if is_cls else "ρ"
+                cfg = f"{name} (β={b:g}" + (f", {sc}={a:g})" if a is not None else ")")
                 body.append(
                     f"<tr><td>{cfg}</td><td>{cell(r, 'ce')}</td>"
                     f"<td>{cell(r, 'klm')}</td><td>{cell(r, 'klv')}</td>"
@@ -230,7 +238,7 @@ def build_html(rows):
         "<p style='color:#52514e;font-size:.85em;'>"
         "数据来自 output/compression_eval/compression_eval_summary.csv"
         "（compression_eval.py，跨 5 run 均值±std）；"
-        "曲线横轴为测试集实际 E[KL]（对数刻度），CEB 1 条线、OPB a=1/6/12 三条线。</p>",
+        "曲线横轴为测试集实际 E[KL]（对数刻度），CEB 1 条线、OPB/EPB 各三条线（a/ρ = 1/6/12）。</p>",
         curve_css(),
     ]
     for task in ("imagenet100", "housing"):
