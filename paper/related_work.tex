@@ -1,0 +1,89 @@
+% =====================================================================
+% Related work
+% =====================================================================
+\section{Related work}
+\label{sec:related}
+
+\paragraph{Information bottleneck and conditional compression.}
+The information bottleneck (IB) principle formulates representation learning as
+retaining information about a target while discarding information about the input
+\citep{tishby2000information}. Deep VIB turns this principle into a neural
+objective by using a reparameterized stochastic encoder and a variational marginal
+prior \citep{alemi2017deep}. Nonlinear and non-parametric bottleneck variants study
+alternative variational bounds and distance-based estimates of the information in a
+representation \citep{kolchinsky2017nonlinear}. The deterministic-scenario analysis
+of \citet{kolchinsky2019caveats} further shows that the usual IB multiplier can fail
+to sweep an interior information--accuracy trade-off when labels are deterministic;
+the squared-compression baseline in our experiments follows this line of work.
+
+The conditional entropy bottleneck (CEB) replaces the marginal reference of VIB by a
+label-conditional reference and thereby targets conditional residual information
+\citep{fischer2020conditional}. Comparisons of variational bounds clarify when this
+conditional reference is tighter than a marginal one
+\citep{geiger2020variational}. CEB has also been applied to large-scale visual
+representations and robustness evaluations \citep{fischer2020robustness,lee2021compressive},
+while multivariate extensions retain the same variational bottleneck viewpoint
+\citep{abdelaleem2025deep}. These methods leave the relationships among distinct
+conditional reference means unspecified. GPB keeps the CEB posterior and its single
+conditional KL, but restricts the reference family itself: OPB declares a class
+frame and EPB declares a label-distance-preserving axis.
+
+\paragraph{Information bottleneck for robust representations.}
+Several works use a bottleneck to suppress nuisance or non-robust information. The
+HSIC bottleneck adds layer-wise dependence penalties and analyzes adversarial
+robustness \citep{wang2021hsic}. Adversarial Information Bottleneck explicitly
+incorporates adversarial objectives \citep{zhai2022adversarial}, and an NLP-specific
+variant separates task-relevant robust features from manipulable features
+\citep{zhang2022nl_ib}. Causal Information Bottleneck uses a causal decomposition
+for the same robust-feature goal \citep{hua2022causal}. These approaches modify the
+information criterion, feature selection, or training examples. In contrast, the
+geometric constraint in GPB is placed on the conditional prior and is evaluated with
+the ordinary CEB KL; the robustness experiments therefore test whether a declared
+prior geometry is transferred to the posterior rather than introducing adversarial
+training as an additional objective.
+
+\paragraph{Geometric classification representations.}
+Neural-collapse studies document an approximately simplex-ETF arrangement of class
+means and classifier directions near the terminal phase of training
+\citep{papyan2020prevalence,zhu2021geometric_nc}. The connection between neural
+collapse, supervised contrastive learning, and an information bottleneck has also
+been analyzed explicitly \citep{wang2023ib_nc}. Other works impose related geometry
+directly: orthogonal classifier weights can improve adversarial robustness
+\citep{xu2022orthogonal}; ETF classifiers have been used for early exit
+\citep{ji2023etf}; and fixed or hierarchy-aware frames have been used to reduce
+classifier bias or mistake severity \citep{tong2023fixed_frame}. Equidistant
+prototype embeddings provide an earlier prototype-based classification example
+\citep{deng2014equidistant}.
+
+These works constrain features, classifier weights, or prototypes through a
+classification loss or a fixed readout. OPB addresses a different object: the
+label-conditional Gaussian prior in the bottleneck. Its polar/QR frame is recomputed
+from the prior encoder, and the anchor-energy classifier reads the same frame without
+introducing an independent classifier scale. Thus the geometric class code and the
+conditional KL are coupled during training.
+
+\paragraph{Distance-preserving regression and geometric priors.}
+Isometric representation learning has traditionally focused on preserving distances
+on a data manifold, including deep extensions of isomap-style mappings
+\citep{pai2022isometric}. Orthogonal label regression has also been used as a
+discriminative device in domain adaptation \citep{luo2023doll}. These methods motivate
+using a declared label metric, but they do not formulate that metric as the mean map
+of a conditional Gaussian information-bottleneck prior. EPB uses the scalar label
+case: after standardization, prior means lie on a normalized axis with a fixed scale,
+so latent prior distances equal the declared label distances up to that scale. The
+regression information-bottleneck literature, including divergence-based bounds,
+provides complementary compression objectives rather than this geometric prior
+construction \citep{yu2024csd_ib}.
+
+\paragraph{Geometry-aware information bottlenecks.}
+Recent work has used the phrase geometric information bottleneck in several distinct
+settings. A variational recommender learns a geometric prior for explanation
+generation \citep{yan2024geometric_ib}; a data-scarcity formulation penalizes latent
+curvature and intrinsic dimension \citep{katende2025vgib}; and activation steering
+uses orthogonal subspaces to control language-model interventions
+\citep{doan2026geometric_ib}. A concurrent analysis studies the relationship between
+information compression and class-wise geometric compression in CEB networks
+\citep{adilova2026geometric_compression}. These studies make geometry an important
+representation concern, but they do not use the same conditional Gaussian prior for
+both compression and prediction, nor do they provide the OPB/EPB alignment-to-
+separation construction considered here.
