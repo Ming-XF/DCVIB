@@ -22,11 +22,6 @@ paper/main_result_CI.tex（gen_result_ci，GPB − 各 baseline 的 bootstrap 95
 分类 Acc ×100) 与 AgeDB (MLP，回归 R²) 两个任务，行 = CEB 与 OPB 的
 a ∈ {1, 6, 12} 三条线，列 = β 网格 {1e-4, ..., 10}。
 
-以及对抗鲁棒性表 paper/result2.tex（gen_result2）：读取
-output/adv_mnist/mnist_adv.csv（adv_eval.py 输出），行 = 攻击强度
-（clean + L∞/L2 各 ε，随 CSV 自适应），列 = CSV 中的模型配置（数量自适应），
-值为跨 run 平均鲁棒精度（%）。
-
 以及压缩-精度评估表 paper/result4.tex（gen_result4，CE/KL 分解项）；
 以及几何机制表 paper/result3.tex（gen_result3）：读取 output/pri-pos 下
 prior_geometry.py / posterior_geometry.py 的 JSON（posterior_geometry.json
@@ -49,11 +44,8 @@ OUT_PATH = Path(__file__).resolve().parent / "main_result.tex"
 MAIN_RESULT_STD_PATH = Path(__file__).resolve().parent / "main_result_std.tex"
 MAIN_RESULT_CI_PATH = Path(__file__).resolve().parent / "main_result_CI.tex"
 RESULT1_PATH = Path(__file__).resolve().parent / "result1.tex"
-RESULT2_PATH = Path(__file__).resolve().parent / "result2.tex"
 RESULT3_PATH = Path(__file__).resolve().parent / "result3.tex"
 RESULT4_PATH = Path(__file__).resolve().parent / "result4.tex"
-# 对抗鲁棒性长表（adv_eval.py 输出）：config/run/norm/eps/acc
-ADV_CSV_PATH = ROOT / "output" / "adv_mnist" / "mnist_adv.csv"
 # 几何机制表数据源（prior_geometry.py / posterior_geometry.py 输出）
 POSTERIOR_JSON = ROOT / "output" / "pri-pos" / "pos_results" / "posterior_geometry.json"
 PRIOR_SUMMARY_JSON = ROOT / "output" / "pri-pos" / "pri_results" / "prior_summary.json"
@@ -269,101 +261,6 @@ def collect_full(task_backbones):
             if entries:
                 out[(task, backbone)][model] = entries
     return out
-
-
-def parse_adv_config(name):
-    """对抗试验配置名 → (显示标签, beta, anchor)。
-
-    mnist_mlp → ('Base', None, None)；
-    mnist_mlp_{model}_beta{b}[_scale_{a}] → 如
-    ('OPB ($\\beta=0.1$, $a=12$)', 0.1, 12.0)。无法解析时原样返回。
-    """
-    if name == "mnist_mlp":
-        return "Base", None, None
-    m = re.match(r"^mnist_mlp_([a-z]+)_beta([\d.]+)(?:_scale_?([\d.]+))?$", name)
-    if not m:
-        return name, None, None
-    model = m.group(1).upper()
-    beta = float(m.group(2))
-    anchor = float(m.group(3)) if m.group(3) else None
-    if anchor is not None:
-        return f"{model} ($\\beta={beta:g}$, $a={anchor:g}$)", beta, anchor
-    return f"{model} ($\\beta={beta:g}$)", beta, None
-
-
-def gen_result2():
-    r"""从 ADV_CSV_PATH 生成对抗鲁棒性表 result2.tex（CSV 缺失时返回 None）。
-
-    行 = 攻击强度（clean + L∞/L2 各 ε，网格随 CSV 自适应），列 = CSV 中的
-    模型配置（数量自适应、Base 居首其余按名排序）；值为跨 run 鲁棒精度
-    （Acc ×100）均值±标准差，每行按均值最优加粗。tab:robustness，可直接
-    \input{}。
-    """
-    if not ADV_CSV_PATH.exists():
-        return None
-    with open(ADV_CSV_PATH, newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
-    configs = sorted({r["config"] for r in rows},
-                     key=lambda c: (c != "mnist_mlp", c))
-    combos = [("none", 0.0)] \
-        + [("linf", e) for e in sorted({float(r["eps"]) for r in rows if r["norm"] == "linf"})] \
-        + [("l2", e) for e in sorted({float(r["eps"]) for r in rows if r["norm"] == "l2"})]
-    accs = {}
-    for r in rows:
-        accs.setdefault((r["config"], r["norm"], float(r["eps"])), []).append(float(r["acc"]))
-
-    def mean_std(c, norm, eps):
-        vals = accs.get((c, norm, eps))
-        if not vals:
-            return None
-        m = sum(vals) / len(vals)
-        s = (sum((v - m) ** 2 for v in vals) / len(vals)) ** 0.5
-        return m, s
-
-    def fmt(c, norm, eps):
-        ms = mean_std(c, norm, eps)
-        return f"{ms[0] * 100:.2f}$\\pm${ms[1] * 100:.2f}" if ms else "--"
-
-    lines = [
-        "% 对抗鲁棒性表：由 paper/make_table.py 从 output/adv_mnist/mnist_adv.csv 自动生成，请勿手改。",
-        "% 值为跨 run 鲁棒精度（%）均值±标准差，每行按均值最优加粗；行 = 攻击强度，列 = 模型配置（数量自适应）。",
-        "\\begin{table*}[t]",
-        "\\centering",
-        "\\caption{Adversarial robustness on MNIST: test accuracy (\\%) under untargeted "
-        "projected gradient descent (PGD) attacks in $L_\\infty$ and $L_2$ norms, "
-        "evaluated on the deterministic ($z=\\mu$) path; mean $\\pm$ std. over runs.}",
-        "\\label{tab:robustness}",
-        "\\small",
-        "{",
-        "\\setlength{\\tabcolsep}{2pt}",
-        "\\begin{tabular}{l" + "c" * len(configs) + "}",
-        "\\hline",
-        " & " + " & ".join(parse_adv_config(c)[0] for c in configs) + " \\\\",
-        "\\hline",
-    ]
-    for norm, eps in combos:
-        if norm == "none":
-            label = "Clean"
-        else:
-            math_norm = "\\ell_\\infty" if norm == "linf" else "\\ell_2"
-            label = f"${math_norm}$ $\\varepsilon={eps:g}$"
-        # 加粗按均值判定（带 ± 的字符串不能直接 float 比较）
-        means = [mean_std(c, norm, eps) for c in configs]
-        best = max((m[0] for m in means if m), default=None)
-        cells = [
-            f"\\textbf{{{fmt(c, norm, eps)}}}"
-            if means[i] and means[i][0] == best
-            else fmt(c, norm, eps)
-            for i, c in enumerate(configs)
-        ]
-        lines.append(f"{label} & " + " & ".join(cells) + " \\\\")
-    lines.extend([
-        "\\hline",
-        "\\end{tabular}",
-        "}",
-        "\\end{table*}",
-    ])
-    return "\n".join(lines) + "\n"
 
 
 def _f4(x, nd=4):
@@ -1025,14 +922,6 @@ def main():
     RESULT1_PATH.write_text(gen_result1(full), encoding="utf-8")
     print(f"已生成 {RESULT1_PATH}（压缩-精度表：CEB + GPB（OPB a / EPB ρ = 1/6/12）× β 网格，"
           f"仅 {', '.join(f'{TASK_NAMES.get(t, t)} ({b})' for t, b in COMPRESSION_TASKS)}）")
-
-    result2 = gen_result2()
-    if result2 is None:
-        print(f"警告：{ADV_CSV_PATH} 不存在，跳过对抗鲁棒性表（先运行 adv_eval.py 生成）")
-    else:
-        RESULT2_PATH.write_text(result2, encoding="utf-8")
-        print(f"已生成 {RESULT2_PATH}（对抗鲁棒性表：行 = 攻击强度、列 = 模型配置（自适应），"
-              f"数据来自 {ADV_CSV_PATH}）")
 
     result4 = gen_result4()
     if result4 is None:

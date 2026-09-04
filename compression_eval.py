@@ -1,18 +1,19 @@
-"""压缩-精度评估：对 output/compression_eval 的补训 checkpoint 计算测试集
-CE、E[KL] 与 KL 分解项（均值失配项 / 方差失配项），输出长表与汇总 csv。
+"""压缩-精度评估：对补训 checkpoint 计算测试集 CE、E[KL] 与 KL 分解项
+（均值失配项 / 方差失配项），输出长表与汇总 csv。
 
-审稿人要求的真实压缩-精度曲线的横轴是实际 E[KL]（证书 = KL 期望），本脚本
-产出该数据：每个组合 × 每个 run 的 CE / kl / kl_mean / kl_var / 任务指标。
+真实压缩-精度曲线的横轴是实际 E[KL]（证书 = KL 期望），本脚本产出该数据：
+每个组合 × 每个 run 的 CE / kl / kl_mean / kl_var / 任务指标。
 评估走 z=μ 确定性路径；CE 用模型的真实预测头（能量分类器/tied 头/自由头，
 与训练一致）；KL 分解用对角高斯闭式（附录 KL 分解引理的通用版，先验方差
 按模型实际——OPB 固定 τ²=1、CEB 逐类学习）。
 
-输出：
-    output/compression_eval/compression_eval.csv          （长表，每 run 一行）
-    output/compression_eval/compression_eval_summary.csv  （每组合一行，均值±std）
+输出（{eval-root} 下）：
+    compression_eval.csv          （长表，每 run 一行）
+    compression_eval_summary.csv  （每组合一行，均值±std）
 
 用法：
     python compression_eval.py --batch-size 512 --data-dir ./data
+    python compression_eval.py --eval-root output/adv_mnist   # MNIST 压缩-鲁棒性补训
 """
 
 import argparse
@@ -24,12 +25,16 @@ import torch
 import torch.nn.functional as F
 
 from datasets.agedb import get_agedb_dataloaders
-from datasets.datasets import get_california_dataloaders, get_imagenet100_dataloaders
+from datasets.datasets import (
+    get_california_dataloaders,
+    get_imagenet100_dataloaders,
+    get_mnist_dataloaders,
+)
 from model.mlp.utils import flatten, qr_anchor_table
 from train import build_model, build_parser, run_model
 
 ROOT = Path(__file__).resolve().parent
-EVAL_ROOT = ROOT / "output" / "compression_eval"
+DEFAULT_EVAL_ROOT = ROOT / "output" / "compression_eval"
 # 目录名数据集 → train.py 任务名（tune 目录用数据集名：california 即 housing）
 DATASET_TO_TASK = {"california": "housing"}
 # 回归任务集合（CE = 标准化 MSE）
@@ -126,18 +131,25 @@ def parse_combo_dir(name):
 
 def main():
     parser = build_parser()
+    parser.add_argument(
+        "--eval-root", type=str, default=str(DEFAULT_EVAL_ROOT),
+        help="checkpoint 目录根（默认 output/compression_eval；"
+        "MNIST 补训用 output/adv_mnist），输出 csv 也写入该目录",
+    )
     args = parser.parse_args()
+    eval_root = Path(args.eval_root)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     loaders = {
         "imagenet100": get_imagenet100_dataloaders(args.batch_size, args.data_dir),
         "agedb": get_agedb_dataloaders(args.batch_size, args.data_dir),
         "california": get_california_dataloaders(args.batch_size, args.data_dir),
+        "mnist": get_mnist_dataloaders(args.batch_size, args.data_dir),
     }
 
     csv_rows = []
     summary_rows = []
-    for d in sorted(EVAL_ROOT.iterdir()):
+    for d in sorted(eval_root.iterdir()):
         if not d.is_dir():
             continue
         info = parse_combo_dir(d.name)
@@ -157,8 +169,9 @@ def main():
         dir_args.model = model_name
         dir_args.backbone = backbone
         dir_args.anchor_scale = anchor if anchor is not None else args.anchor_scale
-        # 与训练时一致的头：分类 OPB 能量分类器、回归 OPB tied 投影头
-        dir_args.energy_classifier = task == "imagenet100" and model_name == "opb"
+        # 与训练时一致的头：分类 OPB 能量分类器（imagenet100/mnist 均如此训练）、
+        # 回归 OPB tied 投影头
+        dir_args.energy_classifier = task not in REGRESSION_TASKS and model_name == "opb"
         dir_args.tied_head = task in REGRESSION_TASKS and model_name == "opb"
         if dataset == "imagenet100":
             input_dim, feature_pool = loaders[dataset][3], loaders[dataset][4]
@@ -202,13 +215,13 @@ def main():
         summary_rows.append(row)
         print(f"[汇总] {d.name}: KL={sum(m['kl'] for m in run_metrics) / len(run_metrics):.4f}")
 
-    csv_path = EVAL_ROOT / "compression_eval.csv"
+    csv_path = eval_root / "compression_eval.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["combo", "task", "model", "beta", "anchor", "run", "seed",
                     "CE", "KL", "KL_mean", "KL_var", "Acc", "R2"])
         w.writerows(csv_rows)
-    summary_path = EVAL_ROOT / "compression_eval_summary.csv"
+    summary_path = eval_root / "compression_eval_summary.csv"
     with open(summary_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         cols = ["combo", "task", "model", "beta", "anchor"]

@@ -4,10 +4,10 @@
 % 与 math_commands.tex，故 preamble 自带最小等价设置（拿到样式文件后替换即可）。
 % 当前包含：题目、abstract、Intro、方法（2.1 From CEB to GPB / 2.2 几何实例 OPB/EPB /
 % 2.3 理论保证，含统一对齐主定理）、实验（3.1 设置 / 3.2 主结果 \input{main_result} /
-% 3.3 真实压缩-精度曲线（横轴 = 实际 E[KL]，图 fig:compression-*）/
-% 3.4 对抗鲁棒性 \input{result2} / 3.5 机制验证 \input{result3} + 图）、
-% 语句小节、参考文献、附录（\input{appendix.tex}：诊断/证明/构造细节/补充结果、
-% 超参数敏感性表 result1、KL 分解表 result4）。相关工作为占位。
+% 3.3 压缩-精度曲线（横轴 = β：每任务 β-acc 与 β-KL 两张，图 fig:compression 2×2）/
+% 3.4 对抗鲁棒性（targeted PGD 图 fig:adv-targeted + 迁移图 fig:adv-transfer）/ 3.5 机制验证 \input{result3} + 图）、
+% 语句小节、参考文献、附录（\input{appendix.tex}：诊断/证明/构造细节/补充结果）。
+% 相关工作为占位。
 
 \documentclass{article} % For LaTeX2e
 \usepackage{iclr2027_conference,times}
@@ -533,7 +533,7 @@ Proposition~\ref{prop:opb-sweep}), and the implementation details are in the app
 % =====================================================================
 
 % 已撰写：实验设置（sec:setup）、主结果（sec:main-results，\input{main_result}）、
-% 压缩-精度扫参（sec:sweep，\input{result1}）、对抗鲁棒性（sec:robustness，\input{result2}）
+% 压缩-精度曲线（sec:sweep）、对抗鲁棒性（sec:robustness，fig:adv-targeted + fig:adv-transfer）
 % 与机制验证（sec:mechanism，\input{result3} + fig:mechanism）。
 % 待补：随机标签记忆实验（supplementary）。
 
@@ -543,8 +543,8 @@ axis) cost or gain anything in end-to-end prediction across heterogeneous
 settings? Second, does prediction survive when the prediction rule is tied to that
 geometry by construction (the anchor-energy classifier and the tied projection
 head), so that the free head's degrees of freedom are removed? The main sweep
-answers both on twelve dataset--backbone settings; the compression--accuracy curves
-at the realized $\E[\KL]$ are reported in Section~\ref{sec:sweep},
+answers both on twelve dataset--backbone settings; the compression--accuracy and
+realized-$\E[\KL]$ curves are reported in Section~\ref{sec:sweep},
 adversarial robustness in Section~\ref{sec:robustness}, the geometric mechanism
 validation in Section~\ref{sec:mechanism}, and the remaining mechanism-level
 checks (nearest-anchor sufficiency, memorization) in the supplementary analysis.
@@ -671,61 +671,74 @@ prediction rule to the prior's geometry removes both escape routes, consistent w
 the fixed-scale condition under which the aligned surrogate of
 Proposition~\ref{prop:opb-sweep} has a unique interior optimum per $\beta$.
 
-\subsection{Compression--accuracy at the realized KL}
+\subsection{Compression--accuracy and the KL certificate over $\beta$}
 \label{sec:sweep}
 
-The main table selects the best $(\beta, a)$ per method; the curves below report
-the \emph{realized} compression--accuracy trade-off on one classification and one
-regression setting (ImageNet-100 and Cal. Housing, both with the MLP backbone).
-The horizontal axis is the test-set $\E[\KL]$ --- the certificate itself --- so
-$\beta$ only parameterizes the curves. This matters because the two methods reach
-different compressions at the same $\beta$: on Housing at $\beta = 0.1$, CEB
-already sits at $\E[\KL] \approx 0.09$ while EPB ($\rho = 12$) is at $\approx 0.27$,
-so a $\beta$-matched comparison would confound compression level with geometry,
-whereas the KL-matched comparison isolates the geometry. The $\beta$-grid tables
-and the full per-configuration KL decomposition are in
-Appendix~\ref{app:hparam-tables}.
+The main table selects the best $(\beta, a)$ per method; the figures below report
+the compression--accuracy trade-off on one classification and one regression
+setting (ImageNet-100 and Cal. Housing, both with the MLP backbone). Each setting
+has two companion panels over the same $\beta$ grid: the task metric against
+$\beta$ (panels a--b), and the realized test-set $\E[\KL]$ --- the certificate
+itself --- against $\beta$ (panels c--d). The certificate panels are what make a
+$\beta$-matched sweep interpretable: the two methods reach different compressions
+at the same $\beta$ --- on Housing at $\beta = 0.1$, CEB sits at
+$\E[\KL] \approx 0.09$ while EPB ($\rho = 12$) is at $\approx 0.27$ --- so the
+compression each point actually achieves is read off directly rather than
+assumed from $\beta$. No points are omitted: collapsed references and variance
+explosions are visible at the extremes of the sweep.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.48\linewidth]{figures/fig_compression_imagenet100.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/fig_compression_housing.png}
-\caption{Compression--accuracy against the realized test-set $\E[\KL]$ (log
-scale), $\beta \in \{5{\cdot}10^{-5}, \dots, 25\}$ parameterizing each curve.
-(a) ImageNet-100 (MLP): test accuracy; OPB with $a = 12$ holds the plateau while
-CEB and OPB ($a = 1$) collapse. (b) Cal. Housing (MLP): test $R^2$. Collapsed
-corner points ($\E[\KL] < 10^{-3}$), dead-prediction endpoints (accuracy below
-$5\%$ / $R^2$ below $0.1$), and variance-explosion points ($\E[\KL] > 10^{4}$)
-are omitted.}
+\includegraphics[width=0.48\linewidth]{figures/fig_beta_acc_imagenet100.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_beta_acc_housing.png}\\[2pt]
+\includegraphics[width=0.48\linewidth]{figures/fig_beta_kl_imagenet100.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_beta_kl_housing.png}
+\caption{Compression--accuracy and the realized certificate over $\beta$ (log
+scale), $\beta \in \{5{\cdot}10^{-5}, \dots, 25\}$; CEB one curve per panel, GPB
+three ($a$ on classification, $\rho$ on regression, both $\in \{1, 6, 12\}$).
+(a)--(b) Test accuracy (\%) on ImageNet-100 (MLP) and test $R^2$ on Cal.\
+Housing (MLP) against $\beta$: OPB with $a = 12$ holds the plateau out to
+$\beta = 25$ while CEB and OPB ($a = 1$) collapse. (c)--(d) The realized
+test-set $\E[\KL]$ against $\beta$ (log scale) for the same runs: CEB's
+certificate collapses with its reference, EPB ($\rho = 1$) explodes near
+$\beta = 5{\cdot}10^{-5}$, and the larger anchors keep $\E[\KL]$ in a stable
+band.}
 \label{fig:compression}
 \end{figure*}
 
 Figure~\ref{fig:compression}
-exhibits the two roles of the anchor scale on the realized compression axis.
+exhibits the two roles of the anchor scale across the $\beta$ sweep, with panels
+(c)--(d) translating each point into its realized compression.
 \emph{(i) Without a scale, the reference collapses.} On ImageNet-100, CEB's
-accuracy erodes to $71.5\%$ at $\E[\KL] \approx 3.6$ ($\beta = 0.1$) and its
+accuracy erodes to $71.5\%$ at $\beta = 0.1$ ($\E[\KL] \approx 3.6$) and its
 reference escapes entirely at $\beta \ge 0.5$ ($\E[\KL] \to 0$ with accuracy at
-chance), so its curve ends there; OPB at $a = 1$ collapses at the same end of
-the axis. On Housing, CEB drops to $R^2 = 0.49$ at $\beta = 0.1$ and below $0.1$
+chance, panel c); OPB at $a = 1$ survives one grid step longer ($83.3\%$ at
+$\beta = 0.1$) and collapses at the same end of the sweep. OPB ($a = 6$) holds
+accuracy above $74\%$ out to $\beta = 5$ and falls to $64.7\%$ at $\beta = 25$.
+On Housing, CEB drops to $R^2 = 0.49$ at $\beta = 0.1$ and below $0.1$
 by $\beta \ge 0.5$, while every EPB curve keeps $R^2 \ge 0.76$ out to
 $\beta = 25$. Orthogonality alone therefore does not prevent the collapse: the
 frame is fixed up to rotation, but the anchor-energy classifier's margin is
 $a^2/\tau^2$ (Proposition~\ref{prop:opb-energy}), and at $a = 1$ that margin is
 too small to carry a solution at strong compression. \emph{(ii) The anchor scale
 controls where the collapse sets in, and at matched compression the geometry pays
-or ties.} On ImageNet-100, OPB ($a = 12$) attains $84.2\%$ at
-$\E[\KL] \approx 21$ (above CEB's best point anywhere on its curve,
-$82.8\%$ at $\E[\KL] \approx 26$) and still $79.4\%$ at $\beta = 25$
+or ties.} On ImageNet-100, OPB ($a = 12$) attains $84.2\%$ at $\beta = 1$
+($\E[\KL] \approx 21$), above CEB's best point anywhere on its sweep
+($82.8\%$ at $\beta = 10^{-2}$), and still $79.4\%$ at $\beta = 25$
 ($\E[\KL] \approx 2.2$); on Housing the four curves peak within half a point
 (CEB $0.789$, EPB $0.786$--$0.789$), but only EPB retains its peak into the
 strong-compression regime: the plateau is the flat EPB segment where $R^2$ stays
-above $0.76$ while $\E[\KL]$ shrinks by two orders of magnitude.
+above $0.76$ from $\beta = 0.1$ out to $\beta = 25$ while the certificate keeps
+shrinking.
 
 A visible cost remains in the weak-compression regime: on ImageNet-100 at
-$\E[\KL] \gtrsim 300$, OPB trails CEB by one to three points ($a = 6$: $81.0$ vs.\
-$82.6$; $a = 12$: $79.8$ vs.\ $82.6$): the price of the fixed-scale energy rule
-when compression is weak. The construction pays for itself in the
-strong-compression regime, where CEB is at chance.
+$\beta = 10^{-4}$ ($\E[\KL] \gtrsim 300$), OPB trails CEB by one to three points
+($a = 6$: $81.0$ vs.\ $82.6$; $a = 12$: $79.8$ vs.\ $82.6$): the price of the
+fixed-scale energy rule when compression is weak. On Housing the same regime
+shows EPB ($\rho = 1$) dipping to $R^2 = 0.53$ at $\beta = 5{\cdot}10^{-5}$,
+where its certificate explodes to $\approx 10^{8}$ (panel d): with a unit axis
+and negligible $\beta$ the off-axis variance is unconstrained. The construction
+pays for itself in the strong-compression regime, where CEB is at chance.
 
 The mechanism is the one the theory predicts. At strong $\beta$ the posterior is
 pinned near the aligned solution: Theorem~\ref{prop:pgib-alignment}(a) bounds
@@ -735,8 +748,7 @@ scale-to-noise ratio $a/\tau$ (the nearest-anchor error probability is
 $\Phi(-a/(\sqrt{2}\tau))$; appendix). With the classifier scale
 fixed at $a/\tau^2$ by construction, the only remaining lever at full compression is
 $a$ itself: the anchor scale converts the compression knob from a collapse dial into
-a plateau dial. The KL decomposition (Table~\ref{tab:compression_decomp} in
-Appendix~\ref{app:hparam-tables}) shows the two channels at work: OPB's $\E[\KL]$ is
+a plateau dial. The KL decomposition shows the two channels at work: OPB's $\E[\KL]$ is
 dominated by the mean-mismatch term (anchor displacement; $a = 12$, $\beta = 1$:
 $20.6$ mean vs.\ $0.36$ variance), while CEB's reference absorbs compression by
 shrinking both terms toward zero: the reference chases the posterior, exactly the
@@ -752,37 +764,98 @@ constructed scale keeps the plateau from collapsing.
 \subsection{Adversarial robustness}
 \label{sec:robustness}
 
-We evaluate robustness to white-box attacks following the protocol of the CEB
-paper: untargeted projected gradient descent (PGD, $20$ steps, step size
-$2.5\varepsilon/\mathrm{steps}$, random start) in the $L_\infty$ and $L_2$ norms,
-with $\varepsilon$ defined in the normalized pixel space (MNIST mean/std), and the
-model evaluated on its deterministic path ($z = \mu_\phi(x)$). We attack
-$1{,}000$ test images and report the mean and standard deviation over runs.
-The compared configurations are
-the plain backbone, CEB at $\beta = 0.1$, and OPB at $\beta = 0.1$, $a = 12$ ---
-the strong-compression regime of Section~\ref{sec:sweep}, where the reference
-geometry is in force.
+We evaluate robustness to white-box attacks following the CEB paper's
+\emph{targeted} variant (its Figure~4, bottom panels): targeted projected
+gradient descent (PGD, $20$ steps, step size $2.5\varepsilon/\mathrm{steps}$,
+random start) toward a single class, with success measured as the fraction of
+originally correct predictions flipped to that class. The target is digit
+$0$, the most distinctive MNIST class (the analogue of Fashion-MNIST
+``trouser''), so that class confusion does not masquerade as robustness.
+$\varepsilon$ is defined in the normalized pixel space (MNIST mean/std); we
+attack $1{,}000$ test images and report the mean and standard deviation over
+runs. All stochastic models are attacked and evaluated on their
+\emph{stochastic} path: each PGD step averages gradients over $10$ samples of
+$z \sim q_\phi(z|x)$ (expectation over transformation), and every prediction is
+the majority class under $10$ MC samples. We use $\varepsilon_\infty = 0.3$ and
+$\varepsilon_2 = 6.0$ --- the smallest $L_2$ budget we tested at which the
+targeted attack engages the decision boundaries at all (at $2.0$ it cannot
+reach the target region from any other class and sits at a near-zero floor for
+every model). The sweep covers the full $\beta$ grid for OPB; CEB is drawn only
+over its operating range $\beta \le 0.1$, beyond which the reference collapses
+and accuracy is at chance --- a dead model's zero attack success is not
+robustness.
 
-\input{result2}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_linf_mnist.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_l2_mnist.png}
+\caption{Targeted PGD attack success rate against $\beta$ (log scale) on MNIST
+(MLP backbone): target class $0$, $20$ steps, EOT-10 gradients and 10-sample
+MC predictions on the stochastic path. (a) $L_\infty$, $\varepsilon = 0.3$;
+(b) $L_2$, $\varepsilon = 6.0$. The dashed grey line is the deterministic MLP
+baseline; CEB is drawn over its operating range only ($\beta \le 0.1$), beyond
+which its reference collapses to chance. Every curve falls with $\beta$, and
+OPB keeps gaining robustness across the entire grid: at $\beta = 25$,
+OPB ($a = 1$) reaches $11\%$ --- $50$ points below the baseline.}
+\label{fig:adv-targeted}
+\end{figure*}
 
-Table~\ref{tab:robustness} exhibits the same margin structure the sweep predicts.
-OPB is the most robust configuration in $11$ of $13$ attack strengths, and its
-advantage \emph{grows} with the attack: at clean inputs the gap is within
-$0.6$ points ($98.3$ vs.\ $97.8$ for CEB), while at
-$\varepsilon_\infty = 0.2$ it is $+3.9$ ($27.9$ vs.\ $24.0$) and at
-$\varepsilon_2 = 4$ it is $+3.4$ ($27.3$ vs.\ $23.9$) --- the robustness gain is
-not a side effect of a clean-accuracy difference. The mechanism is the one the
-theory identifies: at strong $\beta$ the posterior class centers are pinned near
-the aligned solution (Theorem~\ref{prop:pgib-alignment}) and inherit the
-prior's separation $\sqrt{2}\,a$ (Proposition~\ref{prop:pgib-separation}), so the
-anchor-energy classifier's decision boundaries sit midway between well-separated
-anchors with a margin governed by $a/\tau$: the same geometry that turns the
-compression knob into a plateau dial in Section~\ref{sec:sweep}. We do not
-over-claim: this is a single dataset with single hyperparameter configurations;
-at the largest $L_2$ strengths ($\varepsilon = 5, 6$), where every model is near
-chance, the ordering is noisy and the plain backbone happens to sit above the
-bottleneck models. Full $\varepsilon$ grids for all configurations are in the
-release.
+Figure~\ref{fig:adv-targeted} shows the targeted-attack picture. Every curve
+falls as $\beta$ grows, reproducing the CEB paper's compression--robustness
+gradient under a protocol the deterministic path cannot game. Within CEB's operating range the two geometries are comparable at matched
+$\beta$ (at $\beta = 0.1$ under $L_\infty$: $37.4\%$ for both CEB and OPB,
+$a = 12$), but the $\beta$ axis again hides the compression gap --- at
+$\beta = 0.1$ CEB is the \emph{more} compressed of the two (realized
+$\E[\KL] = 0.68$ vs.\ $1.23$ for OPB, $a = 12$). At compression-matched points
+the geometry pays: OPB ($a = 12$, $\beta = 1$; $\E[\KL] = 0.55$) attains
+$30.6\%$ vs.\ CEB's $37.4\%$ under $L_\infty$. The decisive margin is the
+operating range: OPB keeps accuracy at $\approx 0.98$ out to $\beta = 25$
+while its targeted success keeps falling, to $11.1\%$/$28.0\%$/$29.5\%$
+($a = 1/6/12$) under $L_\infty$ and $11.0\%$/$33.5\%$/$34.7\%$ under $L_2$ ---
+$30$--$50$ points below the deterministic baseline and below anything CEB
+attains with its accuracy intact. At the extreme end the anchor ordering
+tracks the realized compression: the smallest anchor is also the most
+collapsed at $\beta = 25$ ($\E[\KL] = 0.013$ vs.\ $0.28$--$0.40$) and the most
+robust ($11\%$ vs.\ $\approx 31\%$), the same compression--robustness gradient
+read along the anchor axis. We do not over-claim: this is one
+dataset and one target class.
+
+\paragraph{Transfer attacks (gradient-masking check).}
+A white-box attack could fail simply because the target model's gradients are
+degenerate, crediting dead models with robustness. We follow the CEB paper's
+transfer protocol as the check: generate targeted PGD adversaries on one model
+(the same $20$-step, EOT-10 recipe) and evaluate them on another (10-sample MC
+predictions), sweeping $\varepsilon$ over $0.05$--$0.3$ ($L_\infty$) and
+$1$--$6$ ($L_2$). The models are CEB ($\beta = 0.1$, the last point of its
+operating range), OPB at maximum compression ($\beta = 25$, $a = 1$; realized
+$\E[\KL] = 0.013$), and the deterministic MLP baseline, whose white-box curve
+reaching $61\%$ at $\varepsilon_\infty = 0.3$ confirms that the attack itself
+is not broken.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_linf_mnist.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_l2_mnist.png}
+\caption{Transfer attacks (gradient-masking check) on MNIST (MLP backbone):
+targeted PGD adversaries generated on one model and evaluated on another,
+against $\varepsilon$. (a) $L_\infty$; (b) $L_2$. Solid: white-box
+self-attacks of CEB ($\beta = 0.1$), OPB ($\beta = 25$, $a = 1$) and the
+deterministic MLP baseline. Dashed: transfer attacks. CEB→OPB stays at or
+below OPB's own white-box attack, so OPB's extreme-compression robustness is
+not gradient masking; OPB→CEB transfers almost nothing, as the collapsed
+posterior's perturbations carry little transferable signal.}
+\label{fig:adv-transfer}
+\end{figure*}
+
+Figure~\ref{fig:adv-transfer} reads each transfer curve against its target's
+own white-box attack, not against the source. CEB→OPB tops out at $6.4\%$
+($L_\infty$) and $6.5\%$ ($L_2$) --- at or below OPB's own white-box attack
+($12.0\%$/$12.6\%$) --- so the extreme-compression robustness of OPB survives
+adversaries that never touch its gradients: it is geometry, not gradient
+masking. The reverse direction transfers almost nothing ($\le 1.8\%$), because
+the collapsed posterior's perturbations carry little transferable signal ---
+consistent with the reference collapse of CEB being a genuine failure mode
+rather than a robustness channel.
 
 % =====================================================================
 \subsection{Mechanism validation: the geometry drives representation and prediction}

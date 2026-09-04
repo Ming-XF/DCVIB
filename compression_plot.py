@@ -1,13 +1,15 @@
-"""真实压缩-精度报告（审稿人建议版）：横轴 = 测试集实际 E[KL]（对数刻度）、
-纵轴 = Acc（imagenet100）/ R²（housing）；CEB 1 条线、imagenet100 为 OPB a=1/6/12、housing 为 EPB ρ=1/6/12 各三条线。
+"""压缩-精度曲线（β 轴版）：每任务两张图——β-acc（横轴 β、纵轴 Acc/R²）与
+β-KL（横轴 β、纵轴 E[KL] 对数刻度）；CEB 1 条线、GPB 三条线（分类 OPB a=1/6/12、
+回归 EPB ρ=1/6/12）。imagenet100 为分类、housing（california）为回归，共四张图。
 
 数据来自 compression_eval.py 的 output/compression_eval/compression_eval_summary.csv。
 输出：
-1. HTML 报告 output/compression_eval/compression_eval.html —— 每任务一张数据表
-   （CE / KL 均值失配项 / KL 方差失配项 / E[KL] / 任务指标）与一张交互曲线卡
-   （共享 log10(KL) 网格、各系列线性插值，误差棒 = 跨 run std，仅纵轴）；
-2. 论文图（白底、无总标题、英文标签，精确点不插值）：
-   paper/figures/fig_compression_imagenet100.png / fig_compression_housing.png。
+1. 论文图（白底、无总标题、英文标签，精确点不插值）：
+   paper/figures/fig_beta_acc_imagenet100.png / fig_beta_acc_housing.png
+   paper/figures/fig_beta_kl_imagenet100.png  / fig_beta_kl_housing.png
+2. HTML 报告 output/compression_eval/compression_eval.html —— 每任务一张数据表
+   （CE / KL 均值失配项 / KL 方差失配项 / E[KL] / 任务指标）与两张交互曲线卡
+   （β-acc、β-KL，全系列共享 15 点 β 网格、无需插值）。
 
 用法：
     python compression_plot.py
@@ -21,7 +23,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 
 from prior_geometry import _setup_rc
 from utils import curve_card, curve_css, curve_script, plot_bounds
@@ -42,7 +43,6 @@ SERIES_COLORS = {
     "EPB (ρ=6)": "#4f9a5f",
     "EPB (ρ=12)": "#9a6ac4",
 }
-INK = "#0b0b0b"
 
 
 def load():
@@ -69,13 +69,13 @@ def load():
     return rows
 
 
-def series_points(rows, task):
-    """各系列的点列表：[(label, [(kl, y, y_std, beta, collapsed), ...])]。
+def series_points_beta(rows, task, metric):
+    """各系列的点列表：[(label, [(beta, y), ...])]，按 β 升序连接（15 点网格）。
 
-    KL < 1e-3 的坍缩角点（残渣级 KL，log 轴上制造回折悬崖）、预测死亡的端点
-    （分类 acc < 0.05 / 回归 R² < 0.1）与 KL > 1e4 的方差爆炸端点
-    （极小 β + 小 ρ 下离轴方差无约束膨胀）都不画；点按 KL 升序排列（IB 曲线
-    惯例：β 增大 = 从右向左移动）。
+    metric ∈ {"acc", "kl"}：acc 为任务指标（分类 Acc×100、回归 R²），
+    kl 为测试集 E[KL]（≤0 的数值伪影 clamp 到 1e-8，保证可对数化）。
+    横轴为 β，不再做坍缩点/爆炸点/低精度端点过滤——β-acc 图上低精度端点
+    正是压缩崩坏要展示的内容，β-KL 图对数纵轴天然容纳爆炸点。
     """
     is_cls = task == "imagenet100"
     betas = sorted({float(b) for (t, m, b, a) in rows if t == task})
@@ -85,16 +85,15 @@ def series_points(rows, task):
             pts = []
             for b in betas:
                 r = rows.get((task, model, f"{b:g}", a))
-                if r is None or r["kl"] < 1e-3 or r["kl"] > 1e4:
+                if r is None:
                     continue
-                y = r["acc"] if is_cls else r["r2"]
-                if (y < 0.05) if is_cls else (y < 0.1):
-                    continue  # 预测死亡的端点不画
-                pts.append(
-                    (r["kl"], y, r["acc_std"] if is_cls else r["r2_std"],
-                     f"{b:g}", False)
-                )
-            pts.sort(key=lambda p: p[0])  # 按 KL 升序连接
+                if metric == "acc":
+                    y = r["acc"] * 100 if is_cls else r["r2"]
+                else:
+                    y = max(r["kl"], 1e-8)
+                pts.append((b, y))
+            if not pts:
+                continue
             if model == "ceb":
                 label = "CEB"
             else:
@@ -105,27 +104,31 @@ def series_points(rows, task):
 
 # ---------------- 论文 PNG（精确点，不插值） ----------------
 
-def plot_task(task, rows):
+def plot_task_metric(task, metric, rows):
+    """单任务单指标论文图：x = β（对数刻度），y = Acc/R² 或 E[KL]（对数刻度）。"""
     is_cls = task == "imagenet100"
-    ylabel = "test accuracy (%)" if is_cls else "test $R^2$"
     fig, ax = plt.subplots(figsize=(7.2, 4.6))
-    for label, pts in series_points(rows, task):
+    for label, pts in series_points_beta(rows, task, metric):
         color = SERIES_COLORS[label]
-        if not pts:
-            continue
         ax.plot(
             [p[0] for p in pts], [p[1] for p in pts],
-            label=label, color=color, alpha=1.0,
+            label=label, color=color,
             marker="o", markersize=4, linewidth=1.6,
         )
     ax.set_xscale("log")
-    ax.set_xlabel("realized compression $\\mathbb{E}[\\mathrm{KL}]$ on the test set")
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel("$\\beta$")
+    if metric == "kl":
+        ax.set_yscale("log")
+        ax.set_ylabel("test $\\mathbb{E}[\\mathrm{KL}]$")
+    elif is_cls:
+        ax.set_ylabel("test accuracy (%)")
+    else:
+        ax.set_ylabel("test $R^2$")
     ax.legend(fontsize=8, frameon=False)
     ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
     ax.set_facecolor("white")
     fig.patch.set_facecolor("white")
-    path = FIG_DIR / f"fig_compression_{task}.png"
+    path = FIG_DIR / f"fig_beta_{metric}_{task}.png"
     fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"论文图已保存：{path}")
@@ -172,48 +175,62 @@ def task_table_html(task, rows):
 """
 
 
-def task_curve_card(task, rows):
-    """交互曲线卡：共享 log10(KL) 网格（约 25 点），各系列线性插值。"""
-    series_all = series_points(rows, task)
+def task_curve_card(task, metric, rows):
+    """交互曲线卡：全系列共享 15 点 β 网格（对数间距），精确点、无需插值。"""
+    series_all = series_points_beta(rows, task, metric)
     is_cls = task == "imagenet100"
     if not series_all:
         return "<p>无数据</p>"
 
-    all_kl = [p[0] for _, pts in series_all for p in pts]
-    lo, hi = min(all_kl), max(all_kl)
-    grid = np.logspace(math.log10(lo), math.log10(hi), 25)
-
+    betas = sorted({float(b) for (t, m, b, a) in rows if t == task})
+    lo, hi = min(betas), max(betas)
     x0, x1, _, _, _ = plot_bounds(len(series_all))
     span = x1 - x0
-    xs = [x0 + (math.log10(g) - math.log10(lo)) / (math.log10(hi) - math.log10(lo)) * span
-          for g in grid]
-    x_labels = [f"{g:.2g}" for g in grid]
+    xs = [x0 + (math.log10(b) - math.log10(lo)) / (math.log10(hi) - math.log10(lo)) * span
+          for b in betas]
+    x_labels = [f"{b:g}" for b in betas]
 
     series = []
     for label, pts in series_all:
-        px = np.array([math.log10(p[0]) for p in pts])
-        # 防重复 x（np.interp 要求严格递增；如 OPB a=1 的 β=1/10 几乎同 KL）
-        px = px + np.arange(len(px)) * 1e-12
-        py = np.array([p[1] for p in pts])
-        gx = np.log10(grid)
-        vals = np.interp(gx, px, py)
-        texts = [f"{v:.4f}" for v in vals]
+        if metric == "kl":
+            # 纵轴为 log10(KL)，tooltip 显示原始值
+            vals = [math.log10(p[1]) for p in pts]
+            texts = [f"{p[1]:.3g}" for p in pts]
+        else:
+            vals = [p[1] for p in pts]
+            texts = [f"{p[1]:.2f}" for p in pts]
         # stds 传全 0（curve_card 要求等长列表；0/None 不画误差棒）
-        series.append((label, list(vals), [0.0] * len(vals), texts))
+        series.append((label, vals, [0.0] * len(vals), texts))
 
-    y_min = min(0.0, min(v for _, vals, _, _ in series for v in vals)) - 0.05
-    y_max = max(1.0 if is_cls else 0.6, max(v for _, vals, _, _ in series for v in vals)) + 0.05
+    all_vals = [v for _, vals, _, _ in series for v in vals]
+    if metric == "acc":
+        y_min = min(0.0, min(all_vals)) - 0.08 * (max(all_vals) - min(all_vals))
+        y_max = max(all_vals) + 0.08 * (max(all_vals) - min(all_vals))
+    else:
+        pad = 0.08 * (max(all_vals) - min(all_vals))
+        y_min = min(all_vals) - pad
+        y_max = max(all_vals) + pad
+
+    if metric == "acc":
+        y_label = "Acc（%）" if is_cls else "R²"
+        subtitle = (
+            f"横轴 = β（对数刻度，{'…'.join(x_labels[:1])}..{x_labels[-1]}）；纵轴 = {y_label}；"
+            "CEB 1 条线 + GPB 3 条线（" + ("a" if is_cls else "ρ") + " = 1/6/12），"
+            "各点均为测试集精确评估值"
+        )
+        title = f"{TASK_DISPLAY.get(task, task)}：β-acc（横轴 = β）"
+    else:
+        subtitle = (
+            f"横轴 = β（对数刻度，{'…'.join(x_labels[:1])}..{x_labels[-1]}）；"
+            "纵轴 = log₁₀ E[KL]（tooltip 显示原始值）；"
+            "CEB 1 条线 + GPB 3 条线（" + ("a" if is_cls else "ρ") + " = 1/6/12）"
+        )
+        title = f"{TASK_DISPLAY.get(task, task)}：β-KL（横轴 = β）"
     card = curve_card(
-        f"compression-{task}",
-        f"{TASK_DISPLAY.get(task, task)}：真实压缩-精度曲线",
-        f"横轴 = 测试集实际 E[KL]（对数刻度，各系列在共享网格上线性插值）；"
-        f"纵轴 = {'Acc' if is_cls else 'R²'}；"
-        "每条线 β ∈ {5e-5..25} 按 KL 升序连接；E[KL] < 1e-3 的坍缩角点、"
-        "预测死亡端点（回归 R² < 0.1）与 E[KL] > 1e4 的方差爆炸端点省略",
-        xs, x_labels, series, y_min, y_max,
+        f"beta-{metric}-{task}", title, subtitle, xs, x_labels, series, y_min, y_max,
     )
     return f"""
-<h2>{task}：压缩-精度曲线（横轴 = E[KL]）</h2>
+<h2>{title}</h2>
 {card}
 """
 
@@ -232,18 +249,20 @@ def build_html(rows):
     html = [
         "<!DOCTYPE html>",
         '<html lang="zh"><head><meta charset="utf-8">',
-        "<title>压缩-精度评估（横轴 = 实际 E[KL]）</title>",
+        "<title>压缩-精度评估（横轴 = β）</title>",
         f"<style>{css}</style></head><body>",
-        "<h1>压缩-精度评估：CE / KL 分解与真实压缩-精度曲线</h1>",
+        "<h1>压缩-精度评估：CE / KL 分解与 β-acc / β-KL 曲线</h1>",
         "<p style='color:#52514e;font-size:.85em;'>"
         "数据来自 output/compression_eval/compression_eval_summary.csv"
         "（compression_eval.py，跨 5 run 均值±std）；"
-        "曲线横轴为测试集实际 E[KL]（对数刻度），CEB 1 条线、OPB/EPB 各三条线（a/ρ = 1/6/12）。</p>",
+        "曲线横轴为 β（对数刻度），CEB 1 条线、OPB/EPB 各三条线（a/ρ = 1/6/12），"
+        "共四张：imagenet100（Acc）与 housing（R²）各配 β-acc / β-KL 两张。</p>",
         curve_css(),
     ]
     for task in ("imagenet100", "housing"):
         html.append(task_table_html(task, rows))
-        html.append(task_curve_card(task, rows))
+        html.append(task_curve_card(task, "acc", rows))
+        html.append(task_curve_card(task, "kl", rows))
     html.append(curve_script())
     html.append("</body></html>")
     HTML_PATH.write_text("\n".join(html), encoding="utf-8")
@@ -254,7 +273,8 @@ def main():
     rows = load()
     _setup_rc()
     for task in ("imagenet100", "housing"):
-        plot_task(task, rows)
+        for metric in ("acc", "kl"):
+            plot_task_metric(task, metric, rows)
     build_html(rows)
 
 
