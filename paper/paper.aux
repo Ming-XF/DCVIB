@@ -88,78 +88,143 @@
 \newlabel{sec:main-results}{{3.2}{7}{Main results}{subsection.3.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Compression--accuracy and the KL certificate over $\beta $}{8}{subsection.3.3}\protected@file@percent }
 \newlabel{sec:sweep}{{3.3}{8}{Compression--accuracy and the KL certificate over $\beta $}{subsection.3.3}{}}
+\citation{oord2018representation}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Compression--accuracy and the realized certificate over $\beta $ (log scale), $\beta \in \{5{\cdot }10^{-5}, \dots  , 25\}$; CEB one curve per panel, GPB three ($a$ on classification, $\rho $ on regression, both $\in \{1, 6, 12\}$). (a)--(b) Test accuracy (\%) on ImageNet-100 (MLP) and test $R^2$ on Cal.\ Housing (MLP) against $\beta $: OPB with $a = 12$ holds the plateau out to $\beta = 25$ while CEB and OPB ($a = 1$) collapse. (c)--(d) The realized test-set $\mathbb  {E}[\operatorname  {KL}]$ against $\beta $ (log scale) for the same runs: CEB's certificate collapses with its reference, EPB ($\rho = 1$) explodes near $\beta = 5{\cdot }10^{-5}$, and the larger anchors keep $\mathbb  {E}[\operatorname  {KL}]$ in a stable band.}}{9}{figure.1}\protected@file@percent }
 \newlabel{fig:compression}{{1}{9}{Compression--accuracy and the realized certificate over $\beta $ (log scale), $\beta \in \{5{\cdot }10^{-5}, \dots , 25\}$; CEB one curve per panel, GPB three ($a$ on classification, $\rho $ on regression, both $\in \{1, 6, 12\}$). (a)--(b) Test accuracy (\%) on ImageNet-100 (MLP) and test $R^2$ on Cal.\^^MHousing (MLP) against $\beta $: OPB with $a = 12$ holds the plateau out to $\beta = 25$ while CEB and OPB ($a = 1$) collapse. (c)--(d) The realized test-set $\E [\KL ]$ against $\beta $ (log scale) for the same runs: CEB's certificate collapses with its reference, EPB ($\rho = 1$) explodes near $\beta = 5{\cdot }10^{-5}$, and the larger anchors keep $\E [\KL ]$ in a stable band}{figure.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Adversarial robustness}{9}{subsection.3.4}\protected@file@percent }
-\newlabel{sec:robustness}{{3.4}{9}{Adversarial robustness}{subsection.3.4}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Targeted PGD attack success rate against $\beta $ (log scale) on MNIST (MLP backbone): target class $0$, $20$ steps, EOT-10 gradients and 10-sample MC predictions on the stochastic path. (a) $L_\infty $, $\varepsilon = 0.3$; (b) $L_2$, $\varepsilon = 6.0$. The dashed grey line is the deterministic MLP baseline; CEB is drawn over its operating range only ($\beta \le 0.1$), beyond which its reference collapses to chance. Every curve falls with $\beta $, and OPB keeps gaining robustness across the entire grid: at $\beta = 25$, OPB ($a = 1$) reaches $11\%$ --- $50$ points below the baseline.}}{10}{figure.2}\protected@file@percent }
-\newlabel{fig:adv-targeted}{{2}{10}{Targeted PGD attack success rate against $\beta $ (log scale) on MNIST (MLP backbone): target class $0$, $20$ steps, EOT-10 gradients and 10-sample MC predictions on the stochastic path. (a) $L_\infty $, $\varepsilon = 0.3$; (b) $L_2$, $\varepsilon = 6.0$. The dashed grey line is the deterministic MLP baseline; CEB is drawn over its operating range only ($\beta \le 0.1$), beyond which its reference collapses to chance. Every curve falls with $\beta $, and OPB keeps gaining robustness across the entire grid: at $\beta = 25$, OPB ($a = 1$) reaches $11\%$ --- $50$ points below the baseline}{figure.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Transfer attacks (gradient-masking check).}{10}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Mechanism validation: the geometry drives representation and prediction}{10}{subsection.3.5}\protected@file@percent }
-\newlabel{sec:mechanism}{{3.5}{10}{Mechanism validation: the geometry drives representation and prediction}{subsection.3.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Transfer attacks (gradient-masking check) on MNIST (MLP backbone): targeted PGD adversaries generated on one model and evaluated on another, against $\varepsilon $. (a) $L_\infty $; (b) $L_2$. Solid: white-box self-attacks of CEB ($\beta = 0.1$), OPB ($\beta = 25$, $a = 1$) and the deterministic MLP baseline. Dashed: transfer attacks. CEB→OPB stays at or below OPB's own white-box attack, so OPB's extreme-compression robustness is not gradient masking; OPB→CEB transfers almost nothing, as the collapsed posterior's perturbations carry little transferable signal.}}{11}{figure.3}\protected@file@percent }
-\newlabel{fig:adv-transfer}{{3}{11}{Transfer attacks (gradient-masking check) on MNIST (MLP backbone): targeted PGD adversaries generated on one model and evaluated on another, against $\varepsilon $. (a) $L_\infty $; (b) $L_2$. Solid: white-box self-attacks of CEB ($\beta = 0.1$), OPB ($\beta = 25$, $a = 1$) and the deterministic MLP baseline. Dashed: transfer attacks. CEB→OPB stays at or below OPB's own white-box attack, so OPB's extreme-compression robustness is not gradient masking; OPB→CEB transfers almost nothing, as the collapsed posterior's perturbations carry little transferable signal}{figure.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Mechanism validation: the constructed geometry pulls the posterior into the orthogonal frame (classification) and onto the isometric axis (regression). Geometric concentration: mean off-diagonal cosine of the posterior class-center Gram matrix (classification) / off-axis residual fraction (regression). Scale following: class-center radius $\lVert \bar  c\rVert $ against the anchor scale $a$ (classification) / axial slope against $\rho $ (regression). Cross-seed stability: std. over runs. Means $\pm $ std. over five runs.}}{11}{table.2}\protected@file@percent }
-\newlabel{tab:mechanism}{{2}{11}{Mechanism validation: the constructed geometry pulls the posterior into the orthogonal frame (classification) and onto the isometric axis (regression). Geometric concentration: mean off-diagonal cosine of the posterior class-center Gram matrix (classification) / off-axis residual fraction (regression). Scale following: class-center radius $\lVert \bar c\rVert $ against the anchor scale $a$ (classification) / axial slope against $\rho $ (regression). Cross-seed stability: std. over runs. Means $\pm $ std. over five runs}{table.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{The prior.}{11}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The posterior.}{11}{section*.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Prediction reads off the geometry.}{11}{section*.9}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Pairwise-cosine Gram matrix of the posterior class centers on MNIST, averaged over five runs. OPB is nearly diagonal: the posterior centers are orthogonal; CEB shows no such structure.}}{12}{figure.4}\protected@file@percent }
-\newlabel{fig:mechanism-gram}{{4}{12}{Pairwise-cosine Gram matrix of the posterior class centers on MNIST, averaged over five runs. OPB is nearly diagonal: the posterior centers are orthogonal; CEB shows no such structure}{figure.4}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces The axial coordinate $u^{\top }\mu _q(x)$ against the normalized label on Housing (one representative run per model). The EPB posterior hugs the prior line $\rho \tilde  y$, shrunk toward $\rho \,\mathbb  {E}[\tilde  y \mid x]$ by the encoder's uncertainty.}}{12}{figure.5}\protected@file@percent }
-\newlabel{fig:mechanism-axis}{{5}{12}{The axial coordinate $u^{\top }\mu _q(x)$ against the normalized label on Housing (one representative run per model). The EPB posterior hugs the prior line $\rho \tilde y$, shrunk toward $\rho \,\mathbb {E}[\tilde y \mid x]$ by the encoder's uncertainty}{figure.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Related work}{12}{section.4}\protected@file@percent }
-\newlabel{sec:related}{{4}{12}{Related work}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Information-plane analysis}{9}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:info-plane}{{3.4}{9}{Information-plane analysis}{subsection.3.4}{}}
+\citation{poole2019variational}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Information plane (a) and certificate plane (b) on MNIST over the $\beta $ sweep, five runs per point, lines connect $\beta $ in ascending order; $x$ is log-scaled in (a), and the certificate axis in (b) switches to a linear scale wherever the estimated residual turns negative (OPB $a = 1$ at $\beta \ge 5$, see text). CEB one curve per panel; OPB three ($a \in \{1, 6, 12\}$). CEB follows the classic corner --- compression and task information drop together past a critical $\beta = 0.5$ with bimodal runs --- and collapses to chance by $\beta = 1$; OPB ($a = 6$, $12$) keeps accuracy flat out to $\beta = 25$ with $I(X;Z)$ saturating at $\approx 2.2$--$2.4$ nat, essentially all of it task-relevant (certificate $\approx 0$). The Cal.\ Housing panels are deferred to Fig.\nobreakspace  {}\ref  {fig:info-plane-extra} in the appendix.}}{10}{figure.2}\protected@file@percent }
+\newlabel{fig:info-plane}{{2}{10}{Information plane (a) and certificate plane (b) on MNIST over the $\beta $ sweep, five runs per point, lines connect $\beta $ in ascending order; $x$ is log-scaled in (a), and the certificate axis in (b) switches to a linear scale wherever the estimated residual turns negative (OPB $a = 1$ at $\beta \ge 5$, see text). CEB one curve per panel; OPB three ($a \in \{1, 6, 12\}$). CEB follows the classic corner --- compression and task information drop together past a critical $\beta = 0.5$ with bimodal runs --- and collapses to chance by $\beta = 1$; OPB ($a = 6$, $12$) keeps accuracy flat out to $\beta = 25$ with $I(X;Z)$ saturating at $\approx 2.2$--$2.4$ nat, essentially all of it task-relevant (certificate $\approx 0$). The Cal.\^^MHousing panels are deferred to Fig.~\ref {fig:info-plane-extra} in the appendix}{figure.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Matched-compression comparison on MNIST: each CEB checkpoint is paired with the OPB configuration of nearest estimated $I(X;Z)$ (nats; five runs per entry). At matched compression the geometric prior retains strictly more of the task.}}{10}{table.2}\protected@file@percent }
+\newlabel{tab:info-plane-matched}{{2}{10}{Matched-compression comparison on MNIST: each CEB checkpoint is paired with the OPB configuration of nearest estimated $I(X;Z)$ (nats; five runs per entry). At matched compression the geometric prior retains strictly more of the task}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Adversarial robustness}{10}{subsection.3.5}\protected@file@percent }
+\newlabel{sec:robustness}{{3.5}{10}{Adversarial robustness}{subsection.3.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Targeted PGD attack success rate against $\beta $ (log scale) on MNIST (MLP backbone): target class $0$, $20$ steps, EOT-10 gradients and 10-sample MC predictions on the stochastic path. (a) $L_\infty $, $\varepsilon = 0.3$; (b) $L_2$, $\varepsilon = 6.0$. The dashed grey line is the deterministic MLP baseline; CEB is drawn over its operating range only ($\beta \le 0.1$), beyond which its reference collapses to chance. Every curve falls with $\beta $, and OPB keeps gaining robustness across the entire grid: at $\beta = 25$, OPB ($a = 1$) reaches $11\%$ --- $50$ points below the baseline.}}{11}{figure.3}\protected@file@percent }
+\newlabel{fig:adv-targeted}{{3}{11}{Targeted PGD attack success rate against $\beta $ (log scale) on MNIST (MLP backbone): target class $0$, $20$ steps, EOT-10 gradients and 10-sample MC predictions on the stochastic path. (a) $L_\infty $, $\varepsilon = 0.3$; (b) $L_2$, $\varepsilon = 6.0$. The dashed grey line is the deterministic MLP baseline; CEB is drawn over its operating range only ($\beta \le 0.1$), beyond which its reference collapses to chance. Every curve falls with $\beta $, and OPB keeps gaining robustness across the entire grid: at $\beta = 25$, OPB ($a = 1$) reaches $11\%$ --- $50$ points below the baseline}{figure.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Transfer attacks (gradient-masking check).}{11}{section*.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Transfer attacks (gradient-masking check) on MNIST (MLP backbone): targeted PGD adversaries generated on one model and evaluated on another, against $\varepsilon $. (a) $L_\infty $; (b) $L_2$. Solid: white-box self-attacks of CEB ($\beta = 0.1$), OPB ($\beta = 25$, $a = 1$) and the deterministic MLP baseline. Dashed: transfer attacks. CEB→OPB stays at or below OPB's own white-box attack, so OPB's extreme-compression robustness is not gradient masking; OPB→CEB transfers almost nothing, as the collapsed posterior's perturbations carry little transferable signal.}}{12}{figure.4}\protected@file@percent }
+\newlabel{fig:adv-transfer}{{4}{12}{Transfer attacks (gradient-masking check) on MNIST (MLP backbone): targeted PGD adversaries generated on one model and evaluated on another, against $\varepsilon $. (a) $L_\infty $; (b) $L_2$. Solid: white-box self-attacks of CEB ($\beta = 0.1$), OPB ($\beta = 25$, $a = 1$) and the deterministic MLP baseline. Dashed: transfer attacks. CEB→OPB stays at or below OPB's own white-box attack, so OPB's extreme-compression robustness is not gradient masking; OPB→CEB transfers almost nothing, as the collapsed posterior's perturbations carry little transferable signal}{figure.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Mechanism validation: the constructed geometry pulls the posterior into the orthogonal frame (classification) and onto the isometric axis (regression). Geometric concentration: mean off-diagonal cosine of the posterior class-center Gram matrix (classification) / off-axis residual fraction (regression). Scale following: class-center radius $\lVert \bar  c\rVert $ against the anchor scale $a$ (classification) / axial slope against $\rho $ (regression). Cross-seed stability: std. over runs. Means $\pm $ std. over five runs.}}{12}{table.3}\protected@file@percent }
+\newlabel{tab:mechanism}{{3}{12}{Mechanism validation: the constructed geometry pulls the posterior into the orthogonal frame (classification) and onto the isometric axis (regression). Geometric concentration: mean off-diagonal cosine of the posterior class-center Gram matrix (classification) / off-axis residual fraction (regression). Scale following: class-center radius $\lVert \bar c\rVert $ against the anchor scale $a$ (classification) / axial slope against $\rho $ (regression). Cross-seed stability: std. over runs. Means $\pm $ std. over five runs}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Mechanism validation: the geometry drives representation and prediction}{12}{subsection.3.6}\protected@file@percent }
+\newlabel{sec:mechanism}{{3.6}{12}{Mechanism validation: the geometry drives representation and prediction}{subsection.3.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{The prior.}{12}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The posterior.}{12}{section*.8}\protected@file@percent }
+\citation{tishby2000information}
+\citation{alemi2017deep}
+\citation{kolchinsky2017nonlinear}
+\citation{kolchinsky2019caveats}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Pairwise-cosine Gram matrix of the posterior class centers on MNIST, averaged over five runs. OPB is nearly diagonal: the posterior centers are orthogonal; CEB shows no such structure.}}{13}{figure.5}\protected@file@percent }
+\newlabel{fig:mechanism-gram}{{5}{13}{Pairwise-cosine Gram matrix of the posterior class centers on MNIST, averaged over five runs. OPB is nearly diagonal: the posterior centers are orthogonal; CEB shows no such structure}{figure.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces The axial coordinate $u^{\top }\mu _q(x)$ against the normalized label on Housing (one representative run per model). The EPB posterior hugs the prior line $\rho \tilde  y$, shrunk toward $\rho \,\mathbb  {E}[\tilde  y \mid x]$ by the encoder's uncertainty.}}{13}{figure.6}\protected@file@percent }
+\newlabel{fig:mechanism-axis}{{6}{13}{The axial coordinate $u^{\top }\mu _q(x)$ against the normalized label on Housing (one representative run per model). The EPB posterior hugs the prior line $\rho \tilde y$, shrunk toward $\rho \,\mathbb {E}[\tilde y \mid x]$ by the encoder's uncertainty}{figure.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Prediction reads off the geometry.}{13}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Related work}{13}{section.4}\protected@file@percent }
+\newlabel{sec:related}{{4}{13}{Related work}{section.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Information bottleneck and conditional compression.}{13}{section*.10}\protected@file@percent }
+\citation{fischer2020conditional}
+\citation{geiger2020variational}
+\citation{fischer2020robustness,lee2021compressive}
+\citation{abdelaleem2025deep}
+\citation{wang2021hsic}
+\citation{zhai2022adversarial}
+\citation{zhang2022nl_ib}
+\citation{hua2022causal}
+\citation{papyan2020prevalence,zhu2021geometric_nc}
+\citation{wang2023ib_nc}
+\citation{xu2022orthogonal}
+\citation{ji2023etf}
+\citation{tong2023fixed_frame}
+\citation{deng2014equidistant}
+\citation{pai2022isometric}
+\citation{luo2023doll}
+\citation{yu2024csd_ib}
+\citation{yan2024geometric_ib}
+\citation{katende2025vgib}
+\citation{doan2026geometric_ib}
+\citation{adilova2026geometric_compression}
+\@writefile{toc}{\contentsline {paragraph}{Information bottleneck for robust representations.}{14}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Geometric classification representations.}{14}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Distance-preserving regression and geometric priors.}{14}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Geometry-aware information bottlenecks.}{14}{section*.14}\protected@file@percent }
 \bibdata{paper_refs}
 \bibcite{abdelaleem2025deep}{{1}{2025}{{Abdelaleem et~al.}}{{Abdelaleem, Ndiour, and Bhattacharyya}}}
-\bibcite{alemi2017deep}{{2}{2017}{{Alemi et~al.}}{{Alemi, Fischer, Dillon, and Murphy}}}
-\bibcite{fischer2020conditional}{{3}{2020}{{Fischer}}{{}}}
-\bibcite{kolchinsky2019caveats}{{4}{2019}{{Kolchinsky \& Tracey}}{{Kolchinsky and Tracey}}}
-\bibcite{kolchinsky2017nonlinear}{{5}{2019}{{Kolchinsky et~al.}}{{Kolchinsky, Tracey, and Wolpert}}}
-\bibcite{tishby2000information}{{6}{2000}{{Tishby et~al.}}{{Tishby, Pereira, and Bialek}}}
+\bibcite{adilova2026geometric_compression}{{2}{2026}{{Adilova et~al.}}{{Adilova, Petzka, Fischer, and Geiger}}}
+\bibcite{alemi2017deep}{{3}{2017}{{Alemi et~al.}}{{Alemi, Fischer, Dillon, and Murphy}}}
+\bibcite{deng2014equidistant}{{4}{2014}{{Deng et~al.}}{{Deng, Hu, Zhou, and Guo}}}
+\bibcite{doan2026geometric_ib}{{5}{2026}{{Doan et~al.}}{{Doan, Nguyen, and Gupta}}}
+\bibcite{fischer2020conditional}{{6}{2020}{{Fischer}}{{}}}
+\bibcite{fischer2020robustness}{{7}{2020}{{Fischer \& Alemi}}{{Fischer and Alemi}}}
+\bibcite{geiger2020variational}{{8}{2020}{{Geiger \& Fischer}}{{Geiger and Fischer}}}
+\bibcite{hua2022causal}{{9}{2022}{{Hua et~al.}}{{Hua, Yan, Fang, Huang, Yin, and Ge}}}
+\bibcite{ji2023etf}{{10}{2023}{{Ji et~al.}}{{Ji, Wang, Li, Chen, Chen, and Zhang}}}
+\bibcite{katende2025vgib}{{11}{2025}{{Katende}}{{}}}
+\bibcite{kolchinsky2019caveats}{{12}{2019}{{Kolchinsky \& Tracey}}{{Kolchinsky and Tracey}}}
+\bibcite{kolchinsky2017nonlinear}{{13}{2019}{{Kolchinsky et~al.}}{{Kolchinsky, Tracey, and Wolpert}}}
+\bibcite{lee2021compressive}{{14}{2021}{{Lee et~al.}}{{Lee, Arnab, Guadarrama, Canny, and Fischer}}}
+\bibcite{luo2023doll}{{15}{2023}{{Luo et~al.}}{{Luo, Hu, and Chen}}}
+\bibcite{pai2022isometric}{{16}{2022}{{Pai et~al.}}{{Pai, Bronstein, Talmon, and Kimmel}}}
+\bibcite{papyan2020prevalence}{{17}{2020}{{Papyan et~al.}}{{Papyan, Han, and Donoho}}}
+\bibcite{poole2019variational}{{18}{2019}{{Poole et~al.}}{{Poole, Ozair, van~den Oord, Alemi, and Tucker}}}
+\bibcite{tishby2000information}{{19}{2000}{{Tishby et~al.}}{{Tishby, Pereira, and Bialek}}}
+\bibcite{tong2023fixed_frame}{{20}{2023}{{Tong \& Davis}}{{Tong and Davis}}}
+\bibcite{oord2018representation}{{21}{2018}{{van~den Oord et~al.}}{{van~den Oord, Li, and Vinyals}}}
+\bibcite{wang2023ib_nc}{{22}{2023}{{Wang \& Palmer}}{{Wang and Palmer}}}
+\bibcite{wang2021hsic}{{23}{2021}{{Wang et~al.}}{{Wang, Jian, Masoomi, Ioannidis, and Dy}}}
+\bibcite{xu2022orthogonal}{{24}{2022}{{Xu et~al.}}{{Xu, Li, and Yang}}}
+\bibcite{yan2024geometric_ib}{{25}{2024}{{Yan et~al.}}{{Yan, Gui, Wang, Zhang, and He}}}
+\bibcite{yu2024csd_ib}{{26}{2024}{{Yu et~al.}}{{Yu, Yu, Lokse, Jenssen, and Principe}}}
+\bibcite{zhai2022adversarial}{{27}{2022}{{Zhai \& Zhang}}{{Zhai and Zhang}}}
+\bibcite{zhang2022nl_ib}{{28}{2022}{{Zhang et~al.}}{{Zhang, Zhou, Wan, Zheng, Chang, and Hsieh}}}
+\bibcite{zhu2021geometric_nc}{{29}{2021}{{Zhu et~al.}}{{Zhu, Ding, Zhou, Li, You, Sulam, and Qu}}}
 \bibstyle{iclr2027_conference}
 \citation{kolchinsky2019caveats}
 \citation{kolchinsky2019caveats}
 \citation{kolchinsky2019caveats}
-\@writefile{toc}{\contentsline {section}{\numberline {A}Deferred proofs, construction details, and scope}{13}{appendix.A}\protected@file@percent }
-\newlabel{app:deferred}{{A}{13}{Deferred proofs, construction details, and scope}{appendix.A}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Failure diagnosis}{13}{subsection.A.1}\protected@file@percent }
-\newlabel{app:diagnosis}{{A.1}{13}{Failure diagnosis}{subsection.A.1}{}}
-\newlabel{prop:dead}{{A.1}{13}{Dead knob, following Caveat~1 of \citet {kolchinsky2019caveats}}{proposition.A.1}{}}
-\newlabel{prop:flat}{{A.2}{14}{Retention blindness on $T_\alpha $}{proposition.A.2}{}}
-\newlabel{rem:flatness}{{A.1}{14}{The objective on $T_\alpha $ is $\beta $-independent and strictly prefers the full copy}{remark.A.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Proofs of the guarantees}{14}{subsection.A.2}\protected@file@percent }
-\newlabel{rem:pgib-binning}{{A.2}{14}{Finite-sample estimation of the continuous case}{remark.A.2}{}}
-\newlabel{rem:counterexample}{{A.3}{15}{What the framework constrains (and what it does not)}{remark.A.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Construction details}{15}{subsection.A.3}\protected@file@percent }
-\newlabel{app:construction}{{A.3}{15}{Construction details}{subsection.A.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{Polar permutation equivariance.}{15}{section*.14}\protected@file@percent }
-\newlabel{eq:opb-equivariance}{{26}{15}{Polar permutation equivariance}{equation.A.26}{}}
-\newlabel{prop:opb-frame}{{A.3}{15}{Orthogonal class-prior geometry by construction}{proposition.A.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{Initialization, monitoring, and re-initialization.}{15}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{EPB axis choices.}{15}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{EPB isometry notes.}{15}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Multidimensional regression labels.}{16}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Additional results}{16}{subsection.A.4}\protected@file@percent }
-\newlabel{lem:opb-kl-decomposition}{{A.1}{16}{OPB KL decomposition}{lemma.A.1}{}}
-\newlabel{eq:opb-kl-decomposition}{{27}{16}{OPB KL decomposition}{equation.A.27}{}}
-\newlabel{cor:opb-fano}{{A.1}{16}{Label-information lower bound in the aligned Gaussian model}{corollary.A.1}{}}
-\newlabel{prop:opb-sweep}{{A.4}{16}{Joint strict convexity and unique optimum on a restricted aligned surrogate}{proposition.A.4}{}}
-\newlabel{eq:opb-ce-train}{{28}{16}{Joint strict convexity and unique optimum on a restricted aligned surrogate}{equation.A.28}{}}
-\newlabel{eq:opb-lag-train}{{29}{16}{Joint strict convexity and unique optimum on a restricted aligned surrogate}{equation.A.29}{}}
-\newlabel{rem:opb-scope}{{A.4}{17}{The sweep is a KL--CE surrogate curve; scope and limitations}{remark.A.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}Main results with standard deviations}{17}{subsection.A.5}\protected@file@percent }
-\newlabel{app:main-std}{{A.5}{17}{Main results with standard deviations}{subsection.A.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Test accuracy (\%) and test $R^2$ with standard deviations over runs: the plain backbone and the variational baselines; same configurations as Table\nobreakspace  {}\ref  {tab:main_result}.}}{18}{table.3}\protected@file@percent }
-\newlabel{tab:main_result_std_baselines}{{3}{18}{Test accuracy (\%) and test $R^2$ with standard deviations over runs: the plain backbone and the variational baselines; same configurations as Table~\ref {tab:main_result}}{table.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Test accuracy (\%) and test $R^2$ with standard deviations over runs: CEB, DVCCA, and our method; same configurations as Table\nobreakspace  {}\ref  {tab:main_result}. GPB and GPB-L are separated from the references by the vertical rule.}}{18}{table.4}\protected@file@percent }
-\newlabel{tab:main_result_std_variants}{{4}{18}{Test accuracy (\%) and test $R^2$ with standard deviations over runs: CEB, DVCCA, and our method; same configurations as Table~\ref {tab:main_result}. GPB and GPB-L are separated from the references by the vertical rule}{table.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.6}Paired-difference confidence intervals}{18}{subsection.A.6}\protected@file@percent }
-\newlabel{app:main-ci}{{A.6}{18}{Paired-difference confidence intervals}{subsection.A.6}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Paired-difference 95\% confidence intervals of GPB over the plain backbone and VIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold: lower CI bound above zero; $^{\dagger }$: lower bound within the non-inferiority margin $\delta $ (tied).}}{19}{table.5}\protected@file@percent }
-\newlabel{tab:main_result_ci_baselines}{{5}{19}{Paired-difference 95\% confidence intervals of GPB over the plain backbone and VIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold: lower CI bound above zero; $^{\dagger }$: lower bound within the non-inferiority margin $\delta $ (tied)}{table.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Paired-difference 95\% confidence intervals of GPB over SVIB and NIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table.}}{19}{table.6}\protected@file@percent }
-\newlabel{tab:main_result_ci_svib_nib}{{6}{19}{Paired-difference 95\% confidence intervals of GPB over SVIB and NIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table}{table.6}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Paired-difference 95\% confidence intervals of GPB over CEB, DVCCA, and the free-head ablation GPB-L (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table.}}{19}{table.7}\protected@file@percent }
-\newlabel{tab:main_result_ci_variants}{{7}{19}{Paired-difference 95\% confidence intervals of GPB over CEB, DVCCA, and the free-head ablation GPB-L (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table}{table.7}{}}
-\gdef \@abspage@last{19}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Deferred proofs, construction details, and scope}{17}{appendix.A}\protected@file@percent }
+\newlabel{app:deferred}{{A}{17}{Deferred proofs, construction details, and scope}{appendix.A}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Failure diagnosis}{17}{subsection.A.1}\protected@file@percent }
+\newlabel{app:diagnosis}{{A.1}{17}{Failure diagnosis}{subsection.A.1}{}}
+\newlabel{prop:dead}{{A.1}{17}{Dead knob, following Caveat~1 of \citet {kolchinsky2019caveats}}{proposition.A.1}{}}
+\newlabel{prop:flat}{{A.2}{17}{Retention blindness on $T_\alpha $}{proposition.A.2}{}}
+\newlabel{rem:flatness}{{A.1}{17}{The objective on $T_\alpha $ is $\beta $-independent and strictly prefers the full copy}{remark.A.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Proofs of the guarantees}{18}{subsection.A.2}\protected@file@percent }
+\newlabel{rem:pgib-binning}{{A.2}{18}{Finite-sample estimation of the continuous case}{remark.A.2}{}}
+\newlabel{rem:counterexample}{{A.3}{18}{What the framework constrains (and what it does not)}{remark.A.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Construction details}{18}{subsection.A.3}\protected@file@percent }
+\newlabel{app:construction}{{A.3}{18}{Construction details}{subsection.A.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Polar permutation equivariance.}{18}{section*.19}\protected@file@percent }
+\newlabel{eq:opb-equivariance}{{26}{18}{Polar permutation equivariance}{equation.A.26}{}}
+\newlabel{prop:opb-frame}{{A.3}{19}{Orthogonal class-prior geometry by construction}{proposition.A.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Initialization, monitoring, and re-initialization.}{19}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{EPB axis choices.}{19}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{EPB isometry notes.}{19}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Multidimensional regression labels.}{19}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Additional results}{19}{subsection.A.4}\protected@file@percent }
+\newlabel{lem:opb-kl-decomposition}{{A.1}{19}{OPB KL decomposition}{lemma.A.1}{}}
+\newlabel{eq:opb-kl-decomposition}{{27}{19}{OPB KL decomposition}{equation.A.27}{}}
+\newlabel{cor:opb-fano}{{A.1}{20}{Label-information lower bound in the aligned Gaussian model}{corollary.A.1}{}}
+\newlabel{prop:opb-sweep}{{A.4}{20}{Joint strict convexity and unique optimum on a restricted aligned surrogate}{proposition.A.4}{}}
+\newlabel{eq:opb-ce-train}{{28}{20}{Joint strict convexity and unique optimum on a restricted aligned surrogate}{equation.A.28}{}}
+\newlabel{eq:opb-lag-train}{{29}{20}{Joint strict convexity and unique optimum on a restricted aligned surrogate}{equation.A.29}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Test accuracy (\%) and test $R^2$ with standard deviations over runs: the plain backbone and the variational baselines; same configurations as Table\nobreakspace  {}\ref  {tab:main_result}.}}{21}{table.4}\protected@file@percent }
+\newlabel{tab:main_result_std_baselines}{{4}{21}{Test accuracy (\%) and test $R^2$ with standard deviations over runs: the plain backbone and the variational baselines; same configurations as Table~\ref {tab:main_result}}{table.4}{}}
+\newlabel{rem:opb-scope}{{A.4}{21}{The sweep is a KL--CE surrogate curve; scope and limitations}{remark.A.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}Main results with standard deviations}{21}{subsection.A.5}\protected@file@percent }
+\newlabel{app:main-std}{{A.5}{21}{Main results with standard deviations}{subsection.A.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.6}Paired-difference confidence intervals}{21}{subsection.A.6}\protected@file@percent }
+\newlabel{app:main-ci}{{A.6}{21}{Paired-difference confidence intervals}{subsection.A.6}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Test accuracy (\%) and test $R^2$ with standard deviations over runs: CEB, DVCCA, and our method; same configurations as Table\nobreakspace  {}\ref  {tab:main_result}. GPB and GPB-L are separated from the references by the vertical rule.}}{22}{table.5}\protected@file@percent }
+\newlabel{tab:main_result_std_variants}{{5}{22}{Test accuracy (\%) and test $R^2$ with standard deviations over runs: CEB, DVCCA, and our method; same configurations as Table~\ref {tab:main_result}. GPB and GPB-L are separated from the references by the vertical rule}{table.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Paired-difference 95\% confidence intervals of GPB over the plain backbone and VIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold: lower CI bound above zero; $^{\dagger }$: lower bound within the non-inferiority margin $\delta $ (tied).}}{22}{table.6}\protected@file@percent }
+\newlabel{tab:main_result_ci_baselines}{{6}{22}{Paired-difference 95\% confidence intervals of GPB over the plain backbone and VIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold: lower CI bound above zero; $^{\dagger }$: lower bound within the non-inferiority margin $\delta $ (tied)}{table.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.7}Information-plane panels for Cal.\nobreakspace  {}Housing}{22}{subsection.A.7}\protected@file@percent }
+\newlabel{app:info-plane-extra}{{A.7}{22}{Information-plane panels for Cal.~Housing}{subsection.A.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Paired-difference 95\% confidence intervals of GPB over SVIB and NIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table.}}{23}{table.7}\protected@file@percent }
+\newlabel{tab:main_result_ci_svib_nib}{{7}{23}{Paired-difference 95\% confidence intervals of GPB over SVIB and NIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table}{table.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Paired-difference 95\% confidence intervals of GPB over CEB, DVCCA, and the free-head ablation GPB-L (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table.}}{23}{table.8}\protected@file@percent }
+\newlabel{tab:main_result_ci_variants}{{8}{23}{Paired-difference 95\% confidence intervals of GPB over CEB, DVCCA, and the free-head ablation GPB-L (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table}{table.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Information plane (a) and certificate plane (b) for Cal.\nobreakspace  {}Housing, companion panels to Fig.\nobreakspace  {}\ref  {fig:info-plane}: identical estimators, $\beta $ grid (log $x$-scale in (a); linear where the estimated residual turns negative in (b)), five runs per point, lines connect $\beta $ in ascending order. CEB one curve per panel; EPB three ($\rho \in \{1, 6, 12\}$).}}{23}{figure.7}\protected@file@percent }
+\newlabel{fig:info-plane-extra}{{7}{23}{Information plane (a) and certificate plane (b) for Cal.~Housing, companion panels to Fig.~\ref {fig:info-plane}: identical estimators, $\beta $ grid (log $x$-scale in (a); linear where the estimated residual turns negative in (b)), five runs per point, lines connect $\beta $ in ascending order. CEB one curve per panel; EPB three ($\rho \in \{1, 6, 12\}$)}{figure.7}{}}
+\gdef \@abspage@last{23}

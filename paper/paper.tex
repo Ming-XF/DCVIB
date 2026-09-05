@@ -760,6 +760,98 @@ Proposition~\ref{prop:opb-sweep}; consistent with that proposition's scope, we d
 not claim that the map $\beta \mapsto$ accuracy is monotone, only that the
 constructed scale keeps the plateau from collapsing.
 
+\subsection{Information-plane analysis}
+\label{sec:info-plane}
+% =====================================================================
+
+The certificate tells us \emph{which} gap the KL measures; the panels below
+inspect \emph{what} each method actually discards. On every sweep checkpoint we
+estimate the three quantities of the canonical information plane
+(Fig.~\ref{fig:info-plane}): $I(X;Z)$ by the InfoNCE lower bound
+\citep{oord2018representation} ($\log B - \mathcal{L}_{\mathrm{NCE}}$,
+$B = 4096$, one critic per run trained on the training split, the bound read
+off the test split with $z \sim q(z|x)$); $I(Y;Z)$ by the classification lower
+bound $H(Y) - \CE(\mathrm{logits})$; and the residual $I(X;Z|Y)$ as the
+difference of the two --- a heuristic, not a
+bound. The true residual is nonnegative by the data-processing inequality;
+negative plotted values mean the estimators, not the theory, gave way, and they
+occur exactly where the InfoNCE bound fails (see the caveats below). Consistent
+with Remark~\ref{rem:opb-scope}, this section reports estimator-level
+observations on the sweep checkpoints and claims nothing about the exact plane.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_info_plane_mnist.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_certificate_plane_mnist.png}
+\caption{Information plane (a) and certificate plane (b) on MNIST over the
+$\beta$ sweep, five runs per point, lines connect $\beta$ in ascending order;
+$x$ is log-scaled in (a), and the certificate axis in (b) switches to a linear
+scale wherever the estimated residual turns negative (OPB $a = 1$ at
+$\beta \ge 5$, see text). CEB one curve per panel; OPB three
+($a \in \{1, 6, 12\}$). CEB follows the classic corner --- compression and task
+information drop together past a critical $\beta = 0.5$ with bimodal runs ---
+and collapses to chance by $\beta = 1$; OPB ($a = 6$, $12$) keeps accuracy flat
+out to $\beta = 25$ with $I(X;Z)$ saturating at $\approx 2.2$--$2.4$ nat,
+essentially all of it task-relevant (certificate $\approx 0$). The Cal.\
+Housing panels are deferred to Fig.~\ref{fig:info-plane-extra} in the
+appendix.}
+\label{fig:info-plane}
+\end{figure*}
+
+\emph{(i) The corner is sharp.} On MNIST, CEB moves from $I(X;Z) = 2.53$ at
+$98.2\%$ ($\beta = 0.1$) to $1.96$ at $86.0\%$ ($\beta = 0.5$) to $0.29$ at
+$26.8\%$ ($\beta = 1$), and to chance beyond. The $\beta = 0.5$ point is a
+critical point rather than a midpoint: the per-seed accuracy is bimodal
+($86.0 \pm 22.5\%$; one run collapses to $41\%$ while four sit at
+$96.5$--$97.8\%$). The two axes fall together --- the reference absorbs the
+compression by absorbing the task information.
+
+\emph{(ii) The plateau has a floor at the task information.} OPB
+($a = 6$, $12$) keeps MNIST accuracy at $98.1$--$98.6\%$ for every $\beta$ up
+to $25$; $I(X;Z)$ saturates at $2.2$--$2.4$ nat while $I(Y;Z)$ stays at
+$\approx 2.2$ (against $H(Y) = \ln 10 \approx 2.30$), and the certificate sits
+at $\approx 0$ ($a = 12$, $\beta = 15$: $0.00 \pm 0.21$; $a = 6$,
+$\beta = 5$: $0.09$). The floor is the data-processing inequality made
+visible: at full compression the frame leaves room for exactly the
+task-relevant information and nothing else.
+
+\emph{(iii) At matched compression the geometry keeps more of the task.}
+Table~\ref{tab:info-plane-matched} pairs each CEB point with the OPB
+configuration of nearest estimated $I(X;Z)$. At $\approx 2.0$ nat, CEB
+($\beta = 0.5$) retains $86.0\%$ while OPB ($a = 1$, $\beta = 0.5$) retains
+$97.8\%$; at $\approx 2.5$ nat ($\beta = 0.1$) the two tie ($98.2\%$ vs.\
+$98.1\%$) --- the geometry pays nothing where compression is mild and carries
+the task where it is not.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{l c c c c c}
+\hline
+& \multicolumn{2}{c}{CEB} & \multicolumn{3}{c}{OPB (nearest $I(X;Z)$)} \\
+\cline{2-3} \cline{4-6}
+Setting & $I(X;Z)$ & Acc & config & $I(X;Z)$ & Acc \\
+\hline
+MNIST, $\beta = 0.1$ & 2.53 & 98.2\% & $a = 1$, $\beta = 0.1$ & 2.55 & 98.1\% \\
+MNIST, $\beta = 0.5$ & 1.96 & 86.0\% & $a = 1$, $\beta = 0.5$ & 2.01 & 97.8\% \\
+\hline
+\end{tabular}
+\caption{Matched-compression comparison on MNIST: each CEB checkpoint is
+paired with the OPB configuration of nearest estimated $I(X;Z)$ (nats; five
+runs per entry). At matched compression the geometric prior retains strictly
+more of the task.}
+\label{tab:info-plane-matched}
+\end{table}
+
+\emph{Estimator caveat.} One region must be read with care, and it is not used
+for any claim above: OPB ($a = 1$) at
+$\beta \ge 5$. There the plotted estimates collapse ($I(X;Z) \le 0.42$ nat)
+while accuracy stays $97.6$--$97.8\%$; by Fano's inequality the $2.3\%$ error
+alone requires $I(Y;Z) \ge H(Y) - h(0.023) - 0.023 \ln 9 \approx 2.1$ nat, so
+the leftward spur is a bound failure, not compression: $z$ quantizes onto the
+ten anchors, near-duplicate positives saturate the InfoNCE objective
+\citep{poole2019variational}, and overconfident errors inflate the
+cross-entropy.
 
 \subsection{Adversarial robustness}
 \label{sec:robustness}
