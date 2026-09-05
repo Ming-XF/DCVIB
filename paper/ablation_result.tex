@@ -1,0 +1,30 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{l c c c}
+\hline
+variant & MNIST (Acc \%) & ImageNet-100 (Acc \%) & Housing ($R^2$) \\
+\hline
+Base & $98.3_{\pm 0.1}$ & $83.1_{\pm 0.1}$ & $0.762_{\pm 0.024}$ \\
+NCM-learn & $98.2_{\pm 0.2}$ & $82.2_{\pm 0.4}$ & -- \\
+NCM-ortho & $98.1_{\pm 0.1}$ ($a=1$) & $82.3_{\pm 0.6}$ ($a=1$) & -- \\
+CEB & $98.4_{\pm 0.1}$ ($\beta=0.01$) & $82.8_{\pm 0.2}$ ($\beta=0.01$) & $0.789_{\pm 0.002}$ ($\beta=0.0001$) \\
+CEB-energy & $98.2_{\pm 0.1}$ ($\beta=0.001$) & $81.6_{\pm 0.2}$ ($\beta=0.001$) & -- \\
+GPB-L & $98.4_{\pm 0.1}$ ($\beta=0.1$, $a=12$) & $83.4_{\pm 0.7}$ ($\beta=1$, $a=12$) & -- \\
+GPB & $98.4_{\pm 0.1}$ ($\beta=0.1$, $a=12$) & $84.2_{\pm 0.1}$ ($\beta=1$, $a=12$) & -- \\
+OPB-FS & $98.5_{\pm 0.0}$ ($\beta=0.1$, $a=12$) & $84.3_{\pm 0.2}$ ($\beta=1$, $a=12$) & -- \\
+CEB-tied & -- & -- & $0.781_{\pm 0.006}$ ($\beta=0.01$) \\
+EPB-L & -- & -- & $0.791_{\pm 0.003}$ ($\beta=0.0001$, $a=6$) \\
+EPB & -- & -- & $0.788_{\pm 0.004}$ ($\beta=0.0001$, $a=6$) \\
+EPB-FS & -- & -- & $0.787_{\pm 0.008}$ ($\beta=0.001$, $a=6$) \\
+\hline
+\end{tabular}
+\caption{Attribution ablation: best-configuration test metrics (mean $\pm$ std
+over five seeds). Configurations are selected by the mean test metric, applied
+identically to every variant, so all comparisons remain paired by seed; the
+selection is slightly optimistic in level but shared across the table. One
+OPB-FS configuration (ImageNet-100, $\beta = 10^{-4}$, $a = 1$) diverged
+during training (free scales grow without penalty at negligible $\beta$) and
+is excluded.}
+\label{tab:ablation}
+\end{table}

@@ -76,7 +76,8 @@ from datasets.datasets import (
 from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
-from model import CEB, CNN, DVCCA, FGIB, GCN, MLP, NIB, OPB, SVIB, VIB
+from model import (CEB, CEBEnergy, CEBTied, CNN, DVCCA, FGIB, GCN, MLP,
+                   NCMLearn, NCMOrtho, NIB, OPB, OPBFreeScale, SVIB, VIB)
 from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, OPB as CNNOPB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, OPB as GNNOPB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
@@ -97,7 +98,9 @@ def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None
     recon 为 DVCCA 的输入重建损失（损失中同样乘以 beta），其余模型为 None。
     batch 为图批的节点→图索引（仅 ZINC 图级任务传入，GNN 分支按图读出）。
     """
-    if isinstance(model, (VIB, CEB, NIB, OPB, CNNVIB, CNNCEB, CNNNIB, CNNOPB, RNNVIB, RNNCEB, RNNNIB, RNNOPB)):
+    if isinstance(model, (VIB, CEB, NIB, OPB, CEBEnergy, CEBTied, OPBFreeScale,
+                          NCMLearn, NCMOrtho,
+                          CNNVIB, CNNCEB, CNNNIB, CNNOPB, RNNVIB, RNNCEB, RNNNIB, RNNOPB)):
         logits, kl = model(images, labels, stochastic=stochastic)
         return logits, kl, None
     if isinstance(model, (GNNVIB, GNNCEB, GNNNIB, GNNOPB)):
@@ -338,6 +341,12 @@ MODEL_CLASSES = {
     ("opb", "cnn"): CNNOPB,
     ("opb", "gnn"): GNNOPB,
     ("opb", "rnn"): RNNOPB,
+    # 消融试验变体（审稿人混杂因素分解，仅 MLP 骨干；输出目录 output/ablation）
+    ("ncm", "mlp"): NCMLearn,
+    ("ncmo", "mlp"): NCMOrtho,
+    ("ceb-energy", "mlp"): CEBEnergy,
+    ("ceb-tied", "mlp"): CEBTied,
+    ("opb-free-scale", "mlp"): OPBFreeScale,
 }
 
 
@@ -375,26 +384,35 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
     """
     backbone = resolve_backbone(args)
     if args.energy_classifier:
-        if args.model != "opb":
-            parser.error("--energy-classifier 仅 opb 模型支持")
+        if args.model not in ("opb", "opb-free-scale"):
+            parser.error("--energy-classifier 仅 opb/opb-free-scale 模型支持")
         if args.task in ("housing", "stsb", "zinc", "agedb"):
             parser.error(
                 "--energy-classifier 仅分类任务（回归为等距轴先验，无类别锚点表）"
             )
     if args.tied_head:
-        if args.model != "opb":
-            parser.error("--tied-head 仅 opb 模型支持")
+        if args.model not in ("opb", "opb-free-scale"):
+            parser.error("--tied-head 仅 opb/opb-free-scale 模型支持")
         if args.task not in ("housing", "stsb", "zinc", "agedb"):
             parser.error("--tied-head 仅回归任务支持（分类任务无等距轴）")
+    # 消融变体的任务范围约束（仅 MLP 骨干、仅注册任务的组合）
+    if args.model in ("ncm", "ncmo", "ceb-energy", "ceb-tied", "opb-free-scale"):
+        if args.backbone != "mlp":
+            parser.error(f"--model {args.model} 仅 MLP 骨干")
+    if args.model in ("ncm", "ncmo", "ceb-energy"):
+        if args.task in ("housing", "stsb", "zinc", "agedb"):
+            parser.error(f"--model {args.model} 仅分类任务（无类别原型表/回归未实现）")
+    if args.model == "ceb-tied" and args.task != "housing":
+        parser.error("--model ceb-tied 仅 housing 回归（其余回归任务未实现）")
     model_cls = MODEL_CLASSES[(args.model, backbone)]
     model_kwargs = dict(dropout=args.dropout)
     if backbone in ("mlp", "gnn", "rnn"):
         model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
     if args.model not in ("mlp", "cnn", "gcn", "rnn"):
         model_kwargs["z_dim"] = args.z_dim
-    if args.model in ("fgib", "opb"):
+    if args.model in ("fgib", "opb", "ncmo", "opb-free-scale"):
         model_kwargs["anchor_scale"] = args.anchor_scale
-    if args.model == "opb":
+    if args.model in ("opb", "opb-free-scale"):
         if args.energy_classifier:
             model_kwargs["energy_classifier"] = True
         if args.tied_head:
@@ -402,7 +420,7 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
     if args.task == "housing":
         model_kwargs["input_dim"] = 8
         model_kwargs["num_classes"] = 1
-        if args.model in ("ceb", "fgib", "opb"):
+        if args.model in ("ceb", "fgib", "opb", "ceb-tied", "opb-free-scale"):
             model_kwargs["continuous_y"] = True
     elif args.task == "stsb":
         model_kwargs["vocab_size"] = vocab_size
@@ -465,7 +483,8 @@ def build_parser():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca"],
+        choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca",
+                 "ncm", "ncmo", "ceb-energy", "ceb-tied", "opb-free-scale"],
         default="mlp",
         help="svib is Squared-IB (ICLR 2019 Caveats): a VIB subclass whose forward "
         "returns the squared KL (loss becomes CE + β·KL²), mainly for classification; "

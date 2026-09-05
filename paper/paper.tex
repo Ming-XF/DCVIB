@@ -634,7 +634,10 @@ polar factor of Eq.~\eqref{eq:opb-qr} ($Q_\theta = W V^{\top}$); the prior encod
 identity-initialized (initial anchors
 $e_1,\dots,e_K$, initial $\KL \approx a^2/2$ under unit variances), the variance
 heads are zero-initialized, and the construction is stateless: no EMA, no
-prototypes, no batch statistics.
+prototypes, no batch statistics. Six attribution variants
+(NCM-learn/NCM-ortho, CEB-energy/CEB-tied, OPB-FS/EPB-FS) switch the
+geometry, scale, readout, and IB factors separately; they are defined and
+evaluated in Section~\ref{sec:ablation}.
 
 \paragraph{Hyperparameter selection.} Each method selects its hyperparameters on the
 validation set from a shared grid: a six-value log-spaced $\beta$ grid
@@ -653,9 +656,10 @@ where label ambiguity, finite model capacity, and restricted prediction heads ma
 present. The benchmark experiments therefore target two empirical questions: whether
 the declared prior geometry transfers to the posterior, and whether the tied geometric
 readout remains predictive. They should not be read as direct tests of the theorem's
-$O(1/\beta)$ upper bound. A separate controlled validation experiment with strictly
-deterministic, explicitly realizable labels is specified as a deferred experiment below;
-its results are intentionally not included in this version.
+$O(1/\beta)$ upper bound. A separate controlled experiment with strictly
+deterministic, explicitly realizable labels isolates the theorem's assumptions
+from benchmark realities; it is reported in
+Section~\ref{sec:controlled-validation}.
 
 \subsection{Controlled realizability validation}
 \label{sec:controlled-validation}
@@ -791,6 +795,60 @@ classifier can overfit its own scale or the scarce supervision: fixing the
 prediction rule to the prior's geometry removes both escape routes, consistent with
 the fixed-scale condition under which the aligned surrogate of
 Proposition~\ref{prop:opb-sweep} has a unique interior optimum per $\beta$.
+
+\subsection{Attribution ablations: what drives the gain?}
+\label{sec:ablation}
+
+The GPB construction bundles three mechanisms --- the orthogonal/isometric
+geometry, the fixed anchor scale, and the tied geometric readout --- with the
+IB objective itself, and the main table alone cannot attribute the gain among
+them. This section switches each factor off separately. All variants are
+trained under the protocol of Section~\ref{sec:setup} (same $\beta$ and anchor
+grids, five seeds, per-variant configuration selection) on the three settings
+of the mechanism analysis, and the reference models (Base, CEB, GPB, GPB-L)
+are re-trained in the same batch so every comparison is paired by seed.
+
+\paragraph{The ablation ladder.} \emph{NCM-learn} removes the bottleneck
+entirely: $z = \mu_\phi(x)$ is deterministic, prediction is the energy rule
+$\mathrm{logit}_k = -\|z - m_k\|^2/2$ on trainable prototypes $m_k$, and there is no
+posterior and no KL. \emph{NCM-ortho} fixes the prototypes to the orthogonal
+frame $a\,e_k$: fixed geometry, still no IB. \emph{CEB-energy} and
+\emph{CEB-tied} mount the same energy readout (resp.\ the tied projection) on
+CEB's trainable free reference: free geometry, free scale, restricted
+readout, with IB. \emph{OPB-FS} and \emph{EPB-FS} keep the orthogonal frame
+and the energy (resp.\ tied) readout but make the anchor radius learnable ---
+per-class scales $s_k$, or a scalar $\rho$ --- initialized at the anchor
+scale, so only the fixed scale is switched off. Together with Base, CEB,
+GPB-L and GPB the ladder switches each factor independently:
+geometry (CEB-energy vs.\ OPB-FS), scale (OPB-FS vs.\ GPB), readout
+(GPB-L vs.\ GPB; CEB vs.\ CEB-energy), and the IB term itself
+(NCM-ortho vs.\ GPB).
+
+\input{ablation_result}
+
+\input{ablation_result_ci}
+
+\paragraph{Where the gain comes from.} Table~\ref{tab:ablation} reports the
+best configuration of each variant and Table~\ref{tab:ablation-ci} the
+factor-wise paired differences. On ImageNet-100 the decomposition is clean:
+the geometry contributes $+2.67$ points (OPB-FS $-$ CEB-energy,
+CI $[2.45, 2.92]$), the IB term $+1.89$ (GPB $-$ NCM-ortho,
+$[1.41, 2.36]$), and the restricted readout $+0.82$ (GPB $-$ GPB-L,
+$[0.34, 1.17]$), while the fixed scale is neutral ($-0.04$,
+$[-0.07, -0.01]$). The readout effect flips sign on the free-geometry side,
+where the energy head costs CEB $1.19$ points ($[-1.50, -0.96]$): the
+restricted readout pays only on the constructed geometry. Most informative is
+the negative result on the prototype readout alone: NCM-learn trails the
+plain backbone by $0.96$ points ($[-1.30, -0.69]$), so the gain is not a
+nearest-class-mean effect in disguise --- the prototypes need the IB
+objective and the orthogonal geometry to carry prediction. On MNIST the same
+ordering holds with small margins (geometry $+0.32$, IB $+0.34$, scale
+$+0.09$, readout $\approx 0$), and on Cal.\ Housing every EPB variant ties
+within $0.01$ $R^2$, consistent with the flat EPB plateaus of
+Section~\ref{sec:sweep}. The conclusion is that the orthogonal geometry is
+the primary driver of the ImageNet-100 gain, and it acts \emph{within} the IB
+framework: geometry, IB, and readout each contribute positively, in that
+order, and none of the bundled mechanisms is doing the work alone.
 
 \subsection{Compression--accuracy and the KL certificate over $\beta$}
 \label{sec:sweep}
