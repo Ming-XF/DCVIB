@@ -6,8 +6,8 @@ EOT-10 攻击梯度、目标模型 MC-10 预测；succ 按目标模型口径（�
 ≠ 0 的样本中翻转到 0 的比例）。
 
 组合（5 个，每组合 5 run）：
-- 白盒自攻：CEB β=0.1（有效区间末端）、OPB β=25, a=1（最大 β、最压缩最鲁棒，
-  最严格的梯度掩蔽检验对象）、确定性 MLP 基线（对照）；
+- 白盒自攻：CEB β=0.1（有效区间末端）、OPB β=25, a=6（最大 β、90% 失效阈值内
+  的最压缩最鲁棒配置、最严格的梯度掩蔽检验对象）、确定性 MLP 基线（对照）；
 - 迁移：CEB→OPB、OPB→CEB（源生成扰动、目标评估）。
 
 ε 网格：L∞ [0.05..0.3]、L2 [1..6]（覆盖地板到饱和区间）。输出长表
@@ -33,7 +33,7 @@ from adv_eval import (  # noqa: E402
 )
 
 CEB_DIR = ROOT / "output" / "adv_mnist" / "mnist_mlp_ceb_beta_0.1"
-OPB_DIR = ROOT / "output" / "adv_mnist" / "mnist_mlp_opb_beta_25_anchor_1"
+OPB_DIR = ROOT / "output" / "adv_mnist" / "mnist_mlp_opb_beta_25_anchor_6"
 MLP_DIR = ROOT / "output" / "adv_mnist" / "mnist_mlp"
 CSV_PATH = ROOT / "output" / "adv_mnist" / "mnist_adv_transfer.csv"
 

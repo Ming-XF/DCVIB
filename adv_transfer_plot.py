@@ -1,7 +1,7 @@
 """迁移攻击曲线：x = ε（线性）、y = targeted 成功率（%）；L∞ 与 L2 各一张。
 
 数据来自 adv_transfer_eval.py 的 output/adv_mnist/mnist_adv_transfer.csv。
-每图 5 条线：CEB β=0.1 / OPB β=25, a=1 / MLP 基线的白盒自攻（实线）+ 两条
+每图 5 条线：CEB β=0.1 / OPB β=25, a=6 / MLP 基线的白盒自攻（实线）+ 两条
 迁移 CEB→OPB / OPB→CEB（虚线，颜色随源模型）；ε=0 处补 (0,0) 锚点；成功率
 跨 5 run 取均值、精确点不插值、无误差棒（与 fig_adv_targeted 风格一致）。
 
@@ -29,13 +29,13 @@ CSV_PATH = ROOT / "output" / "adv_mnist" / "mnist_adv_transfer.csv"
 FIG_DIR = ROOT / "paper" / "figures"
 
 CEB_NAME = "mnist_mlp_ceb_beta_0.1"
-OPB_NAME = "mnist_mlp_opb_beta_25_anchor_1"
+OPB_NAME = "mnist_mlp_opb_beta_25_anchor_6"
 MLP_NAME = "mnist_mlp"
 
 # (csv config, 显示标签, 颜色, 线型)：每条线独立配色、迁移统一虚线
 SERIES = [
     (CEB_NAME, "CEB ($\\beta{=}0.1$)", "#2a78d6", "-"),
-    (OPB_NAME, "OPB ($\\beta{=}25$, $a{=}1$)", "#eb6834", "-"),
+    (OPB_NAME, "OPB ($\\beta{=}25$, $a{=}6$)", "#eb6834", "-"),
     (MLP_NAME, "MLP (deterministic)", "#8a8880", "-"),
     (f"{CEB_NAME}→{OPB_NAME}", "CEB→OPB (transfer)", "#4f9a5f", "--"),
     (f"{OPB_NAME}→{CEB_NAME}", "OPB→CEB (transfer)", "#9a6ac4", "--"),

@@ -10,12 +10,13 @@ L∞ 0.3、L2 6.0——L2 取 2.0 时攻击预算够不着目标类区域、成�
 取 12.0 时基线打到 100% 天花板），成功率跨 run 取均值、精确点不插值、无误差
 棒（与 fig_beta_* 风格一致）。
 
-横轴截断只作用于 CEB（ceb_valid_beta_max）：MNIST 网格上 CEB 在 β=0.5 干净
-精度已坍缩（0.857±0.22，部分 run 到随机水平）、β≥1 到随机水平，该区间 CEB
-的 succ≈0 是坍缩瓶颈阻断攻击梯度的平凡鲁棒性，不构成公平对比；故 CEB 只画
-β ≤ 0.1（CEB 干净精度 ≥ 0.9 的最大 β）。OPB 画全 β 网格：两方法的 β 与压缩
-程度不对应（同 β 下压缩水平不同），无法用同一区间截断，OPB 全程精度有效、
-扫满整个网格；基线横线跨整个区间。
+横轴截断按系列各自的干净精度有效区间（valid_beta_max_map，口径与 succ 相同
+的 MC-10 随机路径，失效阈值统一 0.9）：CEB β=0.5 干净精度 0.857±0.22 低于
+阈值、β≥1 到随机水平 → CEB 只画 β ≤ 0.1；OPB a=1 β≥5 精度逐步降至
+0.59–0.84（后验 σ²→固定先验方差 τ²=1、半径 1 锚点上采样噪声淹没类别结构，
+μ 路径不受影响但 adv 协议用 MC-10），β=5 的 0.836 跌破 0.9 → a=1 只画
+β ≤ 1；a=6/12 全程精度有效、扫满网格。各系列超出其有效区间的 succ≈0 是
+坍缩瓶颈阻断攻击梯度的平凡鲁棒性，不构成公平对比；基线横线跨整个区间。
 
 输出（白底、英文标签、无总标题，ε 标注在左上角）：
     paper/figures/fig_adv_targeted_linf_mnist.png
@@ -71,31 +72,46 @@ def load_succ():
     return data
 
 
-def ceb_valid_beta_max(clean_acc_threshold=0.9):
-    """CEB 公共有效区间的最大 β：CEB 干净精度仍 ≥ 阈值的最大 β。
+# 失效判定的干净精度阈值：统一 0.9（CEB 与 OPB a=1 同用；a=6/12 全程
+# ≥ 0.98，不受阈值影响）
+DEFAULT_VALIDITY_THRESHOLD = 0.9
 
-    MNIST 网格上 CEB β=0.5 干净精度 0.857±0.22（部分 run 坍缩）、β≥1 到随机
-    水平，阈值 0.9 稳定区分这两档 → 有效区间 β ≤ 0.1；OPB 全程有效。
+
+def valid_beta_max_map():
+    """{(model, anchor): 最大有效 β}：adv 口径（MC-10 随机路径，norm=none 行）
+    干净精度仍 ≥ 失效阈值的最大 β。
+
+    阈值统一 0.9（DEFAULT_VALIDITY_THRESHOLD）：CEB β=0.5 精度 0.857±0.22
+    低于 0.9、β≥1 随机 → 有效区间 β ≤ 0.1；OPB a=1 β≥5 精度逐步降至
+    0.59–0.84，β=5 的 0.836 跌破 0.9 → 有效区间 β ≤ 1（该区间精度下降的
+    机制为后验 σ²→固定先验方差 τ²=1、半径 1 锚点上采样噪声淹没类别结构，
+    μ 路径不受影响但 adv 协议用 MC-10）；a=6/12 锚点间距大、全程 ≥ 0.98 →
+    全网格。
     """
-    accs = defaultdict(list)
+    accs = defaultdict(lambda: defaultdict(list))
     with open(CSV_PATH, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             if r["norm"] != "none":
                 continue
             info = parse_combo_dir(r["config"])
-            if info is None or info[0] != "mnist" or info[2] != "ceb":
+            if info is None or info[0] != "mnist":
                 continue
-            accs[info[3]].append(float(r["acc"]))
-    valid = sorted(b for b, v in accs.items() if sum(v) / len(v) >= clean_acc_threshold)
-    if not valid:
-        raise ValueError(f"CEB 无干净精度 ≥ {clean_acc_threshold} 的 β（数据异常）")
-    return max(valid)
+            key = (info[2], f"{info[4]:g}" if info[4] is not None else "")
+            accs[key][info[3]].append(float(r["acc"]))
+    out = {}
+    for key, m in accs.items():
+        valid = sorted(b for b, v in m.items()
+                       if sum(v) / len(v) >= DEFAULT_VALIDITY_THRESHOLD)
+        if not valid:
+            raise ValueError(f"{key} 无干净精度 ≥ {DEFAULT_VALIDITY_THRESHOLD} 的 β（数据异常）")
+        out[key] = max(valid)
+    return out
 
 
-def series_points(d, beta_max):
+def series_points(d, beta_max_map):
     """(model, anchor) → {beta: [succ]} → [(label, [(beta, succ_pct), ...])]，
-    β 升序；CEB 只取 β ≤ beta_max（其精度有效区间），OPB 取全 β 网格
-    （两方法同 β 的压缩程度不可比、各自扫满）；末尾追加基线横线
+    β 升序；各系列只取自身干净精度有效区间（β ≤ beta_max_map[(model, anchor)]：
+    CEB 0.1、OPB a=1 的 1、a=6/12 全网格）；末尾追加基线横线
     （无 β，跨整个区间的一条常量虚线，CEB 论文 Det. 同款参照）。"""
     betas = sorted({b for key, m in d.items() for b in m})  # 全 β 网格
     out = []
@@ -104,7 +120,7 @@ def series_points(d, beta_max):
             m = d.get((model, a))
             if not m:
                 continue
-            limit = beta_max if model == "ceb" else None
+            limit = beta_max_map.get((model, a))
             pts = [(b, sum(m[b]) / len(m[b]) * 100) for b in betas
                    if b in m and m[b] and (limit is None or b <= limit)]
             if not pts:
@@ -156,16 +172,18 @@ def plot_norm(norm, eps, series):
 
 def main():
     data = load_succ()
-    beta_max = ceb_valid_beta_max()
-    print(f"CEB 公共有效区间：β ≤ {beta_max:g}"
-          "（超出区间 CEB 干净精度失效，succ≈0 为坍缩模型的平凡鲁棒性，不参与对比）")
+    beta_max_map = valid_beta_max_map()
+    for (model, a), lim in sorted(beta_max_map.items()):
+        name = model.upper() + (f" a={a}" if a else "")
+        print(f"{name:12s} 精度有效区间：β ≤ {lim:g}"
+              "（超出区间干净精度失效，succ≈0 为坍缩/噪声瓶颈的平凡鲁棒性，不参与对比）")
     _setup_rc()
     for norm in ("linf", "l2"):
         if norm not in data:
             print(f"[跳过] 无 {norm} 数据")
             continue
         eps = max(data[norm])  # 该范数取 csv 中最大的 ε
-        series = series_points(data[norm][eps], beta_max)
+        series = series_points(data[norm][eps], beta_max_map)
         if not series:
             print(f"[跳过] {norm} ε={eps:g} 无可解析配置")
             continue

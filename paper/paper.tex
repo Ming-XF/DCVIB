@@ -872,10 +872,16 @@ the majority class under $10$ MC samples. We use $\varepsilon_\infty = 0.3$ and
 $\varepsilon_2 = 6.0$ --- the smallest $L_2$ budget we tested at which the
 targeted attack engages the decision boundaries at all (at $2.0$ it cannot
 reach the target region from any other class and sits at a near-zero floor for
-every model). The sweep covers the full $\beta$ grid for OPB; CEB is drawn only
-over its operating range $\beta \le 0.1$, beyond which the reference collapses
-and accuracy is at chance --- a dead model's zero attack success is not
-robustness.
+every model). Every curve is drawn only over the $\beta$ values at which the model's
+clean accuracy clears a shared $90\%$ failure threshold under the same
+stochastic protocol: below it a configuration is counted as failed, and a
+failed model's near-zero attack success is not robustness. The threshold
+binds CEB at $\beta \le 0.1$ (beyond, the reference collapses to chance) and
+OPB ($a = 1$) at $\beta \le 1$ (beyond, its posterior saturates at the fixed
+prior variance while its means pin to the radius-$1$ anchors, and the
+MC-sampled predictions fall to $0.59$--$0.84$ clean accuracy even though the
+deterministic path keeps $0.98$); OPB ($a = 6$, $12$) clears the threshold
+across the full grid.
 
 \begin{figure*}[t]
 \centering
@@ -885,10 +891,12 @@ robustness.
 (MLP backbone): target class $0$, $20$ steps, EOT-10 gradients and 10-sample
 MC predictions on the stochastic path. (a) $L_\infty$, $\varepsilon = 0.3$;
 (b) $L_2$, $\varepsilon = 6.0$. The dashed grey line is the deterministic MLP
-baseline; CEB is drawn over its operating range only ($\beta \le 0.1$), beyond
-which its reference collapses to chance. Every curve falls with $\beta$, and
-OPB keeps gaining robustness across the entire grid: at $\beta = 25$,
-OPB ($a = 1$) reaches $11\%$ --- $50$ points below the baseline.}
+baseline. Every curve is drawn only over $\beta$ values with clean accuracy
+above the shared $90\%$ failure threshold (CEB: $\beta \le 0.1$; OPB $a = 1$:
+$\beta \le 1$; $a = 6$, $12$: full grid). Every curve falls with $\beta$, and
+OPB keeps gaining robustness across its valid range: at $\beta = 25$,
+OPB ($a = 6$, $12$) reach $31.1\%$/$30.5\%$ --- about $30$ points below the
+baseline.}
 \label{fig:adv-targeted}
 \end{figure*}
 
@@ -901,15 +909,17 @@ $\beta = 0.1$ CEB is the \emph{more} compressed of the two (realized
 $\E[\KL] = 0.68$ vs.\ $1.23$ for OPB, $a = 12$). At compression-matched points
 the geometry pays: OPB ($a = 12$, $\beta = 1$; $\E[\KL] = 0.55$) attains
 $30.6\%$ vs.\ CEB's $37.4\%$ under $L_\infty$. The decisive margin is the
-operating range: OPB keeps accuracy at $\approx 0.98$ out to $\beta = 25$
-while its targeted success keeps falling, to $11.1\%$/$28.0\%$/$29.5\%$
-($a = 1/6/12$) under $L_\infty$ and $11.0\%$/$33.5\%$/$34.7\%$ under $L_2$ ---
-$30$--$50$ points below the deterministic baseline and below anything CEB
-attains with its accuracy intact. At the extreme end the anchor ordering
-tracks the realized compression: the smallest anchor is also the most
-collapsed at $\beta = 25$ ($\E[\KL] = 0.013$ vs.\ $0.28$--$0.40$) and the most
-robust ($11\%$ vs.\ $\approx 31\%$), the same compression--robustness gradient
-read along the anchor axis. We do not over-claim: this is one
+operating range. Under the shared $90\%$ failure threshold, CEB's curve ends
+at $\beta = 0.1$ and OPB ($a = 1$)'s at $\beta = 1$, while the larger anchors
+keep accuracy at $\approx 0.98$ out to $\beta = 25$, where their targeted
+success has fallen to $31.1\%$/$30.5\%$ ($a = 6/12$) under $L_\infty$ and
+$35.7\%$/$36.8\%$ under $L_2$ --- about $30$ points below the deterministic
+baseline and below anything CEB attains with its accuracy intact. The
+$a = 1$ truncation is itself informative: at $\beta \ge 5$ the small anchor's
+posterior saturates at the fixed prior variance (the KL variance-mismatch
+minimum) while its means pin to the radius-$1$ anchors, so the stochastic
+path the robustness protocol evaluates on drowns in noise --- the failure mode
+the larger anchors avoid. We do not over-claim: this is one
 dataset and one target class.
 
 \paragraph{Transfer attacks (gradient-masking check).}
@@ -919,8 +929,8 @@ transfer protocol as the check: generate targeted PGD adversaries on one model
 (the same $20$-step, EOT-10 recipe) and evaluate them on another (10-sample MC
 predictions), sweeping $\varepsilon$ over $0.05$--$0.3$ ($L_\infty$) and
 $1$--$6$ ($L_2$). The models are CEB ($\beta = 0.1$, the last point of its
-operating range), OPB at maximum compression ($\beta = 25$, $a = 1$; realized
-$\E[\KL] = 0.013$), and the deterministic MLP baseline, whose white-box curve
+operating range), OPB at maximum compression ($\beta = 25$, $a = 6$; realized
+$\E[\KL] = 0.40$), and the deterministic MLP baseline, whose white-box curve
 reaching $61\%$ at $\varepsilon_\infty = 0.3$ confirms that the attack itself
 is not broken.
 
@@ -931,23 +941,25 @@ is not broken.
 \caption{Transfer attacks (gradient-masking check) on MNIST (MLP backbone):
 targeted PGD adversaries generated on one model and evaluated on another,
 against $\varepsilon$. (a) $L_\infty$; (b) $L_2$. Solid: white-box
-self-attacks of CEB ($\beta = 0.1$), OPB ($\beta = 25$, $a = 1$) and the
-deterministic MLP baseline. Dashed: transfer attacks. CEB→OPB stays at or
-below OPB's own white-box attack, so OPB's extreme-compression robustness is
-not gradient masking; OPB→CEB transfers almost nothing, as the collapsed
-posterior's perturbations carry little transferable signal.}
+self-attacks of CEB ($\beta = 0.1$), OPB ($\beta = 25$, $a = 6$) and the
+deterministic MLP baseline. Dashed: transfer attacks. CEB→OPB stays an order
+of magnitude below OPB's own white-box attack, so OPB's extreme-compression
+robustness is not gradient masking; OPB→CEB transfers little as well ---
+adversarial directions found on the strongly compressed posterior are largely
+model-specific.}
 \label{fig:adv-transfer}
 \end{figure*}
 
 Figure~\ref{fig:adv-transfer} reads each transfer curve against its target's
-own white-box attack, not against the source. CEB→OPB tops out at $6.4\%$
-($L_\infty$) and $6.5\%$ ($L_2$) --- at or below OPB's own white-box attack
-($12.0\%$/$12.6\%$) --- so the extreme-compression robustness of OPB survives
-adversaries that never touch its gradients: it is geometry, not gradient
-masking. The reverse direction transfers almost nothing ($\le 1.8\%$), because
-the collapsed posterior's perturbations carry little transferable signal ---
-consistent with the reference collapse of CEB being a genuine failure mode
-rather than a robustness channel.
+own white-box attack, not against the source. CEB→OPB tops out at $2.0\%$
+($L_\infty$) and $3.4\%$ ($L_2$) --- an order of magnitude below OPB's own
+white-box attack ($30.2\%$/$35.4\%$) --- so the extreme-compression robustness
+of OPB survives adversaries that never touch its gradients: it is geometry,
+not gradient masking. The reverse direction transfers little as well
+($\le 3.8\%$/$5.9\%$, against CEB's own white-box $38.2\%$/$37.9\%$):
+adversarial directions found on the strongly compressed posterior are largely
+model-specific, so neither model's robustness is an artifact of the other's
+gradients.
 
 % =====================================================================
 \subsection{Mechanism validation: the geometry drives representation and prediction}
