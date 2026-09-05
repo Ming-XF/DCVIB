@@ -1,6 +1,6 @@
 """信息平面图：每数据集两张论文图——信息平面（x = I(X;Z)、y = I(Y;Z)）与
 证书平面（x = I(X;Z|Y)、y = I(Y;Z)）；CEB 1 条线 + OPB/EPB 3 条线
-（a/ρ = 1/6/12），按 β 升序连线、关键点标 β 值。另打印匹配压缩表
+（a/ρ = 1/6/12），按 β 升序连线。另打印匹配压缩表
 （CEB 崩溃点附近与其 I(X;Z) 最接近的 GPB 配置三量对比）。
 
 数据来自 info_plane_eval.py 的 info_plane.csv（每 run 一行，跨 run 取均值）。
@@ -32,9 +32,9 @@ from prior_geometry import _setup_rc
 
 ROOT = Path(__file__).resolve().parent
 CSV_PATHS = {
-    "mnist": ROOT / "output" / "adv_mnist" / "info_plane.csv",
-    "imagenet100": ROOT / "output" / "compression_eval" / "info_plane.csv",
-    "housing": ROOT / "output" / "compression_eval" / "info_plane.csv",
+    "mnist": ROOT / "output" / "adv_mnist" / "info_plane_mnist.csv",
+    "imagenet100": ROOT / "output" / "compression_eval" / "info_plane_imagenet100.csv",
+    "housing": ROOT / "output" / "compression_eval" / "info_plane_california.csv",
 }
 FIG_DIR = ROOT / "paper" / "figures"
 TASK_DISPLAY = {"mnist": "MNIST", "imagenet100": "ImageNet-100", "housing": "Cal. Housing"}
@@ -90,17 +90,13 @@ def _setup_axes(ax, xlabel, ylabel):
     ax.set_facecolor("white")
 
 
-def _draw(series, xs, ys, fig_path, xlabel, ylabel, xlog=True, annotate_betas=(5e-5, 0.1, 25)):
+def _draw(series, xs, ys, fig_path, xlabel, ylabel, xlog=True):
     fig, ax = plt.subplots(figsize=(7.2, 4.6))
     for label, pts in series:
         xv = [xs(p) for p in pts]
         yv = [ys(p) for p in pts]
         ax.plot(xv, yv, label=label, color=SERIES_COLORS[label],
                 marker="o", markersize=4, linewidth=1.6)
-        for p in pts:
-            if p[0] in annotate_betas:
-                ax.annotate(f"β={p[0]:g}", (xs(p), ys(p)), fontsize=7,
-                            textcoords="offset points", xytext=(4, 3), color="#52514e")
     if xlog:
         ax.set_xscale("log")
     _setup_axes(ax, xlabel, ylabel)

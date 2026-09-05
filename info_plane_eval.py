@@ -54,6 +54,7 @@ EVAL_ROOTS = {
 }
 
 CRITIC_EPOCHS = 30  # 随机路径下 critic ~20 epoch 收敛（诊断：train loss 5.8 ≈ log B − 2.5）
+CRITIC_STEPS_TARGET = 300  # 总更新步目标：小训练集按 epoch 数补齐（约 300 步收敛）
 CRITIC_BATCH = 4096
 CRITIC_LR = 1e-3
 CRITIC_SEED = 42
@@ -119,13 +120,17 @@ def encode(model, loader, device):
 
 
 def train_critic(h, mu, logvar, device, epochs=CRITIC_EPOCHS,
-                 batch=CRITIC_BATCH, lr=CRITIC_LR, seed=CRITIC_SEED):
+                 batch=CRITIC_BATCH, lr=CRITIC_LR, seed=CRITIC_SEED,
+                 steps_target=CRITIC_STEPS_TARGET):
     """CPC 风格 critic：s(x_j, z_i) = g_z(z_i)ᵀ g_h(h(x_j))，InfoNCE 损失训练。
 
     每批从 q(z|x) 重参数化采样 z（新噪声），分数矩阵按 (B,128)@(128,B)
-    计算、不显式展开 B² 对。返回 (gh, gz)。
+    计算、不显式展开 B² 对。epoch 数按训练集大小补齐到约 steps_target 个
+    更新步（小数据集固定 epoch 数会欠拟合 critic、下界过松）。返回 (gh, gz)。
     """
     torch.manual_seed(seed)
+    steps_per_epoch = math.ceil(len(h) / batch)
+    epochs = max(epochs, math.ceil(steps_target / steps_per_epoch))
     dh, dz = h.shape[1], mu.shape[1]
     gh = torch.nn.Sequential(
         torch.nn.Linear(dh, 128), torch.nn.ReLU(),
@@ -193,8 +198,11 @@ def eval_combo(parser, args, d, dataset, device):
             i_yz = math.log(model.num_classes) - ce
             acc = (logits_te.argmax(1) == y_te).float().mean().item()
             r2 = ""
+        anchor = parse_combo_dir(d.name)[4]
         rows.append([d.name, dataset, task, parse_combo_dir(d.name)[2],
-                     parse_combo_dir(d.name)[3], run_i,
+                     parse_combo_dir(d.name)[3],
+                     f"{anchor:g}" if anchor is not None else "",
+                     run_i,
                      f"{i_xz:.6f}", f"{i_yz:.6f}", f"{i_xz - i_yz:.6f}",
                      f"{ce:.6f}",
                      f"{acc:.6f}" if acc != "" else "",
@@ -216,7 +224,8 @@ def main():
 
     for dataset in args.datasets:
         root = EVAL_ROOTS[dataset]
-        csv_path = root / "info_plane.csv"
+        # imagenet100 与 california 共用同一 eval-root，须按数据集分文件
+        csv_path = root / f"info_plane_{dataset}.csv"
         rows = []
         for d in sorted(root.iterdir()):
             if not d.is_dir():
