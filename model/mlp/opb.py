@@ -53,6 +53,11 @@ class OPB(nn.Module):
     y_hat_tilde = uᵀz/rho（paper/design/OPB-R.txt §7.1），与 KL 共用同一条等距轴、
     无自由尺度；模型输出标准化预测 (B,1)，反标准化由训练管道的 y_scaler
     逆归一化完成；self.classifier 保留为死参数。
+
+    固定先验（fixed_frame / fixed_prior_var，仅分类，默认 False 无影响）：
+    合成对齐试验（synthetic_align.py，codex_output.txt 方案）用——fixed_frame
+    冻结 prior_net 均值块（恒等帧，锚点恒为 a·e_k）；fixed_prior_var 冻结方差
+    块（置零，τ²=1 固定）。两者都冻结时 prior_net 整体 requires_grad_(False)。
     """
 
     def __init__(
@@ -66,6 +71,8 @@ class OPB(nn.Module):
         continuous_y: bool = False,
         energy_classifier: bool = False,
         tied_head: bool = False,
+        fixed_frame: bool = False,
+        fixed_prior_var: bool = False,
     ):
         super().__init__()
         assert num_classes <= z_dim, "OPB 正交先验要求类别数不超过 z 维度"
@@ -126,6 +133,26 @@ class OPB(nn.Module):
                 self.prior_net.weight.zero_()
                 self.prior_net.weight[:num_classes, :num_classes] = torch.eye(num_classes)
                 self.prior_net.bias.zero_()
+            # 合成对齐试验等需要固定先验的用法（仅分类分支）：
+            # fixed_frame 冻结均值块（恒等帧 → 锚点恒为 a·e_k，隔离优化误差）；
+            # fixed_prior_var 冻结方差块（置零 → τ²=1 固定）。冻结用梯度钩子
+            # 按行清零（权重行 [:K] 为均值块、[K:] 为方差块），state_dict 键不变。
+            if fixed_frame and fixed_prior_var:
+                self.prior_net.requires_grad_(False)
+            elif fixed_frame:
+                def _zero_mean_grad(g):
+                    g = g.clone()
+                    g[:num_classes] = 0.0
+                    return g
+                self.prior_net.weight.register_hook(_zero_mean_grad)
+                self.prior_net.bias.register_hook(_zero_mean_grad)
+            elif fixed_prior_var:
+                def _zero_var_grad(g):
+                    g = g.clone()
+                    g[num_classes:] = 0.0
+                    return g
+                self.prior_net.weight.register_hook(_zero_var_grad)
+                self.prior_net.bias.register_hook(_zero_var_grad)
 
     def _prior_table(self):
         """分类分支的全类别先验表：QR 正交锚点表 (K, d) + 逐类 logvar 表 (K, d)。

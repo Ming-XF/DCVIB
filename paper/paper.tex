@@ -62,9 +62,11 @@ the prior is confined to a qualified geometric family computed statelessly at
 every training step: an orthogonal class frame (OPB) for classification and an
 isometric regression axis (EPB) for regression, both with prediction rules tied
 to the geometry by construction (the zero-parameter anchor-energy classifier and
-the tied projection head). The framework preserves the CEB certificate, transfers
-the prior's separation to the posterior under $\beta$-controlled anchor-alignment
-bounds, and removes the unspecified inter-class geometry of the reference. Across
+the tied projection head). The framework preserves the CEB certificate for any
+stateless conditional prior and, under an explicit realizability assumption, yields
+$\beta$-controlled anchor-alignment bounds that imply separation transfer; without
+realizability, separation remains conditional on the observed anchor mismatch. The
+construction removes the unspecified inter-class geometry of the reference. Across
 nine datasets and four backbones, GPB is best or tied-best in $7$ of $12$ settings
 and dominates CEB everywhere, and the anchor scale converts the $\beta$-knob from
 a collapse dial into a plateau dial.
@@ -128,17 +130,21 @@ prior geometry by construction, with no free parameters. The constraints bind th
 geometric \emph{form} of the label code and does not claim that the certificate meters
 retained label information.
 
-\textbf{Guarantees.} The framework's theory is one chain. The certificate gap identity
-holds pointwise for any stateless prior (Proposition~\ref{prop:opb-certificate}), so
-CEB's residual bound transfers. And at any $\varepsilon$-near-optimum of the GPB
-objective, the expected anchor mismatch is $O(1/\beta)$:
-$\E[D(Y)] \le (C_{\mathrm{align}}+\varepsilon)/\beta$, with
-$C_{\mathrm{align}} \le \ln K$ in the deterministic $K$-class setting and
-$C_{\mathrm{align}} = \tau^2/\rho^2$ for the isometric axis
-(Theorem~\ref{prop:pgib-alignment}, parts (a) and (b)). Combined with a
-triangle-inequality transfer, the posterior class centers inherit the prior's
-separation: $\|m_i - m_j\| \ge \|m_\theta(i) - m_\theta(j)\|$ minus mismatch terms
-of order $1/\sqrt\beta$ (Proposition~\ref{prop:pgib-separation} and its corollaries).
+\textbf{Conditional theoretical guarantees and scope.} The theory has two levels.
+The certificate gap identity holds pointwise for any stateless prior
+(Proposition~\ref{prop:opb-certificate}), so CEB's residual bound transfers
+without a realizability assumption. The stronger $O(1/\beta)$ anchor-mismatch bound,
+$\E[D(Y)] \le (C_{\mathrm{align}}+\varepsilon)/\beta$, is an idealized
+comparison-solution result: it requires deterministic labels, an encoder and posterior
+family that can realize $q(z|x)=p_\theta(z|y)$, and a compatible prediction head.
+Under these assumptions, $C_{\mathrm{align}} \le \ln K$ for deterministic $K$-class
+classification and $C_{\mathrm{align}} = \tau^2/\rho^2$ for the isometric regression
+axis (Theorem~\ref{prop:pgib-alignment}, parts (a) and (b)). We do not assume these
+premises for every benchmark task. When the aligned comparison solution is infeasible,
+only the mismatch-dependent separation inequality remains available; the experiments
+then measure the realized mismatch and geometry directly. Under the stated assumptions,
+a triangle-inequality transfer gives posterior separation up to terms of order
+$1/\sqrt\beta$ (Proposition~\ref{prop:pgib-separation} and its corollaries).
 The framework pins exactly what CEB left free: the geometry of the reference.
 
 \textbf{Experiments.} Across nine datasets and four backbones, GPB is best or
@@ -146,16 +152,22 @@ tied-best in $7$ of $12$ settings and dominates CEB in all $12$; the mechanism-l
 validation confirms the story end to end: the constructed geometry transfers to the
 posterior (nearly orthogonal class centers on classification, an on-axis posterior on
 regression), and prediction survives with the zero-parameter geometric heads, matching
-or exceeding the free classifier.
+or exceeding the free classifier. A separate exact-realizability synthetic control
+shows rapid $\beta$-dependent mismatch decay without loss of prediction accuracy,
+while making explicit that this controlled check does not extend the theorem to the
+real-data benchmarks.
 
 Our contributions are: (1) the identification and formalization of the missing
 cross-label geometric constraint in CEB (Proposition~\ref{prop:geom-blind});
 (2) the GPB framework and its two instances, OPB and EPB, with prediction rules tied
-to the prior geometry; (3) a unified alignment-to-separation guarantee: certificate
-preservation and $\beta$-controlled conditional separation transfer for any qualified
-geometric prior, instantiated by the orthogonal frame and the isometric axis; and
+to the prior geometry; (3) a conditional alignment-to-separation analysis under an
+explicit realizability assumption, together with unconditional certificate preservation
+and mismatch-dependent separation bounds for any qualified geometric prior, instantiated
+by the orthogonal frame and the isometric axis; and
 (4) mechanism-level empirical evidence that the constructed geometry is transferred to
-the posterior and is sufficient for prediction.
+the posterior and is sufficient for prediction; and (5) a controlled exact-realizability
+validation of the conditional alignment scaling, explicitly separated from the
+real-data benchmark claims.
 
 % =====================================================================
 % =====================================================================
@@ -361,12 +373,20 @@ bypass the prior; the ordinary regression head is kept as a free-head variant. T
 objective is $L_{\mathrm{reg}}(\hat y, y) + \beta\,\KL\bigl(q_\phi(z|x)\,\|\,p^{\mathrm{EPB}}(z|y)\bigr)$:
 a single KL, stateless.
 
-\subsection{Theoretical guarantees}
+\subsection{Conditional theoretical analysis}
 \label{sec:guarantees}
 
-The framework's theory is one chain: at any $\varepsilon$-near-optimum the expected
-anchor mismatch is $O(1/\beta)$, and a triangle-inequality transfer then makes the
-posterior inherit the prior's geometry. The first link holds pointwise:
+The theory separates an unconditional certificate statement from a conditional
+alignment statement. The gap identity below holds for every stateless conditional prior.
+The $O(1/\beta)$ alignment bound requires a feasible aligned comparison solution and is
+therefore an idealized realizability result, not a universal guarantee for arbitrary
+datasets or finite encoder classes. In particular, $Y=f(X)$ alone does not imply that a
+given encoder can recover $Y$ or represent the prior covariance; the comparison solution
+must be feasible in the chosen model and head families. When it is not feasible, the
+separation inequalities below remain valid in terms of the realized mismatch $D$, but no
+$O(1/\beta)$ upper bound on that mismatch is claimed.
+
+The first, unconditional link holds pointwise:
 
 \begin{proposition}[A stateless geometric prior preserves the CEB certificate]
 \label{prop:opb-certificate}
@@ -383,7 +403,7 @@ defined, the gap identity of Eq.~\eqref{eq:gap} applies pointwise in $\theta$:
 A batch-dependent prior would break the conditional-prior argument.
 \end{proposition}
 
-\begin{proposition}[Separation transfer for any qualified geometric prior]
+\begin{proposition}[Mismatch-dependent separation transfer for any qualified geometric prior]
 \label{prop:pgib-separation}
 Let $\mathcal{G}$ be qualified with variance bound $\tau^2_{\max}$.
 \emph{(a) Discrete labels.} With posterior class centers
@@ -418,10 +438,11 @@ are defined for $P_Y$-a.e.\ $y$, and for $P_Y$-a.e.\ pair $y \ne y'$,
 \end{equation}
 \end{proposition}
 
-The second link shows that the objective itself forces the mismatch small, in one theorem stated for the two label-space
-structures:
+Under the realizability conditions stated explicitly below, the objective controls the
+mismatch through a comparison-solution argument, in one theorem stated for the two
+label-space structures:
 
-\begin{theorem}[Anchor alignment at near-optima]
+\begin{theorem}[Conditional anchor alignment at near-optima under realizability]
 \label{prop:pgib-alignment}
 \emph{(a) Deterministic $K$-class classification.} Assume $Y = f(X)$, a
 cross-entropy prediction loss, a qualified family whose diagonal covariances the
@@ -464,7 +485,13 @@ deterministic comparison-solution argument is discussed in
 Appendix~\ref{app:diagnosis}.)
 \end{theorem}
 
-\begin{corollary}[Separation at near-optimal solutions]
+The theorem should be read as a conditional comparison-solution result. If the
+aligned posterior is not realizable by the chosen encoder and posterior family, or
+if the aligned predictor is outside the head class, the displayed theorem does not
+upper-bound $\E[D(Y)]$; the mismatch-dependent inequalities of
+Proposition~\ref{prop:pgib-separation} are the applicable statements.
+
+\begin{corollary}[Conditional separation at near-optimal solutions]
 \label{cor:pgib-alignment-separation}
 \emph{(a) Classification.} Under Theorem~\ref{prop:pgib-alignment}(a), for classes
 $i \ne j$ with $\pi_i, \pi_j > 0$,
@@ -502,7 +529,7 @@ $\mu \equiv 0$ is a penalized configuration rather than a free optimum, whenever
 $a > 0$ and two classes have positive probability.
 \end{proposition}
 
-\begin{corollary}[The orthogonal instance satisfies the framework separation transfer]
+\begin{corollary}[The orthogonal instance instantiates the conditional separation transfer]
 \label{prop:opb-separation}
 The orthogonal instance is qualified with $\tau^2_{\max} = \tau^2$ and
 $\Delta = \bar\Delta = \sqrt{2}\,a$; Proposition~\ref{prop:pgib-separation}
@@ -616,6 +643,100 @@ additional three-value anchor-scale grid $\{1,6,12\}$ ($6\times3$ combinations).
 The main table reports, per method and setting, the test metric of the best
 validation configuration, so all methods are compared under an identical selection
 protocol (Base has no sweep and early-stops as usual).
+
+\paragraph{Scope of the theoretical comparison.} The quantitative alignment bound in
+Theorem~\ref{prop:pgib-alignment}, $\E[D(Y)] \le
+(C_{\mathrm{align}}+\varepsilon)/\beta$, applies only to a data/model pair satisfying
+the theorem's deterministic-label and realizability assumptions. We do not assume or
+verify those premises for the real-data benchmarks (including Cora, IMDb, and AG News),
+where label ambiguity, finite model capacity, and restricted prediction heads may be
+present. The benchmark experiments therefore target two empirical questions: whether
+the declared prior geometry transfers to the posterior, and whether the tied geometric
+readout remains predictive. They should not be read as direct tests of the theorem's
+$O(1/\beta)$ upper bound. A separate controlled validation experiment with strictly
+deterministic, explicitly realizable labels is specified as a deferred experiment below;
+its results are intentionally not included in this version.
+
+\subsection{Controlled realizability validation}
+\label{sec:controlled-validation}
+
+To isolate the theorem's assumptions from data ambiguity and finite-task effects, we
+also ran the prescribed controlled experiment on a strictly deterministic synthetic
+classification task. We use $K=10$ balanced classes with $x=e_y\in\R^{10}$, so
+$Y=f(X)$ and a linear encoder can represent the class-constant aligned posterior.
+The OPB posterior has $\tau^2=1$, with $a\in\{6,12\}$, and we compare a fixed
+orthogonal frame with the trainable stateless polar frame. The CSV contains nine
+$\beta$ values ($10^{-3}$ through $10$) and five seeds per configuration (180
+runs total); all runs completed without a failure flag. We report the empirical
+$\widehat D$ defined in Eq.~\eqref{eq:pgib-class-rate}, together with
+$\beta\widehat D$, the same anchor-energy predictor's accuracy, and frame diagnostics.
+
+For the aligned comparison distribution, Monte Carlo estimates of the aligned
+cross-entropy are $C_{\mathrm G}=2.84\times 10^{-4}$ for $a=6$ (MC standard error
+$8\times 10^{-6}$, using $10^7$ samples) and zero at the reported precision for
+$a=12$ (zero error events in the same sample budget; this is an empirical upper
+precision statement, not an assertion that the exact cross-entropy is zero).
+The task is so easily realizable that both deterministic and MC-10 test accuracy are
+$1.000$ for every configuration. For $a=6$, $\widehat D$ decreases from
+$4.9996\times10^{-3}\pm1.70\times10^{-3}$ to below the CSV precision at the
+largest $\beta$ for the fixed frame, and from
+$7.7718\times10^{-3}\pm2.62\times10^{-3}$ to below precision for the trainable
+frame. The corresponding $\beta\widehat D$ remains at most
+$6.6\times10^{-6}$ (fixed) and $9.4\times10^{-6}$ (trainable), well below
+$C_{\mathrm G}$. For $a=12$, all reported $\widehat D$ and $\beta\widehat D$
+values are zero to six decimal places for both frame choices. A linear fit of the
+nonzero $a=6$ means against $1/\beta$ has a small absolute slope,
+$5.1\times10^{-6}$ (fixed frame) or $7.9\times10^{-6}$ (trainable frame), while
+the estimates reach a numerical floor. Thus the controlled run demonstrates rapid
+decrease of mismatch and satisfies the $\beta\widehat D\le C_{\mathrm G}$ comparison
+at the reported precision, but it does not establish an exact $1/\beta$ law.
+
+The geometric diagnostics are also consistent with the construction: anchor distances
+are $\sqrt{2}a$ (8.485 for $a=6$ and 16.971 for $a=12$), posterior minimum
+inter-class distances are within $0.1$ of these values at the largest $\beta$, and
+the mean posterior center cosine is within $0.005$ of zero. The fixed frame has
+minimum singular value $1$; every trainable-frame run remains full rank, with the
+smallest recorded singular value $0.0585$. These observations provide a controlled
+check of the conditional alignment mechanism. They do not establish the bound on
+real-world benchmarks, and because $L^*$ and the theorem's $\varepsilon$ are not
+known exactly, we do not claim a formal experimental verification of
+$\widehat D\le(C_{\mathrm G}+\varepsilon)/\beta$.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{c c c c c}
+\hline
+$\beta$ & fixed $a=6$: $\widehat D$ & fixed $a=6$: $\beta\widehat D$
+& trainable $a=6$: $\widehat D$ & trainable $a=6$: $\beta\widehat D$ \\
+\hline
+$10^{-3}$ & $4.9996\!\times\!10^{-3}\!\pm\!1.70\!\times\!10^{-3}$ & $5.2\!\times\!10^{-6}$ & $7.7718\!\times\!10^{-3}\!\pm\!2.62\!\times\!10^{-3}$ & $7.8\!\times\!10^{-6}$ \\
+$10^{-2}$ & $6.176\!\times\!10^{-4}\!\pm\!1.40\!\times\!10^{-4}$ & $6.0\!\times\!10^{-6}$ & $8.356\!\times\!10^{-4}\!\pm\!3.49\!\times\!10^{-4}$ & $8.6\!\times\!10^{-6}$ \\
+$10^{-1}$ & $1.9\!\times\!10^{-5}\!\pm\!8.0\!\times\!10^{-6}$ & $2.0\!\times\!10^{-6}$ & $2.94\!\times\!10^{-5}\!\pm\!5.03\!\times\!10^{-6}$ & $3.0\!\times\!10^{-6}$ \\
+$1$ & $<10^{-6}$ & $<10^{-6}$ & $0.6\!\times\!10^{-6}\!\pm\!0.5\!\times\!10^{-6}$ & $0.6\!\times\!10^{-6}$ \\
+$10$ & $<10^{-6}$ & $<10^{-6}$ & $<10^{-6}$ & $<10^{-6}$ \\
+\hline
+\end{tabular}
+\caption{Controlled exact-realizability experiment, selected $\beta$ values. Means
+and standard deviations are over five seeds; entries below $10^{-6}$ reflect the six
+decimal places stored in the result CSV. The complete nine-point grid, including
+$a=12$, is shown in the accompanying plots and is available in the experiment CSV.}
+\label{tab:controlled-alignment}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_synthetic_dhat_beta.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_synthetic_beta_dhat.png}
+\caption{Controlled exact-realizability validation on the synthetic one-hot task.
+(a) Empirical anchor mismatch $\widehat D$ versus $\beta$; the dashed line is the
+$C_{\mathrm G}/\beta$ reference for $a=6$. (b) $\beta\widehat D$ versus $\beta$ with
+the corresponding $C_{\mathrm G}$ horizontal references. Curves show fixed and
+trainable frames at $a\in\{6,12\}$; points are means and error bars are standard
+deviations over five seeds.}
+\label{fig:controlled-alignment}
+\end{figure*}
 
 \subsection{Main results}
 \label{sec:main-results}
@@ -740,12 +861,14 @@ where its certificate explodes to $\approx 10^{8}$ (panel d): with a unit axis
 and negligible $\beta$ the off-axis variance is unconstrained. The construction
 pays for itself in the strong-compression regime, where CEB is at chance.
 
-The mechanism is the one the theory predicts. At strong $\beta$ the posterior is
-pinned near the aligned solution: Theorem~\ref{prop:pgib-alignment}(a) bounds
-the expected anchor mismatch by $(\ln K + \varepsilon)/\beta$, and the accuracy
-achievable at alignment is the aligned Gaussian mixture's accuracy, governed by the
-scale-to-noise ratio $a/\tau$ (the nearest-anchor error probability is
-$\Phi(-a/(\sqrt{2}\tau))$; appendix). With the classifier scale
+The mechanism is consistent with the conditional analysis. At strong $\beta$ the
+posterior is empirically close to the aligned solution. In the idealized realizable
+setting, Theorem~\ref{prop:pgib-alignment}(a) bounds the expected anchor mismatch by
+$(\ln K + \varepsilon)/\beta$, and the accuracy achievable at alignment is the
+aligned Gaussian mixture's accuracy, governed by the scale-to-noise ratio $a/\tau$
+(the nearest-anchor error probability is $\Phi(-a/(\sqrt{2}\tau))$; appendix).
+For the benchmark runs we do not assume the theorem's realizability premises; the
+realized KL and geometry are inspected directly. With the classifier scale
 fixed at $a/\tau^2$ by construction, the only remaining lever at full compression is
 $a$ itself: the anchor scale converts the compression knob from a collapse dial into
 a plateau dial. The KL decomposition shows the two channels at work: OPB's $\E[\KL]$ is
@@ -754,7 +877,7 @@ $20.6$ mean vs.\ $0.36$ variance), while CEB's reference absorbs compression by
 shrinking both terms toward zero: the reference chases the posterior, exactly the
 degeneracy the constructed geometry excludes
 (Lemma~\ref{lem:opb-kl-decomposition}). This is the empirical counterpart of the
-separation-transfer guarantees (Proposition~\ref{prop:pgib-separation};
+mismatch-dependent separation bounds (Proposition~\ref{prop:pgib-separation};
 corollaries in the appendix) and of the fixed-scale condition of
 Proposition~\ref{prop:opb-sweep}; consistent with that proposition's scope, we do
 not claim that the map $\beta \mapsto$ accuracy is monotone, only that the

@@ -75,15 +75,23 @@ tell the optimizer --- or the analyst --- where on the retention axis the code s
 
 \emph{Scope of the deterministic comparison-solution argument.} In
 Theorem~\ref{prop:pgib-alignment} the comparison solution $q(z|x) =
-p_\theta(z|y)$ requires a zero-KL feasible solution. For tasks in which none exists
-(in particular for continuous regression, where the encoder cannot recover $y$
-from $x$ and no such Bayes comparison classifier is defined), part (a) does
-not apply: there the separation transfer of
+p_\theta(z|y)$ requires a zero-KL feasible solution. The condition $Y=f(X)$ alone
+does not provide this feasibility: the chosen encoder must recover the label at the
+required level and the posterior family must represent the prior covariance, while
+the prediction head must represent the corresponding aligned predictor. These are
+realizability assumptions on the data/model pair, not properties established for
+every benchmark dataset. For tasks in which any of them fails (including realistic
+settings with label ambiguity, finite model capacity, or a restricted head), the
+$O(1/\beta)$ bound on $\E[D(Y)]$ is not available. In particular, for continuous
+regression where the encoder cannot recover $y$ from $x$ and no such Bayes comparison
+classifier is defined, part (a) does not apply: there the separation transfer of
 Proposition~\ref{prop:pgib-separation} remains a conditional statement on the anchor
 mismatch, and no framework-level alignment bound is claimed. Part (b) is a separate
-deterministic-regression argument with its own comparison solution.
+deterministic-regression argument with its own comparison solution. The benchmark
+experiments therefore test the realized mismatch and posterior geometry directly;
+they do not assume or verify all premises of Theorem~\ref{prop:pgib-alignment}.
 
-\subsection{Proofs of the guarantees}
+\subsection{Proofs of the conditional guarantees}
 
 \begin{proof}[Proof of Proposition~\ref{prop:opb-certificate}]
 For fixed $\theta$, apply the gap identity of Eq.~\eqref{eq:gap} to the conditional

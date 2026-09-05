@@ -1,0 +1,155 @@
+Q1 可控实验方案：验证 realizability 条件下的对齐尺度
+====================================================
+
+目的
+----
+
+Theorem 2.1 的定量结论
+
+    E[D(Y)] <= (C_align + epsilon) / beta
+
+只在确定性标签、对齐后验可实现、先验协方差可表示、预测头可表示的
+data/model pair 上成立。现有 Cora、IMDb、AG News 等真实基准用于观察
+几何是否从先验传递到后验，不应被解释为对该 O(1/beta) 上界的直接验证。
+本实验建立一个条件明确、可完全控制的 synthetic task，用来检查定理预言
+的 scaling 行为。实验不能证明真实数据满足定理假设，也不能在没有全局最优
+值 L* 的情况下声称严格验证 epsilon-near-optimal 上界。
+
+一、主实验：严格确定且显式可实现的分类任务
+----------------------------------------------
+
+1. 数据
+
+- 取 K=10 个类别，类别先验均匀。
+- 输入 x 为 K 维 one-hot 向量 e_y，即 x=e_y；标签 y 为对应类别。
+- 训练/验证/测试集分别生成 10,000/2,000/2,000 个样本，三份数据独立生成，
+  各类别保持均衡。
+- 不使用数据增强、输入噪声或标签噪声。
+- 该任务严格满足 Y=f(X)，并且一个线性 encoder 就可以实现任意 class-constant
+  posterior mean，因此对齐 comparison solution 在模型类中显式可实现。
+
+2. GPB/OPB 设置
+
+- 使用 OPB 的 Gaussian posterior 和 anchor-energy classifier。
+- 设 bottleneck dimension d=K（也可额外报告 d=16 作为维度冗余控制）。
+- 固定 prior variance tau^2=1；至少测试 anchor scale a=6 和 a=12。
+- 正交 frame 分别做两种设置：
+  (A) fixed-frame：固定 q_k=e_k，隔离优化误差；
+  (B) trainable-frame：使用论文主方法的 stateless polar frame。
+- posterior covariance 使用论文中的参数化；初始化和训练协议尽量与正文 OPB
+  保持一致。不要加入额外的损失项，否则需要在报告中说明其影响。
+- beta 使用对数网格，例如
+  {1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1, 1, 3, 10}。
+  若极大 beta 导致数值不稳定，保留稳定区间并报告删去的点及原因。
+- 每个 (frame setting, a, beta) 至少运行 5 个固定 seed；记录每个 seed 的
+  最佳验证 checkpoint，而不是只记录最后一个 epoch。
+
+3. 对齐 comparison solution
+
+- 参考 posterior 为 q_align(z|x=e_y)=N(a q_y, tau^2 I)。
+- 该解的 KL 为 0。
+- 使用同一个 anchor-energy classifier 计算 aligned cross-entropy
+  C_G=H(Y|Z_align)。对于均匀类别、正交 anchors、共享协方差，可以用高精度
+  Monte Carlo（建议每个 a 至少 1e6 个独立 Gaussian samples）估计 C_G；同时
+  报告 Monte Carlo 标准误差。不要把训练集 CE 当作 C_G 的替代品。
+- 如果实现中可以对该低维受限模型进行高精度数值优化，可额外报告观测到的
+  最佳目标 L_min,obs；但必须把它标为 observed lower envelope，不能当作理论
+  全局最优 L*。
+
+二、每个 checkpoint 必须记录的量
+----------------------------------
+
+对每个 seed、a、beta 和 frame setting，在训练集和测试集分别记录：
+
+1. D(Y) 的经验估计
+
+    D_hat = (1/N) sum_i ||mu_phi(x_i)-a q_{y_i}||^2 / (2 tau^2)
+
+   这是论文定义的 E[D(Y)] 的样本估计。若同时报告逐类别 D_k，必须报告类别
+   均值和最大值，避免只展示容易的类别。
+
+2. beta * D_hat，以及 KL 的均值失配项、方差失配项和总 E[KL]。
+   这些量用于确认 D_hat 的下降不是由实现错误或方差项混淆造成的。
+
+3. stochastic training CE、总目标 L=CE+beta*E[KL]、确定性 evaluation
+   accuracy 和 stochastic MC accuracy。预测规则必须注明是 anchor-energy
+   classifier，不能用独立 free head 替代主结果。
+
+4. frame geometry diagnostics：anchor pairwise distance、posterior class-center
+   distance/cosine，以及 polar frame 的最小奇异值（trainable-frame 设置）。
+
+5. 优化诊断：epoch、最佳验证 checkpoint、梯度/NaN 状态、最终和最佳目标值。
+
+三、推荐图表
+------------
+
+至少生成以下图表，所有点显示 5 个 seed 的 mean +/- std：
+
+1. log-log 图：D_hat 对 beta，叠加参考斜率 1/beta。
+2. 图：beta*D_hat 对 beta，叠加 C_G 水平线。
+3. 图：D_hat 对 1/beta，报告线性拟合斜率和 R^2；只将其作为 scaling
+   diagnostic，不称为定理证明。
+4. 图：accuracy/MC accuracy 对 beta，确认 alignment scaling 没有以任务崩溃
+   为代价。
+5. 表格：每个 beta 的 D_hat、beta*D_hat、C_G、CE、E[KL]、accuracy，以及
+   seed 标准差。
+
+建议分别对 fixed-frame 和 trainable-frame、a=6 和 a=12 作图，不要把不同
+anchor scale 合并成一条曲线。
+
+四、如何处理 epsilon
+----------------------
+
+定理中的 epsilon 是相对于真实全局最优 L* 的目标差，实验通常无法严格得到
+L*。因此报告时遵守以下规则：
+
+- 不要写“实验验证了 E[D] <= (C_G+epsilon)/beta”，除非能够给出可靠的 L*
+  计算或受限模型上的全局优化证明。
+- 可以报告 observed envelope：L_min,obs=min over all seeds/checkpoints L，以及
+  epsilon_obs=L-L_min,obs，并明确它不是理论 epsilon。
+- 可以检验更弱但有意义的经验现象：D_hat 随 beta 增大而下降，beta*D_hat
+  在稳定区间内近似有界，并且趋势与 1/beta scaling 一致。
+- 若某些点出现 beta*D_hat > C_G，应报告该事实以及可能的优化误差、有限样本
+  误差或数值误差，不能静默删除这些点。
+
+五、可选控制组
+--------------
+
+为了展示 realizability 假设的重要性，可以增加两个低成本控制：
+
+- capacity control：将直接线性 encoder 换成明显不足以表达 class-constant
+  anchors 的窄 encoder，比较其 D_hat 和 beta*D_hat；
+- label-noise control：在训练标签中加入固定比例（例如 10%）的随机翻转，
+  但测试标签保持干净。该组只用于说明理论 bound 不应外推到 noisy-label
+  setting，不能与主实验合并平均。
+
+这两个控制不是必须项；如果加入，必须在图例和表格中明确标为 non-realizable
+或 noisy control。
+
+六、返回给论文修改所需的数据格式
+------------------------------------
+
+请返回一个 CSV 或表格，至少包含以下列：
+
+    frame_setting, anchor_scale, beta, seed,
+    D_hat_train, D_hat_test, beta_D_hat_test,
+    CE_train, CE_test, KL_mean_test, KL_var_test, KL_total_test,
+    objective_train, objective_test, acc_det, acc_mc,
+    min_singular_value, best_epoch
+
+另外提供每个 anchor scale 的 C_G 估计值和 Monte Carlo 标准误差，以及每个配置
+的训练失败/NaN 记录。若使用了不同的 beta 网格、数据规模、维度、tau 或 seed，
+请在表格旁明确注明。
+
+七、论文中结果段落的预期写法
+------------------------------
+
+只有在获得实验数据后，才把本实验小节从“deferred”改为结果段。结果段应明确
+区分：
+
+- synthetic exact-realizability task：用于检验条件性 alignment scaling；
+- Cora/IMDb/AG News 等真实基准：用于检验经验性的 geometric transfer；
+- 两者不能合并为一个无条件理论验证结论。
+
+若结果只显示单调下降但没有稳定的 1/beta scaling，应如实写成“qualitatively
+consistent with the conditional analysis”，不要声称定量验证定理上界。

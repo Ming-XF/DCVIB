@@ -1,76 +1,39 @@
-# FGIB 改造方案（v2）
+结果位置
 
-核心：**锚点均值不再由"随机矩阵 QR 一次后冻结"得到，而是保留一个可训练矩阵 G，每次前向对其做 QR 分解**，正交锚点几何始终成立、梯度经 QR 回传到 G。同时主路改为与 CEB 同构的重参数化压缩（不再使用"确定性主路 + 旁路 KL"结构）。
+  ┌───────────────────────────────────────────────┬─────────────────────────────────────────────┐
+  │                     内容                      │                    路径                     │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ 主数据（180 行长表，列与方案第六节一致 +      │ output/synthetic_align/synthetic_align.csv  │
+  │ 诊断列）                                      │                                             │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ C_G（每 a 一个值 + MC 标准误差）              │ output/synthetic_align/cg.csv               │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ 图1 log-log D̂ vs β + C_G/β 参考虚线           │ output/synthetic_align/fig_dhat_beta.png    │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ 图2 β·D̂ vs β + C_G 水平线                     │ output/synthetic_align/fig_beta_dhat.png    │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ 图3 D̂ vs 1/β（线性拟合诊断）                  │ output/synthetic_align/fig_dhat_invbeta.png │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ 图4 acc_det / acc_mc vs β                     │ output/synthetic_align/fig_acc_beta.png     │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ LaTeX 表格（已打印在上方输出，也可从          │ synthetic_align_plot.py                     │
+  │ synthetic_align_plot.py 重跑获得）            │                                             │
+  ├───────────────────────────────────────────────┼─────────────────────────────────────────────┤
+  │ 实现脚本（含全部协议说明）                    │ synthetic_align.py /                        │
+  │                                               │ synthetic_align_plot.py                     │
+  └───────────────────────────────── Jump to bottom (ctrl+End) ↓ ────────────
 
-## 一、先验改造（核心）
 
-### `model/mlp/utils.py`
 
-- 删除 `build_anchor_prior`（`model/mlp/utils.py:67`，经确认仅 4 个 fgib.py 引用），新增共享工具：
+关键结果                                        
 
-  ```python
-  def qr_anchor_means(prior_matrix, anchor_scale):
-      """对可训练矩阵做 QR 分解得到正交锚点均值表。
-
-      prior_matrix: (z_dim, num_classes) 可训练矩阵（nn.Parameter）；
-      每次前向对 G 做 QR 分解取正交列 Q，缩放 anchor_scale 后转置为
-      (num_classes, z_dim) 锚点均值表。梯度经 Q 回传到 G（torch.linalg.qr
-      可微），先验始终落在尺度 anchor_scale 的正交锚点几何上。
-      """
-      q, _ = torch.linalg.qr(prior_matrix)          # (z_dim, K) 正交列
-      return (q * anchor_scale).t().contiguous()    # (K, z_dim)
-  ```
-
-- `ContinuousAnchorPrior`（回归用）不变（QR 锚点表只适用于分类；见决策点 D2）。
-
-### 4 个骨干的 `fgib.py`（mlp/cnn/rnn/gnn）
-
-- `__init__` 分类分支：
-
-  ```python
-  assert num_classes <= z_dim, "固定锚点先验要求类别数不超过 z 维度"
-  self.prior_matrix = nn.Parameter(torch.randn(z_dim, num_classes))   # 可训练随机矩阵
-  self.register_buffer("prior_logvar", torch.full((num_classes, z_dim), math.log(anchor_var)))
-  ```
-
-  G 用随机初始化（与现版 QR 前的随机矩阵同一分布、受 run seed 控制），方差仍为固定 buffer。
-
-- `forward` 分类分支（labels 非 None 时）：
-
-  ```python
-  prior_mu = qr_anchor_means(self.prior_matrix, self.anchor_scale)
-  mu_p = prior_mu[labels]
-  logvar_p = self.prior_logvar[labels]
-  kl = kl_divergence(mu, logvar, mu_p, logvar_p)   # GNN 版用 kl_divergence_masked
-  ```
-
-  每个 `__init__` 存 `self.anchor_scale`（现版未存，QR 移到 forward 后需要）。
-
-## 二、主路改造
-
-四个 FGIB 全部改为 CEB 同构的主路重参数化：
-
-- `classifier`：`nn.Linear(hidden_dim, num_classes)` → `nn.Linear(z_dim, num_classes)`。
-- `forward` 签名加 `stochastic=True`（GNN 版为 `forward(self, x, labels=None, stochastic=True, adj_norm=None, mask=None, batch=None)`）：h → mu/logvar → `reparameterize(mu, logvar, stochastic)` → `classifier(z)`；`labels is None` 时返回 `(logits, None)`（logits 仍来自 z，不再退化为纯基线）。训练 `stochastic=True` 采样、评估 `False` 用 z=mu。
-- 置零初始化 `logvar_head` 保留；训练起点 KL ≈ 0.5·anchor_scale² 不变（G 初始随机、Q 正交）。
-
-## 三、`train.py`
-
-- `run_model`（`train.py:88-112`）：`FGIB, CNNFGIB, RNNFGIB` 并入第 94 行 isinstance 元组、`GNNFGIB` 并入第 97 行，删除第 104-109 行 FGIB 专属分支（`stochastic` 由此自动传入）。
-- 文档：第 32 行用法注释、`--anchor-scale` help（第 407-412 行）改为"主路重参数化 + 可训练矩阵 QR 正交锚点先验"。
-
-## 四、CLAUDE.md 同步
-
-- FGIB 条目：删"确定性主路 + 旁路 KL + register_buffer 固定先验"描述，改为"与 CEB 同构的主路重参数化；分类先验为可训练矩阵 G∈R^{z_dim×K}，每次前向 QR 分解为 anchor_scale 缩放的正交锚点均值表（先验始终正交、几何可学习），方差固定 anchor_var；回归仍为固定 RFF 连续锚点"。
-- 关键约定：FGIB 例外（起点 KL≈0.5·anchor_scale²）保留；删"KL 无法靠移动先验减小"的表述。
-
-## 五、注意事项
-
-- `torch.linalg.qr` 在 torch 2.9 可微，前向开销可忽略（最大 256×100）；G 满秩时反向稳定，若训练中 G 趋于秩亏可能出现梯度数值问题（随机初始化下罕见）。
-- `anchor_scale=0`：`mu_p=0` 且梯度经缩放乘零、G 不更新，自然退化为固定 N(0,I) 先验——与现语义一致。
-- 每次前向都做 QR（不缓存），保证先验始终正交且梯度链完整。
-
-## 决策点
-
-- **D2（推荐：不动）**：回归版 `ContinuousAnchorPrior` 是否也参与本次改造？QR 方案只适用分类锚点表，推荐保持固定 RFF 不变；若希望回归锚点也可训练，可另行把 ω/b 改为 Parameter（与 QR 无关）。
-- **D1（推荐：固定）**：先验方差 `prior_logvar` 保持固定 buffer（log(anchor_var)），仅锚点均值矩阵可训练。
+  - C_G(a=6) = 2.84e-4 ± 8.0e-6（1e7 MC）；C_G(a=12) = 0（1e7 样本中零误分类事件，精确值 ≈9e⁻⁷²
+    量级，float 下为 0）。                        
+  - D̂ 单调下降：a=6 时 β=1e-3 → 0.005，β=3e-3 → 0.002，β=1e-2 → 0.001，β≥3e-2 → ≈0；a=12 全程
+    ≈0（大锚点下 CE 梯度把对齐钉得更死）。
+  - β·D̂ ≤ C_G 在全部 36 个配置成立（β·D̂ ≈ 0 ≪ C_G）——条件上界 E[D] ≤ (C_align+ε)/β
+    在此精确可实现任务上被平凡满足，D̂ 只在最小两个 β 点可见，1/β 拟合斜率≈0（a=12 全零 → R²
+    无定义）。
+  - acc_det = acc_mc = 1.0000 全程：scaling 不以任务崩溃为代价。
+  - frame 诊断：fixed 帧 min_sv ≡ 1.0（恒等帧）；trainable 帧原始均值矩阵 min_sv ∈ [0.058,
+    0.51]（>0，QR 极性因子构造始终良态，与论文 Assumption 的"验证而非施加"一致）。
