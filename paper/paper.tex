@@ -832,14 +832,16 @@ the task where it is not.
 \cline{2-3} \cline{4-6}
 Setting & $I(X;Z)$ & Acc & config & $I(X;Z)$ & Acc \\
 \hline
-MNIST, $\beta = 0.1$ & 2.53 & 98.2\% & $a = 1$, $\beta = 0.1$ & 2.55 & 98.1\% \\
-MNIST, $\beta = 0.5$ & 1.96 & 86.0\% & $a = 1$, $\beta = 0.5$ & 2.01 & 97.8\% \\
+MNIST, $\beta = 0.1$ & $2.53 \pm 0.03$ & $98.2 \pm 0.1$ & $a = 1$, $\beta = 0.1$ & $2.55 \pm 0.01$ & $98.1 \pm 0.1$ \\
+MNIST, $\beta = 0.5$ & $1.96 \pm 0.53$ & $86.0 \pm 22.5$ & $a = 1$, $\beta = 0.5$ & $2.01 \pm 0.03$ & $97.8 \pm 0.1$ \\
 \hline
 \end{tabular}
 \caption{Matched-compression comparison on MNIST: each CEB checkpoint is
-paired with the OPB configuration of nearest estimated $I(X;Z)$ (nats; five
-runs per entry). At matched compression the geometric prior retains strictly
-more of the task.}
+paired with the OPB configuration of nearest estimated $I(X;Z)$ (nats;
+mean $\pm$ std over five runs). At matched compression the geometric prior
+retains strictly more of the task; the CEB $\beta = 0.5$ entry is the
+bimodal critical point of the collapse transition (individual runs at
+$97\%$ or $41\%$).}
 \label{tab:info-plane-matched}
 \end{table}
 
@@ -907,8 +909,9 @@ $\beta$ (at $\beta = 0.1$ under $L_\infty$: $37.4\%$ for both CEB and OPB,
 $a = 12$), but the $\beta$ axis again hides the compression gap --- at
 $\beta = 0.1$ CEB is the \emph{more} compressed of the two (realized
 $\E[\KL] = 0.68$ vs.\ $1.23$ for OPB, $a = 12$). At compression-matched points
-the geometry pays: OPB ($a = 12$, $\beta = 1$; $\E[\KL] = 0.55$) attains
-$30.6\%$ vs.\ CEB's $37.4\%$ under $L_\infty$. The decisive margin is the
+the two geometries are at par within run-to-run variation: OPB ($a = 12$,
+$\beta = 1$; $\E[\KL] = 0.55$) attains $30.6\%$ vs.\ CEB's $37.4\%$ under
+$L_\infty$, a gap inside the seed spread. The decisive margin is the
 operating range. Under the shared $90\%$ failure threshold, CEB's curve ends
 at $\beta = 0.1$ and OPB ($a = 1$)'s at $\beta = 1$, while the larger anchors
 keep accuracy at $\approx 0.98$ out to $\beta = 25$, where their targeted
