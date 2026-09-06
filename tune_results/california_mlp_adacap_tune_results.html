@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=housing backbone=mlp model=adacap runs=5 epochs=100 | 6 组组合 | 表格后附最优精度汇总表、GPB−baseline 配对差值 95% CI 表与 ceb/opb 压缩-精度对比曲线（β 对数刻度；opb 各 a=1/6/12 一条线）（绿色高亮 = 各模型默认指标 R2 的最佳行）</div>
+
+<h2>adacap</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-adacap">
+<option value="Loss">Loss</option><option value="MAE">MAE</option><option value="R2" selected>R2</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-adacap">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>MAE</th><th>R2</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="0.0125" data-mae="0.3747" data-r2="0.7758"><td>0.01</td><td>-</td><td>0.0125±0.0001</td><td>0.3747±0.0022</td><td>0.7758±0.0023</td></tr><tr data-loss="0.0126" data-mae="0.3748" data-r2="0.7747"><td>0.1</td><td>-</td><td>0.0126±0.0002</td><td>0.3748±0.0030</td><td>0.7747±0.0032</td></tr><tr data-loss="0.0134" data-mae="0.3901" data-r2="0.7591"><td>1</td><td>-</td><td>0.0134±0.0003</td><td>0.3901±0.0082</td><td>0.7591±0.0058</td></tr><tr data-loss="0.0143" data-mae="0.408" data-r2="0.7435"><td>10</td><td>-</td><td>0.0143±0.0002</td><td>0.4080±0.0050</td><td>0.7435±0.0032</td></tr><tr data-loss="0.016" data-mae="0.4322" data-r2="0.7129"><td>100</td><td>-</td><td>0.0160±0.0003</td><td>0.4322±0.0060</td><td>0.7129±0.0059</td></tr><tr data-loss="0.0182" data-mae="0.458" data-r2="0.6731"><td>1000</td><td>-</td><td>0.0182±0.0003</td><td>0.4580±0.0053</td><td>0.6731±0.0053</td></tr>
+</tbody>
+</table>
+
+
+<h2>最优精度汇总</h2>
+<table>
+<thead><tr><th>模型</th><th>beta</th><th>anchor_scale</th><th>最优 R2</th></tr></thead>
+<tbody>
+<tr class="best"><td>adacap</td><td>0.01</td><td>-</td><td>0.7758±0.0023</td></tr>
+</tbody>
+</table>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>

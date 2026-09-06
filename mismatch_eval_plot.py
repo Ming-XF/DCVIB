@@ -1,0 +1,334 @@
+"""失配分析论文图（codex_output2.txt 方案 §5）：主 2×2 + 分类/回归附录图 +
+一致性表 + 核心趋势数值。
+
+主图（opb/epb、seed 级 mean±std、failed 行跳过并计数）：
+  (a) ImageNet-100: D vs β 按 a 分曲线，虚线为 total KL（同 a 配色）；
+  (b) ImageNet-100: MC-10 acc vs D 散点，颜色 = β（对数色标）、形状 = a；
+  (c) Housing: D vs β 按 ρ 分曲线，并分画轴向/离轴两个贡献（D=两贡献之和）；
+  (d) Housing: R² vs D 散点，颜色 = β、形状 = ρ。
+附录图一（分类）：(i) 类间距离 mean(S_ij) 与原始下界 mean(LB_ij) vs β 按 a
+  （CEB 的 D 作灰色虚线描述性参照）；(ii) P(LB>0) vs β；(iii) slack 的
+  5/50/95 分位带 vs β。
+附录图二（回归）：选定配置（ρ=6 的若干 β）的 bin 对 S_bc vs ρ|ȳ_b−ȳ_c| 散点
+  + y=x 参考线（数据来自 detail npz）。
+另打印：D/KL 一致性表（LaTeX）、核心趋势数值、slack sanity 统计。
+
+用法：
+    python mismatch_eval_plot.py
+"""
+
+import argparse
+import csv
+from collections import defaultdict
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+from prior_geometry import _setup_rc
+
+ROOT = Path(__file__).resolve().parent
+OUT_ROOT = ROOT / "output" / "mismatch_eval"
+
+A_COLORS = {1.0: "#2a78d6", 6.0: "#eb6834", 12.0: "#4f9a5f"}
+A_MARKERS = {1.0: "o", 6.0: "s", 12.0: "^"}
+
+
+def load(csv_path):
+    """→ {model: {(beta, anchor): {col: [seed 值]}}}，跳过 failed 行。"""
+    data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    fails = 0
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            if r["failed"]:
+                fails += 1
+                continue
+            anchor = float(r["anchor_scale"]) if r["anchor_scale"] else None
+            key = (float(r["beta"]), anchor)
+            for col, v in r.items():
+                if col in ("dataset", "seed", "beta", "anchor_scale", "model", "failed"):
+                    continue
+                if v == "":
+                    continue
+                try:
+                    data[r["model"]][key][col].append(float(v))
+                except ValueError:
+                    pass
+    return data, fails
+
+
+def mean_std(vals):
+    v = np.array(vals)
+    return v.mean(), v.std()
+
+
+def series(model_data, col):
+    """→ {anchor: [(beta, mean, std), ...]} β 升序。"""
+    out = defaultdict(list)
+    for (beta, a), cols in model_data.items():
+        if col not in cols:
+            continue
+        m, s = mean_std(cols[col])
+        out[a].append((beta, m, s))
+    return {a: sorted(v) for a, v in out.items()}
+
+
+def fig_main(cls_data, reg_data):
+    fig, axes = plt.subplots(2, 2, figsize=(12.0, 8.6))
+    opb = cls_data["opb"]
+    epb = reg_data["opb"]
+
+    # (a) IN100: D vs β + total KL 虚线
+    ax = axes[0, 0]
+    for a in (1.0, 6.0, 12.0):
+        for col, ls in (("d_mean", "-"), ("kl_total", "--")):
+            pts = series(opb, col).get(a)
+            if not pts:
+                continue
+            xs = [p[0] for p in pts]
+            ys = [p[1] for p in pts]
+            errs = [p[2] for p in pts]
+            ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[a], linestyle=ls,
+                        marker=A_MARKERS[a] if ls == "-" else None, markersize=4,
+                        linewidth=1.6, capsize=2,
+                        label=f"$a={a:g}$: $D$" if ls == "-" else f"$a={a:g}$: total KL")
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\beta$")
+    ax.set_ylabel("nats")
+    ax.set_title("(a) ImageNet-100: $D$ (solid) vs. total KL (dashed)", fontsize=9)
+
+    # (b) IN100: MC-10 acc vs D
+    ax = axes[0, 1]
+    for a in (1.0, 6.0, 12.0):
+        pts = series(opb, "d_mean").get(a, [])
+        accs = series(opb, "mc10_metric").get(a, [])
+        by_beta = {p[0]: p[1] for p in pts}
+        by_beta_acc = {p[0]: p[1] for p in accs}
+        xs = [by_beta[b] for b in by_beta if b in by_beta_acc]
+        ys = [by_beta_acc[b] * 100 for b in by_beta if b in by_beta_acc]
+        bs = [b for b in by_beta if b in by_beta_acc]
+        sc = ax.scatter(xs, ys, c=bs, norm=matplotlib.colors.LogNorm(), cmap="viridis",
+                        marker=A_MARKERS[a], s=45, edgecolors="white", linewidths=0.4)
+    ax.set_xlabel(r"$D$ (nats)")
+    ax.set_ylabel("MC-10 accuracy (%)")
+    ax.set_title("(b) ImageNet-100: accuracy vs. $D$ (color=$\\beta$, shape=$a$)", fontsize=9)
+    plt.colorbar(sc, ax=ax, label=r"$\beta$")
+
+    # (c) Housing: D vs β + 轴向/离轴贡献
+    ax = axes[1, 0]
+    for rho in (1.0, 6.0, 12.0):
+        for col, ls, mk in (("d_mean", "-", "o"), ("d_axial", "--", None), ("d_offaxis", ":", None)):
+            pts = series(epb, col).get(rho)
+            if not pts:
+                continue
+            xs = [p[0] for p in pts]
+            ys = [p[1] for p in pts]
+            errs = [p[2] for p in pts]
+            ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[rho], linestyle=ls,
+                        marker=mk, markersize=4, linewidth=1.6, capsize=2,
+                        label=f"$\\rho={rho:g}$" if col == "d_mean" else None)
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\beta$")
+    ax.set_ylabel("nats")
+    ax.set_title("(c) Housing: $D$ (solid), axial (dashed), off-axis (dotted)", fontsize=9)
+
+    # (d) Housing: R² vs D
+    ax = axes[1, 1]
+    for rho in (1.0, 6.0, 12.0):
+        pts = series(epb, "d_mean").get(rho, [])
+        r2s = series(epb, "deterministic_metric").get(rho, [])
+        by_beta = {p[0]: p[1] for p in pts}
+        by_beta_r2 = {p[0]: p[1] for p in r2s}
+        xs = [by_beta[b] for b in by_beta if b in by_beta_r2]
+        ys = [by_beta_r2[b] for b in by_beta if b in by_beta_r2]
+        bs = [b for b in by_beta if b in by_beta_r2]
+        sc = ax.scatter(xs, ys, c=bs, norm=matplotlib.colors.LogNorm(), cmap="viridis",
+                        marker=A_MARKERS[rho], s=45, edgecolors="white", linewidths=0.4)
+    ax.set_xlabel(r"$D$ (nats)")
+    ax.set_ylabel(r"test $R^2$")
+    ax.set_title("(d) Housing: $R^2$ vs. $D$ (color=$\\beta$, shape=$\\rho$)", fontsize=9)
+    plt.colorbar(sc, ax=ax, label=r"$\beta$")
+
+    for ax in axes.flat:
+        ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
+        ax.set_facecolor("white")
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend(fontsize=7, frameon=False)
+    fig.patch.set_facecolor("white")
+    fig.tight_layout()
+    path = OUT_ROOT / "fig_mismatch_main.png"
+    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"主图已保存：{path}")
+
+
+def fig_appendix_cls(cls_data):
+    fig, axes = plt.subplots(1, 3, figsize=(15.0, 4.2))
+    opb = cls_data["opb"]
+    ceb = cls_data.get("ceb", {})
+
+    # (i) S 与 LB vs β
+    ax = axes[0]
+    for a in (1.0, 6.0, 12.0):
+        for col, ls, mk in (("center_distance_mean", "-", "o"), ("lower_bound_mean", "--", None)):
+            pts = series(opb, col).get(a)
+            if not pts:
+                continue
+            xs = [p[0] for p in pts]
+            ys = [p[1] for p in pts]
+            errs = [p[2] for p in pts]
+            ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[a], linestyle=ls, marker=mk,
+                        markersize=4, linewidth=1.6, capsize=2,
+                        label=f"$a={a:g}$" if col == "center_distance_mean" else None)
+    pts = series(ceb, "d_mean").get(1.0)
+    if pts:
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        ax.plot(xs, ys, color="#8a8a8a", linestyle=":", linewidth=1.4,
+                label="CEB: $D$")
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\beta$")
+    ax.set_ylabel("distance (nats$^{1/2}$)")
+    ax.set_title("(i) mean $S_{ij}$ (solid) vs. raw mean LB (dashed)", fontsize=9)
+
+    # (ii) P(LB>0)
+    ax = axes[1]
+    for a in (1.0, 6.0, 12.0):
+        pts = series(opb, "positive_bound_fraction").get(a)
+        if not pts:
+            continue
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        errs = [p[2] for p in pts]
+        ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[a], marker=A_MARKERS[a],
+                    markersize=4, linewidth=1.6, capsize=2, label=f"$a={a:g}$")
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\beta$")
+    ax.set_ylabel(r"$P(\mathrm{LB}_{ij}>0)$")
+    ax.set_title("(ii) fraction of pairs with positive lower bound", fontsize=9)
+
+    # (iii) slack 分位带
+    ax = axes[2]
+    for a in (1.0, 6.0, 12.0):
+        p50 = series(opb, "slack_p50").get(a)
+        p05 = series(opb, "slack_p05").get(a)
+        p95 = series(opb, "slack_p95").get(a)
+        if not p50:
+            continue
+        xs = [p[0] for p in p50]
+        y50 = [p[1] for p in p50]
+        lo = [q[1] for p, q in zip(p50, p05)]
+        hi = [q[1] for p, q in zip(p50, p95)]
+        ax.plot(xs, y50, color=A_COLORS[a], marker=A_MARKERS[a], markersize=4,
+                linewidth=1.6, label=f"$a={a:g}$")
+        ax.fill_between(xs, lo, hi, color=A_COLORS[a], alpha=0.15)
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\beta$")
+    ax.set_ylabel("slack = $S_{ij} - $ LB$_{ij}$")
+    ax.set_title("(iii) bound slack: p50 with p5--p95 band", fontsize=9)
+
+    for ax in axes:
+        ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
+        ax.set_facecolor("white")
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend(fontsize=7, frameon=False)
+    fig.patch.set_facecolor("white")
+    fig.tight_layout()
+    path = OUT_ROOT / "fig_mismatch_appendix_cls.png"
+    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"分类附录图已保存：{path}")
+
+
+def fig_appendix_reg():
+    """回归 bin 对散点：S_bc vs ρ|ȳ_b−ȳ_c|（ρ=6 的若干 β、seed 0），y=x 参考线。"""
+    fig, ax = plt.subplots(figsize=(6.4, 4.6))
+    betas = [1e-4, 1e-2, 1.0, 10.0]
+    cmap = plt.get_cmap("viridis")
+    for i, beta in enumerate(betas):
+        path = OUT_ROOT / "detail_california_mlp" / f"california_mlp_opb_beta_{beta:g}_anchor_6_run1.npz"
+        if not path.exists():
+            print(f"[跳过] {path.name} 不存在")
+            continue
+        z = np.load(path)
+        m_b, yb = z["m_b"], z["ybar_b"]
+        rho = 6.0
+        S = np.linalg.norm(m_b[:, None, :] - m_b[None, :, :], axis=-1)
+        x = rho * np.abs(yb[:, None] - yb[None, :])
+        triu = np.triu(np.ones_like(S, dtype=bool), 1)
+        color = cmap(i / max(len(betas) - 1, 1))
+        ax.scatter(x[triu], S[triu], s=14, color=color, alpha=0.7,
+                   label=f"$\\beta={beta:g}$")
+    lims = [ax.get_xlim()[0], ax.get_xlim()[1]]
+    ax.plot(lims, lims, color="k", linestyle="--", linewidth=1.0, alpha=0.6)
+    ax.set_xlabel(r"$\rho\,|\bar y_b - \bar y_c|$ (declared prior distance)")
+    ax.set_ylabel(r"$S_{bc} = \|m_b - m_c\|$ (posterior bin distance)")
+    ax.set_title(r"Housing, $\rho=6$: bin-pair separation vs. declared distance", fontsize=9)
+    ax.grid(True, linewidth=0.6, color="#e1e0d9")
+    ax.set_facecolor("white")
+    ax.legend(fontsize=7, frameon=False)
+    fig.patch.set_facecolor("white")
+    fig.tight_layout()
+    path = OUT_ROOT / "fig_mismatch_appendix_reg.png"
+    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"回归附录图已保存：{path}")
+
+
+def print_consistency_and_core(cls_data, reg_data):
+    """一致性表（D vs kl_mean vs kl_cov）+ 核心趋势数值。"""
+    print("\n% 一致性表（全部 OPB/EPB 配置 × seeds 的均值，nats）：")
+    print(r"\begin{tabular}{l c c c}")
+    print(r"\hline")
+    print(r"task & $D$ & KL mean term & KL var term \\")
+    print(r"\hline")
+    for name, data, dcol in [("ImageNet-100", cls_data["opb"], "d_mean"),
+                             ("Cal. Housing", reg_data["opb"], "d_mean")]:
+        dm = np.concatenate([np.array(v[dcol]) for v in data.values() if dcol in v]).mean()
+        km = np.concatenate([np.array(v["kl_mean"]) for v in data.values() if "kl_mean" in v]).mean()
+        kv = np.concatenate([np.array(v["kl_cov"]) for v in data.values() if "kl_cov" in v]).mean()
+        print(f"{name} & {dm:.3f} & {km:.3f} & {kv:.3f} \\\\")
+    print(r"\hline")
+    print(r"\end{tabular}")
+
+    print("\n核心趋势数值（seed 级 mean±std）：")
+    for name, data in [("ImageNet-100 (OPB)", cls_data["opb"]),
+                       ("Cal. Housing (EPB)", reg_data["opb"])]:
+        for a in (1.0, 6.0, 12.0):
+            d_lo = series(data, "d_mean").get(a)
+            d_hi = d_lo
+            if not d_lo:
+                continue
+            lo = min(d_lo)[1]
+            hi = max(d_lo)[1]
+            lo_b = min(d_lo)[0]
+            hi_b = max(d_lo)[0]
+            lb_hi = series(data, "lower_bound_mean").get(a)
+            p_hi = series(data, "positive_bound_fraction").get(a)
+            lb_txt = f", mean LB(β={hi_b:g})={lb_hi[-1][1]:.3f}" if lb_hi else ""
+            pf_txt = f", P(LB>0)={p_hi[-1][1]:.3f}" if p_hi else ""
+            print(f"  {name} a/ρ={a:g}: D(β={lo_b:g})={lo:.3f} → D(β={hi_b:g})={hi:.3f}{lb_txt}{pf_txt}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="失配分析论文图")
+    args = parser.parse_args()
+    _setup_rc()
+
+    cls_data, f1 = load(OUT_ROOT / "mismatch_eval_imagenet100_mlp.csv")
+    reg_data, f2 = load(OUT_ROOT / "mismatch_eval_california_mlp.csv")
+    print(f"数据：分类 failed 行 {f1}、回归 failed 行 {f2}（已跳过）")
+    if not cls_data.get("opb") or not reg_data.get("opb"):
+        print("[跳过] 无 opb 数据，请先运行 mismatch_eval.py")
+        return
+    fig_main(cls_data, reg_data)
+    fig_appendix_cls(cls_data)
+    fig_appendix_reg()
+    print_consistency_and_core(cls_data, reg_data)
+
+
+if __name__ == "__main__":
+    main()

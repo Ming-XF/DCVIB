@@ -73,25 +73,20 @@ is produced anywhere on the manifold; the blindness is that the certificate cann
 tell the optimizer --- or the analyst --- where on the retention axis the code sits.
 \end{remark}
 
-\emph{Scope of the deterministic comparison-solution argument.} In
-Theorem~\ref{prop:pgib-alignment} the comparison solution $q(z|x) =
-p_\theta(z|y)$ requires a zero-KL feasible solution. The condition $Y=f(X)$ alone
-does not provide this feasibility: the chosen encoder must recover the label at the
-required level and the posterior family must represent the prior covariance, while
-the prediction head must represent the corresponding aligned predictor. These are
-realizability assumptions on the data/model pair, not properties established for
-every benchmark dataset. For tasks in which any of them fails (including realistic
-settings with label ambiguity, finite model capacity, or a restricted head), the
-$O(1/\beta)$ bound on $\E[D(Y)]$ is not available. In particular, for continuous
-regression where the encoder cannot recover $y$ from $x$ and no such Bayes comparison
-classifier is defined, part (a) does not apply: there the separation transfer of
-Proposition~\ref{prop:pgib-separation} remains a conditional statement on the anchor
-mismatch, and no framework-level alignment bound is claimed. Part (b) is a separate
-deterministic-regression argument with its own comparison solution. The benchmark
-experiments therefore test the realized mismatch and posterior geometry directly;
-they do not assume or verify all premises of Theorem~\ref{prop:pgib-alignment}.
+\emph{Scope of the comparison argument.} Theorem~\ref{prop:pgib-alignment} applies to
+arbitrary $P_{XY}$ and every feasible comparator in the fitted model class; it does not
+require $q(z|x)=p_\theta(z|y)$. Its usefulness depends on the comparator KL. Label
+ambiguity, limited encoder capacity, and covariance misspecification produce the
+non-zero floor made explicit in Proposition~\ref{prop:pgib-ambiguity-decomposition}.
+The stronger statement that this floor is zero still requires the assumptions of
+Corollary~\ref{cor:pgib-exact-alignment}: deterministic labels, exact posterior--prior
+matching, and a compatible head. We do not assume those exact-realizability premises
+for the real-data benchmarks. Their performance comparison evaluates utility, while
+their mechanism analysis evaluates realized mismatch and geometry. The controlled
+known-noise experiment instead evaluates the ambiguity term where its population value
+is analytic, including the deterministic distribution as its zero-floor special case.
 
-\subsection{Proofs of the conditional guarantees}
+\subsection{Proofs of the alignment guarantees}
 
 \begin{proof}[Proof of Proposition~\ref{prop:opb-certificate}]
 For fixed $\theta$, apply the gap identity of Eq.~\eqref{eq:gap} to the conditional
@@ -118,43 +113,67 @@ and centers $m_i = \E[\mu_\phi(X) \mid Y \in B_i]$; the bin diameter adds a
 quantization error bounded by
 $\rho_{\max}\,\operatorname{diam}(B_i) + \rho_{\max}\,\operatorname{diam}(B_j)$ (by
 the upper bound of Eq.~\eqref{eq:pgib-lipschitz}), which vanishes as the bins
-shrink. The theorem itself is stated pointwise and needs no binning.
+shrink. The separation statement itself is pointwise and needs no binning.
 \end{remark}
 
 \begin{proof}[Proof of Theorem~\ref{prop:pgib-alignment}]
-\emph{(a)} Since $\Sigma_\theta(y) \preceq \tau^2_{\max} I_d$, each sample's KL
-contains a mean-mismatch term with variance at most $\tau^2_{\max}$, so
-$\KL(q_\phi(z|x)\,\|\,p_\theta(z|y))
-\ge \|\mu_\phi(x) - m_\theta(y)\|^2/(2\tau^2_{\max})$, and taking expectations gives
-$\E[\KL] \ge \E[D(Y)]$. The comparison solution $q(z|x) = p_\theta(z|y)$ is feasible
-by the assumptions ($Y = f(X)$, class-constant maps, diagonal representable
-covariances), has zero KL, and its prediction is the Bayes posterior of
-Eq.~\eqref{eq:pgib-bayes-classifier}, whose cross-entropy is exactly the conditional
-entropy $C_{\mathrm{G}} = H(Y \mid Z_{\mathrm{align}}) \le \ln K$; for the orthogonal
-instance the anchor-energy classifier of the main model realizes it (shared
-covariance, determinant factors cancel). Hence $L^* \le C_{\mathrm{G}}$ and
-$\beta\,\E[\KL] \le L \le L^* + \varepsilon \le C_{\mathrm{G}} + \varepsilon \le \ln K + \varepsilon$,
-whence Eq.~\eqref{eq:pgib-alignment}.
+Since $\Sigma_\theta(y)\preceq\tau^2_{\max}I_d$, the Gaussian KL contains a mean
+term at least
+$\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2_{\max})$. Hence
+$\mathcal D(\widehat w)\le\mathcal K(\widehat w)$. For any feasible $w_0$,
+near-optimality and non-negativity of the prediction loss give
+\begin{equation*}
+\beta\mathcal K(\widehat w)
+\le \mathcal R(\widehat w)+\beta\mathcal K(\widehat w)
+\le \mathcal R(w_0)+\beta\mathcal K(w_0)+\varepsilon.
+\end{equation*}
+Division by $\beta$ proves Eq.~\eqref{eq:pgib-comparator-bound}; substituting
+$\mathcal K(w_0)\le\delta_{\mathrm{app}}$ and
+$\mathcal R(w_0)\le C_{\mathrm{app}}$ proves
+Eq.~\eqref{eq:pgib-approximate-alignment}.
+\end{proof}
 
-\emph{(b)} As in (a), $\E[\KL] \ge \E[D(Y)]$ by the covariance bound. The comparison
-solution is feasible by the assumptions ($Y = f(X)$, aligned maps representable): its
-posterior is $q(z|x) = p_\theta(z|y)$ (zero KL) and its prediction is the tied head,
-whose risk is $C_{\mathrm{align}} = \tau^2/\rho^2$ (the prediction error is exactly
-the Gaussian bottleneck noise $(\tau/\rho)\,\eta$). Hence
-$L^* \le C_{\mathrm{align}}$ and
-$\beta\,\E[\KL] \le L \le L^* + \varepsilon \le C_{\mathrm{align}} + \varepsilon$,
-whence Eq.~\eqref{eq:pgib-alignment-regression}.
+\begin{proof}[Proof of Proposition~\ref{prop:pgib-ambiguity-decomposition}]
+For OPB let $A_Y:=a q_{0,Y}$. Conditional on $X$, orthonormality gives
+$\E[A_Y\mid X]=a\sum_k\eta_k(X)q_{0,k}$ and
+\begin{equation*}
+\E\!\left[\|A_Y-\E[A_Y\mid X]\|^2\mid X\right]
+=a^2\left(1-\|\eta(X)\|_2^2\right).
+\end{equation*}
+The conditional bias--variance identity then yields
+\begin{equation*}
+\E\|h(X)-A_Y\|^2
+=a^2\E[1-\|\eta(X)\|_2^2]
++\E\left\|h(X)-a\sum_k\eta_k(X)q_{0,k}\right\|^2.
+\end{equation*}
+Adding the diagonal-Gaussian covariance term $V_0$ proves
+Eq.~\eqref{eq:opb-ambiguity-decomposition}. For EPB set
+$A_Y:=\rho\tilde Y u_0$. Then
+$\E[A_Y\mid X]=\rho\nu(X)u_0$ and
+$\E[\|A_Y-\E[A_Y\mid X]\|^2\mid X]
+=\rho^2\operatorname{Var}(\tilde Y\mid X)$. The same identity plus $V_0$ proves
+Eq.~\eqref{eq:epb-ambiguity-decomposition}.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:pgib-exact-alignment}]
+For classification, the assumed comparator $q(z|x)=p_\theta(z|y)$ has
+$\mathcal K(w_0)=0$. Its Bayes cross-entropy is
+$C_{\mathrm G}=H(Y\mid Z_{\mathrm{align}})\le\ln K$; with shared covariance the
+determinant factors cancel and its posterior is the anchor-energy rule. Applying
+Eq.~\eqref{eq:pgib-comparator-bound} gives Eq.~\eqref{eq:pgib-alignment}. For
+regression the aligned comparator again has zero KL. Under the tied head its error is
+$(\tau/\rho)\eta$, $\eta\sim\mathcal N(0,1)$, so its standardized squared risk is
+$\tau^2/\rho^2$; the same theorem gives
+Eq.~\eqref{eq:pgib-alignment-regression}.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\ref{cor:pgib-alignment-separation}]
-\emph{(a)} $D_k \le \E[D(Y)]/\pi_k \le (C_{\mathrm{G}} + \varepsilon)/(\beta \pi_k)$;
-combine with Proposition~\ref{prop:pgib-separation}, whose mismatch terms are
-$\sqrt{2\tau^2_{\max} D_k}$. \emph{(b)} Markov's inequality on the non-negative
-variable $D(Y)$ with mean at most
-$(C_{\mathrm{align}} + \varepsilon)/\beta$ gives
-$P_Y(D(Y) > t) \le (C_{\mathrm{align}} + \varepsilon)/(\beta t)$; on $S_t$ the
-pointwise transfer of Proposition~\ref{prop:pgib-separation}(b) applies with
-$D(y), D(y') \le t$.
+Theorem~\ref{prop:pgib-alignment} gives $\E[D(Y)]\le B_0$.
+For (a), $D_k\le B_0/\pi_k$; substituting this into
+Proposition~\ref{prop:pgib-separation}(a) gives
+Eq.~\eqref{eq:pgib-alignment-separation}. For (b), Markov's inequality gives
+$P_Y(D(Y)>t)\le B_0/t$; on $S_t$ the pointwise transfer of
+Proposition~\ref{prop:pgib-separation}(b) applies with $D(y),D(y')\le t$.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\ref{prop:opb-collapse}]
@@ -174,9 +193,11 @@ to match ($q_{\theta,k} \to q'_k$), yielding $\KL = 0$, $I(X;Z|Y) = 0$, and
 $I(Y;Z) > 0$: a full-retention label code with a zero certificate. The framework
 therefore constrains the geometric \emph{form} of the label code (precisely what CEB
 left unspecified), and does not claim that the certificate meters retained label
-information. (With the variance fixed, the remaining freedom at certificate zero is
-the frame rotation; a learnable per-class variance would add a further circumvention
-channel and is deliberately not used.)
+information. In the fixed-covariance canonical instance, the remaining freedom at
+certificate zero is the frame rotation. The covariance-relaxed real-data protocol has
+an additional but log-clamped matching channel; the comparison theorem applies with
+the resulting $\tau^2_{\max}$, and Section~\ref{sec:direct-mismatch} reports that
+channel rather than treating it as fixed.
 \end{remark}
 
 \subsection{Construction details}
@@ -414,6 +435,120 @@ the retained label information. Quantifying how much of the anchor gap is absorb
 frame rotation rather than by posterior motion is left to future work (a frozen-frame
 ablation isolates it).
 \end{remark}
+
+\subsection{Controlled label-ambiguity sensitivity analyses}
+\label{app:noisy-alignment-sensitivity}
+
+The population-weighted experiment of Section~\ref{sec:controlled-validation} uses a
+fixed frame and the standard trainable posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity}
+changes these choices one at a time. Fixing the posterior variance to
+$\sigma^2\equiv\tau^2$ leaves the measured mismatch on the analytic floors, confirming
+that the result is not produced by a covariance compensation channel. Replacing the
+fixed frame by the trainable stateless polar frame gives the same result, so the floor
+is invariant to the learned rigid frame rotation.
+
+The third panel replaces the exact population weights by sampled noisy labels. It
+shows the expected finite-sample displacement from the population floor at weak
+compression and convergence toward the empirical floor as compression strengthens.
+Six sampled-label configurations at large $\beta$ fail the explicit comparator-objective
+gate (twelve stored rows because both best and final checkpoints are retained); they are
+marked as optimization failures rather than interpreted as violations of
+Eq.~\eqref{eq:pgib-comparator-bound}. The population-weighted main grid and both
+structural controls satisfy the gate at every point.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_noisy_alignment_appendix.png}
+\caption{Sensitivity analyses for the controlled label-ambiguity experiment.
+(a) Posterior variance fixed to the prior variance. (b) Trainable stateless polar
+frame. (c) Labels sampled rather than integrated with their exact population weights;
+failed comparator-gate configurations are marked. Dashed lines denote the analytic
+population ambiguity floors. Points are means and error bars are standard deviations
+over five seeds.}
+\label{fig:noisy-alignment-sensitivity}
+\end{figure*}
+
+\subsection{Direct mismatch definitions and separation diagnostics}
+\label{app:direct-mismatch}
+
+This section gives the finite-sample quantities behind
+Section~\ref{sec:direct-mismatch}. All statistics are first computed within each seed
+and then aggregated across the five seeds; class or bin pairs are not treated as
+independent replicates. Every checkpoint in both requested grids is present, and no
+collapse or variance-explosion point is removed.
+
+\paragraph{Classification.} For test examples of class $k$, define
+\begin{equation}
+\widehat D_k:=\frac{1}{n_k}\sum_{n:y_n=k}
+\frac{\|\mu_\phi(x_n)-a q_{\theta,k}\|^2}{2\widehat\tau^2_{\max}},
+\qquad
+\widehat m_k:=\frac{1}{n_k}\sum_{n:y_n=k}\mu_\phi(x_n).
+\label{eq:empirical-class-mismatch}
+\end{equation}
+Jensen gives the per-class check
+$\|\widehat m_k-aq_{\theta,k}\|
+\le\sqrt{2\widehat\tau^2_{\max}\widehat D_k}$, and the triangle inequality gives
+Eq.~\eqref{eq:empirical-class-separation-bound}. Both are evaluated without clipping
+the lower bound. Across all OPB scales, $\beta$ values, seeds, and classes, no Jensen
+or separation-slack violation exceeds $10^{-6}$. Figure~\ref{fig:direct-mismatch-class}
+shows how the actual separation, raw lower bound, fraction of informative pairs, and
+slack change over the sweep. CEB's mismatch is shown descriptively, but its bound and
+slack entries are left empty because its reference has no declared $\Delta$.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_mismatch_appendix_cls.png}
+\caption{ImageNet-100 class-separation diagnostics. (a) Mean posterior-center
+distance and the raw (unclipped) mismatch-dependent lower bound against $\beta$;
+CEB mismatch is included only as a descriptive reference. (b) Fraction of OPB class
+pairs with a positive lower bound. (c) The $5$th, $50$th, and $95$th percentiles of
+the separation slack. Statistics are computed within seed before aggregation.}
+\label{fig:direct-mismatch-class}
+\end{figure*}
+
+\paragraph{Regression.} We partition the standardized test labels into $20$
+equal-width bins and merge any bin containing fewer than $30$ examples. For bin
+$B_b$, let $\bar y_b$ be its mean label, $\widehat m_b$ its posterior center,
+$\widehat D_b$ its average sample-to-own-anchor mismatch, and
+$h_b:=\operatorname{diam}(B_b)$. The finite-bin lower bound used in the diagnostic is
+\begin{align}
+\widehat{\mathrm{LB}}_{bc}
+={}&\rho|\bar y_b-\bar y_c|
+-\sqrt{2\widehat\tau^2_{\max}\widehat D_b}
+-\sqrt{2\widehat\tau^2_{\max}\widehat D_c}
+-\rho(h_b+h_c).
+\label{eq:empirical-regression-separation-bound}
+\end{align}
+The last term is the quantization correction from
+Remark~\ref{rem:pgib-binning}. Figure~\ref{fig:direct-mismatch-regression} plots the
+actual bin-center distances against the declared isometric distances for four
+$\beta$ values at $\rho=6$. The points lie systematically below the identity line,
+consistent with the measured normalized axial slope of $0.73$--$0.77$. After the
+quantization correction, $43\%$ of bin pairs have a positive bound; all raw slacks
+remain non-negative to numerical tolerance.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_mismatch_appendix_reg.png}
+\caption{Cal.\ Housing finite-bin regression diagnostic at $\rho=6$. Each panel
+compares posterior bin-center distance with the declared prior distance
+$\rho|\bar y_b-\bar y_c|$ at one $\beta$; the identity line denotes exact scale
+transfer. The mismatch-dependent bound additionally includes the two mismatch terms
+and the bin-diameter correction of
+Eq.~\eqref{eq:empirical-regression-separation-bound}.}
+\label{fig:direct-mismatch-regression}
+\end{figure*}
+
+\paragraph{Normalization and variance extremes.} The empirical mismatch uses one
+maximum conditional-reference variance per checkpoint, whereas the exact Gaussian KL
+uses every sample's and coordinate's own variance. They therefore need not coincide:
+averaged over the ImageNet-100 grid, $\widehat D=41.2$, the KL mean term is $46.5$,
+and the KL variance term is $51.4$. On Housing, a small number of weak-compression,
+large-$\rho$ variance explosions raise the across-grid mean KL variance term to
+$2.8\times10^6$. These checkpoints remain in all plots. Because their
+$\widehat\tau^2_{\max}$ is also large, the normalized $\widehat D$ can fall even as
+the KL variance term grows; the unnormalized axial/off-axis components and total KL
+are therefore reported alongside it.
 
 \subsection{Main results with standard deviations}
 \label{app:main-std}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>调参结果</title>
+<style>
+body { font-family: sans-serif; margin: 2em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.1em; margin-top: 1.6em; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 6px 12px; text-align: center; }
+th { background: #eee; }
+tr.best { background: #dfd; font-weight: bold; }
+.meta { color: #555; margin-bottom: 1em; }
+.sort-row { margin-bottom: 0.5em; }
+</style>
+</head>
+<body>
+<h1>调参结果</h1>
+<div class="meta">task=mnist backbone=mlp model=ncbd runs=5 epochs=100 | 6 组组合 | 表格后附最优精度汇总表、GPB−baseline 配对差值 95% CI 表与 ceb/opb 压缩-精度对比曲线（β 对数刻度；opb 各 a=1/6/12 一条线）（绿色高亮 = 各模型默认指标 Acc 的最佳行）</div>
+
+<h2>ncbd</h2>
+<div class="sort-row">排序指标：
+<select class="sort-select" data-table="table-ncbd">
+<option value="Loss">Loss</option><option value="Acc" selected>Acc</option><option value="AUC">AUC</option><option value="Pre">Pre</option><option value="Rec">Rec</option>
+</select>
+（Acc/AUC/Pre/Rec/R2 降序，Loss/MAE 升序）</div>
+<table id="table-ncbd">
+<thead><tr><th>beta</th><th>anchor_scale</th><th>Loss</th><th>Acc</th><th>AUC</th><th>Pre</th><th>Rec</th></tr></thead>
+<tbody>
+<tr class="best" data-loss="1.1512" data-acc="0.9795" data-auc="0.9987" data-pre="0.9795" data-rec="0.9793"><td>0.2</td><td>-</td><td>1.1512±0.0245</td><td>0.9795±0.0023</td><td>0.9987±0.0004</td><td>0.9795±0.0023</td><td>0.9793±0.0024</td></tr><tr data-loss="-2.7538" data-acc="0.9789" data-auc="0.9991" data-pre="0.9788" data-rec="0.9787"><td>0.1</td><td>-</td><td>-2.7538±0.0739</td><td>0.9789±0.0025</td><td>0.9991±0.0001</td><td>0.9788±0.0024</td><td>0.9787±0.0025</td></tr><tr data-loss="5.0878" data-acc="0.9781" data-auc="0.9971" data-pre="0.978" data-rec="0.9779"><td>1</td><td>-</td><td>5.0878±0.0022</td><td>0.9781±0.0012</td><td>0.9971±0.0003</td><td>0.9780±0.0012</td><td>0.9779±0.0011</td></tr><tr data-loss="2.7457" data-acc="0.9764" data-auc="0.9983" data-pre="0.9763" data-rec="0.9762"><td>0.3</td><td>-</td><td>2.7457±0.0254</td><td>0.9764±0.0043</td><td>0.9983±0.0002</td><td>0.9763±0.0043</td><td>0.9762±0.0043</td></tr><tr data-loss="4.0768" data-acc="0.9752" data-auc="0.998" data-pre="0.9752" data-rec="0.9749"><td>0.5</td><td>-</td><td>4.0768±0.0053</td><td>0.9752±0.0017</td><td>0.9980±0.0002</td><td>0.9752±0.0017</td><td>0.9749±0.0018</td></tr><tr data-loss="-10.0473" data-acc="0.9737" data-auc="0.9986" data-pre="0.9737" data-rec="0.9735"><td>0.05</td><td>-</td><td>-10.0473±0.1689</td><td>0.9737±0.0025</td><td>0.9986±0.0001</td><td>0.9737±0.0026</td><td>0.9735±0.0025</td></tr>
+</tbody>
+</table>
+
+
+<h2>最优精度汇总</h2>
+<table>
+<thead><tr><th>模型</th><th>beta</th><th>anchor_scale</th><th>最优 Acc</th></tr></thead>
+<tbody>
+<tr class="best"><td>ncbd</td><td>0.2</td><td>-</td><td>0.9795±0.0023</td></tr>
+</tbody>
+</table>
+
+<script>
+function sortTable(tableId, key) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const ascending = key === "Loss" || key === "MAE";
+  rows.sort((a, b) => {
+    const k = key.toLowerCase();
+    const va = parseFloat(a.dataset[k]);
+    const vb = parseFloat(b.dataset[k]);
+    const fa = isNaN(va) ? (ascending ? Infinity : -Infinity) : va;
+    const fb = isNaN(vb) ? (ascending ? Infinity : -Infinity) : vb;
+    return ascending ? fa - fb : fb - fa;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+document.querySelectorAll(".sort-select").forEach(sel => {
+  sel.addEventListener("change", () => sortTable(sel.dataset.table, sel.value));
+});
+</script>
+</body>
+</html>
