@@ -76,14 +76,17 @@ from datasets.datasets import (
 from datasets.imdb import get_imdb_dataloaders
 from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
-from model import (CEB, CEBEnergy, CEBTied, CNN, DVCCA, FGIB, GCN, MLP,
-                   NCMLearn, NCMOrtho, NIB, OPB, OPBFreeScale, SVIB, VIB)
-from model.cnn import CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NIB as CNNNIB, OPB as CNNOPB, SVIB as CNNSVIB, VIB as CNNVIB
-from model.gnn import CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NIB as GNNNIB, OPB as GNNOPB, SVIB as GNNSVIB, VIB as GNNVIB
+from model import (AdaCap, CEB, CEBEnergy, CEBTied, CNN, DVCCA, FGIB, GCN,
+                   MLP, NCBD, NCMLearn, NCMOrtho, NIB, OPB, OPBFreeScale, SVIB,
+                   VIB)
+from model.cnn import AdaCap as CNNAdaCap, CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NCBD as CNNNCBD, NIB as CNNNIB, OPB as CNNOPB, SVIB as CNNSVIB, VIB as CNNVIB
+from model.gnn import AdaCap as GNNAdaCap, CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NCBD as GNNNCBD, NIB as GNNNIB, OPB as GNNOPB, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
+    AdaCap as RNNAdaCap,
     CEB as RNNCEB,
     DVCCA as RNNDVCCA,
     FGIB as RNNFGIB,
+    NCBD as RNNNCBD,
     NIB as RNNNIB,
     OPB as RNNOPB,
     RNN,
@@ -100,10 +103,11 @@ def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None
     """
     if isinstance(model, (VIB, CEB, NIB, OPB, CEBEnergy, CEBTied, OPBFreeScale,
                           NCMLearn, NCMOrtho,
-                          CNNVIB, CNNCEB, CNNNIB, CNNOPB, RNNVIB, RNNCEB, RNNNIB, RNNOPB)):
+                          CNNVIB, CNNCEB, CNNNIB, CNNOPB, RNNVIB, RNNCEB, RNNNIB, RNNOPB,
+                          NCBD, CNNNCBD, RNNNCBD, AdaCap, CNNAdaCap, RNNAdaCap)):
         logits, kl = model(images, labels, stochastic=stochastic)
         return logits, kl, None
-    if isinstance(model, (GNNVIB, GNNCEB, GNNNIB, GNNOPB)):
+    if isinstance(model, (GNNVIB, GNNCEB, GNNNIB, GNNOPB, GNNNCBD, GNNAdaCap)):
         logits, kl = model(images, labels, stochastic=stochastic, adj_norm=adj, mask=mask, batch=batch)
         return logits, kl, None
     if isinstance(model, (DVCCA, CNNDVCCA, RNNDVCCA)):
@@ -121,7 +125,24 @@ def run_model(model, images, labels, stochastic, adj=None, mask=None, batch=None
     return model(images), None, None
 
 
-def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="classification"):
+def combine_loss(criterion, logits, labels, kl, recon, beta, use_model_loss):
+    """组装训练/评估损失。
+
+    use_model_loss 时（ncbd/adacap）损失即模型返回的第二项（NONL 值 /
+    AdaCap 对比损失），忽略 criterion 与 beta；其余模型沿用
+    criterion(logits, labels) + beta·kl + beta·recon。
+    """
+    if use_model_loss:
+        return kl
+    loss = criterion(logits, labels)
+    if kl is not None:
+        loss = loss + beta * kl
+    if recon is not None:
+        loss = loss + beta * recon
+    return loss
+
+
+def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="classification", use_model_loss=False):
     """训练一个 epoch，返回 (平均损失, 训练准确率)；回归任务准确率为 None。"""
     model.train()
     total_loss, total, correct = 0.0, 0, 0
@@ -133,11 +154,7 @@ def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="cla
         logits, kl, recon = run_model(model, images, labels, stochastic=True)
         if task in ("housing", "stsb", "agedb"):
             logits = logits.squeeze(-1)
-        loss = criterion(logits, labels)
-        if kl is not None:
-            loss = loss + beta * kl
-        if recon is not None:
-            loss = loss + beta * recon
+        loss = combine_loss(criterion, logits, labels, kl, recon, beta, use_model_loss)
         loss.backward()
         optimizer.step()
 
@@ -151,7 +168,7 @@ def train_one_epoch(model, loader, optimizer, criterion, beta, device, task="cla
 
 
 @torch.no_grad()
-def evaluate(model, loader, criterion, beta, device, task="classification", target_scaler=None):
+def evaluate(model, loader, criterion, beta, device, task="classification", target_scaler=None, use_model_loss=False):
     """分类返回 (loss, acc, 宏平均 AUC / precision / recall)；回归返回 (loss, MAE, R2)。
 
     回归的 MAE 用 target_scaler 逆归一化回原始单位计算（R2 与量纲无关）。
@@ -165,11 +182,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
         logits, kl, recon = run_model(model, images, labels, stochastic=False)
         if task in ("housing", "stsb", "agedb"):
             logits = logits.squeeze(-1)
-        loss = criterion(logits, labels)
-        if kl is not None:
-            loss = loss + beta * kl
-        if recon is not None:
-            loss = loss + beta * recon
+        loss = combine_loss(criterion, logits, labels, kl, recon, beta, use_model_loss)
 
         total_loss += loss.item() * images.size(0)
         total += labels.size(0)
@@ -203,7 +216,7 @@ def evaluate(model, loader, criterion, beta, device, task="classification", targ
     return total_loss / total, correct / total, auc, precision, recall
 
 
-def train_one_epoch_cora(model, x, adj, y, train_mask, optimizer, criterion, beta, device):
+def train_one_epoch_cora(model, x, adj, y, train_mask, optimizer, criterion, beta, device, use_model_loss=False):
     """Cora 全图批训练：CE 与 KL 都只在 train mask 节点上计算（转导式）。
 
     返回 (loss, 训练节点准确率)。
@@ -211,11 +224,7 @@ def train_one_epoch_cora(model, x, adj, y, train_mask, optimizer, criterion, bet
     model.train()
     optimizer.zero_grad()
     logits, kl, recon = run_model(model, x, y, stochastic=True, adj=adj, mask=train_mask)
-    loss = criterion(logits[train_mask], y[train_mask])
-    if kl is not None:
-        loss = loss + beta * kl
-    if recon is not None:
-        loss = loss + beta * recon
+    loss = combine_loss(criterion, logits[train_mask], y[train_mask], kl, recon, beta, use_model_loss)
     loss.backward()
     optimizer.step()
     correct = (logits.argmax(dim=1)[train_mask] == y[train_mask]).sum().item()
@@ -223,15 +232,11 @@ def train_one_epoch_cora(model, x, adj, y, train_mask, optimizer, criterion, bet
 
 
 @torch.no_grad()
-def evaluate_cora(model, x, adj, y, mask, criterion, beta, device):
+def evaluate_cora(model, x, adj, y, mask, criterion, beta, device, use_model_loss=False):
     """Cora 评估：分类指标只在 mask 节点上计算，返回 (loss, acc, 宏平均 AUC, pre, rec)。"""
     model.eval()
     logits, kl, recon = run_model(model, x, y, stochastic=False, adj=adj, mask=mask)
-    loss = criterion(logits[mask], y[mask])
-    if kl is not None:
-        loss = loss + beta * kl
-    if recon is not None:
-        loss = loss + beta * recon
+    loss = combine_loss(criterion, logits[mask], y[mask], kl, recon, beta, use_model_loss)
 
     probs = logits.softmax(dim=1)[mask].cpu().numpy()
     preds = logits.argmax(dim=1)[mask].cpu().numpy()
@@ -244,7 +249,7 @@ def evaluate_cora(model, x, adj, y, mask, criterion, beta, device):
     return loss.item(), correct / len(labels), auc, precision, recall
 
 
-def train_one_epoch_zinc(model, loader, optimizer, criterion, beta, device):
+def train_one_epoch_zinc(model, loader, optimizer, criterion, beta, device, use_model_loss=False):
     """ZINC 图回归训练一个 epoch（图批四元组：x / 块对角 adj / batch_idx / y）。
 
     返回 (平均损失, None)，损失按图数加权（MSE 与 KL 均为批内平均）。
@@ -261,11 +266,7 @@ def train_one_epoch_zinc(model, loader, optimizer, criterion, beta, device):
             model, x, y, stochastic=True, adj=adj_block, batch=batch_idx
         )
         logits = logits.squeeze(-1)
-        loss = criterion(logits, y)
-        if kl is not None:
-            loss = loss + beta * kl
-        if recon is not None:
-            loss = loss + beta * recon
+        loss = combine_loss(criterion, logits, y, kl, recon, beta, use_model_loss)
         loss.backward()
         optimizer.step()
 
@@ -276,7 +277,7 @@ def train_one_epoch_zinc(model, loader, optimizer, criterion, beta, device):
 
 
 @torch.no_grad()
-def evaluate_zinc(model, loader, criterion, beta, device, target_scaler):
+def evaluate_zinc(model, loader, criterion, beta, device, target_scaler, use_model_loss=False):
     """ZINC 图回归评估，返回 (loss, MAE, R2)；MAE 经 y_scaler 逆归一化回原始单位。"""
     model.eval()
     total_loss, total = 0.0, 0
@@ -290,11 +291,7 @@ def evaluate_zinc(model, loader, criterion, beta, device, target_scaler):
             model, x, y, stochastic=False, adj=adj_block, batch=batch_idx
         )
         logits = logits.squeeze(-1)
-        loss = criterion(logits, y)
-        if kl is not None:
-            loss = loss + beta * kl
-        if recon is not None:
-            loss = loss + beta * recon
+        loss = combine_loss(criterion, logits, y, kl, recon, beta, use_model_loss)
 
         total_loss += loss.item() * y.size(0)
         total += y.size(0)
@@ -306,6 +303,37 @@ def evaluate_zinc(model, loader, criterion, beta, device, target_scaler):
     preds = target_scaler.inverse_transform(preds.reshape(-1, 1)).ravel()
     labels = target_scaler.inverse_transform(labels.reshape(-1, 1)).ravel()
     return total_loss / total, mean_absolute_error(labels, preds), r2_score(labels, preds)
+
+
+@torch.no_grad()
+def fit_adacap_readout(model, loader, device):
+    """AdaCap 评估读出：在训练集全部表示上拟 Tikhonov β（当前 λ）。
+
+    eval 模式下 BN 用运行统计、dropout 关闭，与测试时一致；β 存模型 buffer，
+    之后的 val/test 预测 ŷ = H·β。每 epoch 多一次训练集前向（小数据集
+    成本可忽略），避免把 val/test 批自身标签代入 ridge 的 in-sample 泄漏。
+    """
+    model.eval()
+    Hs, ys = [], []
+    for images, labels in loader:
+        images, labels = images.to(device), labels.to(device)
+        Hs.append(model.encode(images))
+        ys.append(labels.float().unsqueeze(-1))
+    model.set_readout(torch.cat(Hs), torch.cat(ys))
+
+
+@torch.no_grad()
+def fit_adacap_readout_zinc(model, loader, device):
+    """AdaCap 图级读出（zinc）：训练集全部图表示上拟 β，同 fit_adacap_readout。"""
+    model.eval()
+    Hs, ys = [], []
+    for x, adj_block, batch_idx, y in loader:
+        x, adj_block, batch_idx, y = (
+            x.to(device), adj_block.to(device), batch_idx.to(device), y.to(device)
+        )
+        Hs.append(model.encode(x, adj_block, batch_idx))
+        ys.append(y.float().unsqueeze(-1))
+    model.set_readout(torch.cat(Hs), torch.cat(ys))
 
 
 MODEL_CLASSES = {
@@ -341,6 +369,15 @@ MODEL_CLASSES = {
     ("opb", "cnn"): CNNOPB,
     ("opb", "gnn"): GNNOPB,
     ("opb", "rnn"): RNNOPB,
+    # 审稿人对比基线：ncbd（NCBD-NONL，几何分类）/ adacap（AdaCap，非 IB 回归）
+    ("ncbd", "mlp"): NCBD,
+    ("ncbd", "cnn"): CNNNCBD,
+    ("ncbd", "gnn"): GNNNCBD,
+    ("ncbd", "rnn"): RNNNCBD,
+    ("adacap", "mlp"): AdaCap,
+    ("adacap", "cnn"): CNNAdaCap,
+    ("adacap", "gnn"): GNNAdaCap,
+    ("adacap", "rnn"): RNNAdaCap,
     # 消融试验变体（审稿人混杂因素分解，仅 MLP 骨干；输出目录 output/ablation）
     ("ncm", "mlp"): NCMLearn,
     ("ncmo", "mlp"): NCMOrtho,
@@ -408,10 +445,20 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
     model_kwargs = dict(dropout=args.dropout)
     if backbone in ("mlp", "gnn", "rnn"):
         model_kwargs["hidden_dims"] = tuple(args.hidden_dims)
-    if args.model not in ("mlp", "cnn", "gcn", "rnn"):
+    if args.model not in ("mlp", "cnn", "gcn", "rnn", "ncbd", "adacap"):
         model_kwargs["z_dim"] = args.z_dim
     if args.model in ("fgib", "opb", "ncmo", "opb-free-scale"):
         model_kwargs["anchor_scale"] = args.anchor_scale
+    # 审稿人基线复用 --beta 槽位作其唯一超参数：ncbd 的温度 τ、adacap 的
+    # Tikhonov λ 初始值；未显式指定 --beta 时用原文默认值（τ=0.1 / λ_init=100）
+    if args.model == "ncbd":
+        model_kwargs["temperature"] = (
+            args.beta if args.beta != parser.get_default("beta") else 0.1
+        )
+    if args.model == "adacap":
+        model_kwargs["lambda_init"] = (
+            args.beta if args.beta != parser.get_default("beta") else 100.0
+        )
     if args.model in ("opb", "opb-free-scale"):
         if args.energy_classifier:
             model_kwargs["energy_classifier"] = True
@@ -484,6 +531,7 @@ def build_parser():
         "--model",
         type=str,
         choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca",
+                 "ncbd", "adacap",
                  "ncm", "ncmo", "ceb-energy", "ceb-tied", "opb-free-scale"],
         default="mlp",
         help="svib is Squared-IB (ICLR 2019 Caveats): a VIB subclass whose forward "
@@ -497,7 +545,13 @@ def build_parser():
         "opb is Orthogonal-Prior Bottleneck: classification (paper/design/OPB.txt) — prior "
         "means are the QR-orthonormalized per-class outputs of the prior net; "
         "regression (OPB-R, paper/design/OPB-R.txt) — prior means lie on an isometric axis "
-        "rho·y_tilde·normalize(W) with learnable label-conditional logvar",
+        "rho·y_tilde·normalize(W) with learnable label-conditional logvar; "
+        "ncbd is NCBD-NONL (Neural Collapse by Design, ICML 2026): unit-hypersphere "
+        "features and learnable class prototypes, loss = NONL contrastive (no CE/KL), "
+        "--beta slot carries the temperature tau (default 0.1), classification only; "
+        "adacap is AdaCap (ESANN 2026): Tikhonov closed-form output layer with learnable "
+        "lambda plus permutation-contrastive loss, --beta slot carries lambda_init "
+        "(default 100), regression only",
     )
     parser.add_argument(
         "--backbone",
@@ -629,22 +683,27 @@ def main():
 
     if args.task == "housing" and (args.model == "cnn" or args.backbone == "cnn"):
         parser.error("CNN backbone is not supported for housing")
+    # 审稿人基线任务范围：ncbd 仅分类（几何原型分类器）、adacap 仅回归
+    if args.model == "ncbd" and args.task in ("housing", "stsb", "zinc", "agedb"):
+        parser.error("--model ncbd 仅分类任务（NONL 类原型对比损失无回归版本）")
+    if args.model == "adacap" and args.task not in ("housing", "stsb", "zinc", "agedb"):
+        parser.error("--model adacap 仅回归任务（Tikhonov 闭式输出层为连续目标设计）")
     if args.task in ("cora", "zinc"):
         ok = args.model == "gcn" or (
-            args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca")
+            args.backbone == "gnn" and args.model in ("vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca", "ncbd", "adacap")
         )
         if not ok:
-            parser.error("Cora/ZINC 任务仅支持 --model gcn 或 --backbone gnn 加 vib/ceb/fgib/opb/svib/nib/dvcca")
+            parser.error("Cora/ZINC 任务仅支持 --model gcn 或 --backbone gnn 加 vib/ceb/fgib/opb/svib/nib/dvcca/ncbd/adacap")
     elif args.model == "gcn" or args.backbone == "gnn":
         parser.error("GNN backbone is only supported for cora/zinc")
     if args.task in ("imdb", "agnews", "stsb"):
         ok = args.model == "rnn" or (
-            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca")
+            args.backbone == "rnn" and args.model in ("vib", "ceb", "fgib", "opb", "svib", "nib", "dvcca", "ncbd", "adacap")
         )
         if not ok:
             parser.error(
                 f"{args.task} task only supports --model rnn or "
-                "--backbone rnn with vib/ceb/fgib/opb/svib/nib/dvcca"
+                "--backbone rnn with vib/ceb/fgib/opb/svib/nib/dvcca/ncbd/adacap"
             )
     elif args.model == "rnn" or args.backbone == "rnn":
         parser.error("RNN backbone is only supported for imdb/agnews/stsb")
@@ -750,6 +809,10 @@ def main():
         target_scaler = None
 
     criterion = nn.MSELoss() if args.task in ("housing", "stsb", "zinc", "agedb") else nn.CrossEntropyLoss()
+    # ncbd/adacap 的训练损失即模型返回的第二项（NONL 值 / AdaCap 对比损失）；
+    # 评估损失 ncbd 仍用该值、adacap 用纯 MSE（读出 β 为训练集拟合）
+    model_loss_train = args.model in ("ncbd", "adacap")
+    model_loss_eval = args.model == "ncbd"
     test_results = []
     run_train_accs = []
 
@@ -783,10 +846,12 @@ def main():
         for epoch in range(1, args.epochs + 1):
             if args.task == "cora":
                 train_loss, train_acc = train_one_epoch_cora(
-                    model, x, adj, y, train_mask, optimizer, criterion, args.beta, device
+                    model, x, adj, y, train_mask, optimizer, criterion, args.beta,
+                    device, use_model_loss=model_loss_train,
                 )
                 val_loss, val_acc, val_auc, val_pre, val_rec = evaluate_cora(
-                    model, x, adj, y, val_mask, criterion, args.beta, device
+                    model, x, adj, y, val_mask, criterion, args.beta, device,
+                    use_model_loss=model_loss_eval,
                 )
                 val_score = val_auc
                 logging.info(
@@ -797,10 +862,14 @@ def main():
                 )
             elif args.task == "zinc":
                 train_loss, _ = train_one_epoch_zinc(
-                    model, train_loader, optimizer, criterion, args.beta, device
+                    model, train_loader, optimizer, criterion, args.beta, device,
+                    use_model_loss=model_loss_train,
                 )
+                if args.model == "adacap":
+                    fit_adacap_readout_zinc(model, train_loader, device)
                 val_loss, val_mae, val_r2 = evaluate_zinc(
-                    model, val_loader, criterion, args.beta, device, target_scaler
+                    model, val_loader, criterion, args.beta, device, target_scaler,
+                    use_model_loss=model_loss_eval,
                 )
                 val_score = val_r2
                 logging.info(
@@ -810,11 +879,14 @@ def main():
                 )
             elif args.task in ("housing", "stsb", "agedb"):
                 train_loss, _ = train_one_epoch(
-                    model, train_loader, optimizer, criterion, args.beta, device, args.task
+                    model, train_loader, optimizer, criterion, args.beta, device,
+                    args.task, use_model_loss=model_loss_train,
                 )
+                if args.model == "adacap":
+                    fit_adacap_readout(model, train_loader, device)
                 val_loss, val_mae, val_r2 = evaluate(
                     model, val_loader, criterion, args.beta, device, args.task,
-                    target_scaler,
+                    target_scaler, use_model_loss=model_loss_eval,
                 )
                 val_score = val_r2
                 logging.info(
@@ -824,10 +896,12 @@ def main():
                 )
             else:
                 train_loss, train_acc = train_one_epoch(
-                    model, train_loader, optimizer, criterion, args.beta, device, args.task
+                    model, train_loader, optimizer, criterion, args.beta, device,
+                    args.task, use_model_loss=model_loss_train,
                 )
                 val_loss, val_acc, val_auc, val_pre, val_rec = evaluate(
-                    model, val_loader, criterion, args.beta, device, args.task
+                    model, val_loader, criterion, args.beta, device, args.task,
+                    use_model_loss=model_loss_eval,
                 )
                 val_score = val_auc
                 logging.info(
@@ -862,9 +936,16 @@ def main():
             model.load_state_dict(best_state)
         else:
             model.load_state_dict(torch.load(run_save_path, weights_only=True))
+        # adacap 最终测试：在最优 checkpoint 上重拟训练集读出 β（当前 λ）
+        if args.model == "adacap":
+            if args.task == "zinc":
+                fit_adacap_readout_zinc(model, train_loader, device)
+            else:
+                fit_adacap_readout(model, train_loader, device)
         if args.task == "cora":
             test_loss, test_acc, test_auc, test_pre, test_rec = evaluate_cora(
-                model, x, adj, y, test_mask, criterion, args.beta, device
+                model, x, adj, y, test_mask, criterion, args.beta, device,
+                use_model_loss=model_loss_eval,
             )
             logging.info(
                 f"Run {run}/{args.runs} | Test (best model @ Epoch {best_epoch}) | "
@@ -875,12 +956,13 @@ def main():
         elif args.task in ("housing", "stsb", "zinc", "agedb"):
             if args.task == "zinc":
                 test_loss, test_mae, test_r2 = evaluate_zinc(
-                    model, test_loader, criterion, args.beta, device, target_scaler
+                    model, test_loader, criterion, args.beta, device, target_scaler,
+                    use_model_loss=model_loss_eval,
                 )
             else:
                 test_loss, test_mae, test_r2 = evaluate(
                     model, test_loader, criterion, args.beta, device, args.task,
-                    target_scaler,
+                    target_scaler, use_model_loss=model_loss_eval,
                 )
             logging.info(
                 f"Run {run}/{args.runs} | Test (best model @ Epoch {best_epoch}) | "
@@ -889,7 +971,8 @@ def main():
             test_results.append((test_loss, test_mae, test_r2))
         else:
             test_loss, test_acc, test_auc, test_pre, test_rec = evaluate(
-                model, test_loader, criterion, args.beta, device, args.task
+                model, test_loader, criterion, args.beta, device, args.task,
+                use_model_loss=model_loss_eval,
             )
             logging.info(
                 f"Run {run}/{args.runs} | Test (best model @ Epoch {best_epoch}) | "

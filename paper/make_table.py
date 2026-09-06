@@ -4,19 +4,23 @@ r"""从 tune_results/*.html 收集调参结果，生成 main_result.tex 主结�
 
 tune.py 生成的每个 html 对应一个 数据集×骨干 组合，内部每个模型一张表；
 每行一个超参组合（指标 td 文本为 'mean±std'），各模型默认指标（分类 Acc、
-回归 R²）的最优行已被 tune.py 标为 class="best"。
+回归 R²）的最优行已被 tune.py 标为 class="best"。ncbd/adacap 各有独立的
+单模型 html（同 (task, backbone)），本脚本按文件名合并。
 
 本脚本对每个 (数据集, 模型) 取 best 行（缺失时回退到该模型指标最大的行），
 只保留 Acc/R² 一个指标：分类任务报告 Acc（×100 显示为百分比）、回归任务报告
 R²（原始值），且只显示均值、不含标准差（表格较宽）；其余指标
 （Loss/AUC/Pre/Rec/MAE）一律丢弃；每行（数据集）的最优指标加粗、次优
 （并列次优全部）加下划线；表尾两行统计各方法跨数据集行的平均排名（并列取
-平均名次，越低越好）与最优/并列最优次数（并列时各方法均计数）。输出可直接
+平均名次，越低越好）与最优/并列最优次数（并列时各方法均计数）。列含审稿人
+要求的非 IB 外部基线 NCBD（仅分类行有值）与 AdaCap（仅回归行有值），排名/
+最优计数只在各模型适用的行上计算。输出可直接
 \input{} 的 table* 浮动体，保存到 paper/main_result.tex；同源生成带标准差的
 paper/main_result_std.tex（gen_table_std，单元格为均值±std，按列拆为
-baselines 与 CEB/DVCCA+GPB/GPB-L 两张表以适配页宽）；以及配对差值表
-paper/main_result_CI.tex（gen_result_ci，GPB − 各 baseline 的 bootstrap 95% CI，
-同 seed 配对、按列拆两张表、表尾统计 */† 次数）。
+baselines（含 NCBD）与 CEB/DVCCA/AdaCap+GPB/GPB-L 两张表以适配页宽）；以及
+配对差值表 paper/main_result_CI.tex（gen_result_ci，GPB − 各 baseline 的
+bootstrap 95% CI，同 seed 配对、按列拆四张表（含 NCBD/AdaCap 外部基线表）、
+表尾统计 */† 次数）。
 
 同时生成超参数敏感性表 paper/result1.tex（gen_result1）：仅 ImageNet-100 (MLP，
 分类 Acc ×100) 与 AgeDB (MLP，回归 R²) 两个任务，行 = CEB 与 OPB 的
@@ -93,14 +97,17 @@ ROW_ORDER = [
 ]
 
 # 表格列顺序与列名；html 里基础模型名为 mlp/cnn/gcn/rnn，统一归到 "base" 列。
+# ncbd/adacap 为审稿人要求的非 IB 外部基线（NCBD 仅分类 7 个 setting、
+# AdaCap 仅回归 5 个 setting，其余行显示 --），排在 baseline 方法侧；
 # "opb" 列在表格中显示为 GPB（分类行为 OPB、回归行为 EPB，即几何先验瓶颈的
 # 两个实例）；opbl 是 GPB 的 free-head 消融（GPB-L；结果目录 tune_results 中 opb 已改名
 # 为 opbl），排在 opb 之后；"opb" 在 COLUMN_ORDER 中的位置是竖线插入点
 # （其左侧加竖线，把 GPB/GPB-L 与前面的 baseline 方法隔开）。
-COLUMN_ORDER = ["base", "vib", "svib", "nib", "ceb", "dvcca", "opb", "opbl"]
+COLUMN_ORDER = ["base", "vib", "svib", "nib", "ceb", "dvcca", "ncbd", "adacap", "opb", "opbl"]
 COLUMN_NAMES = {
     "base": "Base", "vib": "VIB", "svib": "SVIB", "nib": "NIB",
-    "ceb": "CEB", "dvcca": "DVCCA", "opb": "GPB", "opbl": "GPB-L",
+    "ceb": "CEB", "dvcca": "DVCCA", "ncbd": "NCBD", "adacap": "AdaCap",
+    "opb": "GPB", "opbl": "GPB-L",
 }
 
 
@@ -233,7 +240,11 @@ def parse_file_rows(path: Path):
 
 
 def collect():
-    """汇总全部 html：{(task, backbone): {列名: (key, mean, std)}}。"""
+    """汇总全部 html：{(task, backbone): {列名: (key, mean, std)}}。
+
+    同一 (task, backbone) 存在多个 html（如 our-methods 汇总表与
+    ncbd/adacap 单模型表），按文件名排序后合并（后者覆盖同名列）。
+    """
     grid = {}
     files = sorted(RESULTS_DIR.glob("*.html"))
     for path in files:
@@ -242,7 +253,7 @@ def collect():
         for model, (key, mean, std) in values.items():
             col = "base" if model in BACKBONE_NAMES else model
             cells[col] = (key, mean, std)
-        grid[(task, backbone)] = cells
+        grid.setdefault((task, backbone), {}).update(cells)
     return grid
 
 
@@ -420,11 +431,13 @@ def gen_result1(full):
 DIFF_CI_DELTA = {"Acc": 0.002, "R2": 0.005}
 DIFF_CI_B = 10000
 DIFF_CI_SEED = 0
-# CI 表按列拆两张表：baselines（Base/VIB/SVIB/NIB）与 ceb/dvcca/opbl
+# CI 表按列拆四张表：baselines（Base/VIB）、SVIB/NIB、CEB/DVCCA/GPB-L、
+# 外部基线（NCBD 仅分类行 / AdaCap 仅回归行）
 CI_COL_GROUPS = [
     (["base", "vib"], "tab:main_result_ci_baselines"),
     (["svib", "nib"], "tab:main_result_ci_svib_nib"),
     (["ceb", "dvcca", "opbl"], "tab:main_result_ci_variants"),
+    (["ncbd", "adacap"], "tab:main_result_ci_external"),
 ]
 
 
@@ -441,26 +454,36 @@ def _combo_dir_name(task, backbone, model, beta, anchor):
 
 def parse_run_metrics(log_path: Path):
     """解析 train.log 逐 run 测试行（'时间戳 | Run i/N | Test ... | Acc/R2 ...'），
-    返回 (key, [run 值列表])；无逐 run 行时返回 (None, None)。"""
-    key, vals = None, []
+    返回 (key, [run 值列表])；无逐 run 行时返回 (None, None)。
+
+    日志为追加模式（补跑会追加新 pass），只取最后一个完整 pass
+    （最后一个 '===== Run 1/N' 之后的 Run 行），与 rebuild_tune_html.py
+    的"最后一条 Average over"口径一致，避免新旧 pass 混配。
+    """
     try:
         with open(log_path, encoding="utf-8") as f:
-            for line in f:
-                heads = [p.strip() for p in line.split("|")]
-                if len(heads) < 4 or not heads[1].startswith("Run") or "Test" not in heads[2]:
-                    continue
-                parts = heads[3].split()
-                metrics = {parts[i]: parts[i + 1] for i in range(0, len(parts) - 1, 2)}
-                k = "Acc" if "Acc" in metrics else ("R2" if "R2" in metrics else None)
-                if k is None or (key is not None and k != key):
-                    continue
-                try:
-                    v = float(metrics[k])
-                except ValueError:
-                    continue
-                key, vals = k, vals + [v]
+            lines = f.readlines()
     except OSError:
         return None, None
+    start = 0
+    for i, line in enumerate(lines):
+        if re.search(r"===== Run 1/\d+", line):
+            start = i
+    key, vals = None, []
+    for line in lines[start:]:
+        heads = [p.strip() for p in line.split("|")]
+        if len(heads) < 4 or not heads[1].startswith("Run") or "Test" not in heads[2]:
+            continue
+        parts = heads[3].split()
+        metrics = {parts[i]: parts[i + 1] for i in range(0, len(parts) - 1, 2)}
+        k = "Acc" if "Acc" in metrics else ("R2" if "R2" in metrics else None)
+        if k is None or (key is not None and k != key):
+            continue
+        try:
+            v = float(metrics[k])
+        except ValueError:
+            continue
+        key, vals = k, vals + [v]
     return (key, vals) if vals else (None, None)
 
 
@@ -481,14 +504,16 @@ def gen_result_ci():
 
     行 = 12 个 (task, backbone) setting（分类/回归块间双横线），单元格 =
     "均值差 [CI下限, CI上限]"（分类百分点、回归 R²）；CI 下限 > 0 加粗（显著
-    更优）、> −δ（DIFF_CI_DELTA）标 $^{\dagger}$（tied）、否则原样。因 7 个
-    差值列超页宽，按列拆两张 table*（CI_COL_GROUPS）。每表尾一行统计各列
-    "X*/Y†" 次数。双方各取默认指标均值最优组合（与主表同规则），差值按同
-    seed 配对（run 顺序即 seed 0..N−1）。数据缺失时返回 None（跳过）。
+    更优）、> −δ（DIFF_CI_DELTA）标 $^{\dagger}$（tied）、否则原样。差值列超
+    页宽，按列拆四张 table*（CI_COL_GROUPS；ncbd/adacap 外部基线各只在
+    适用的分类/回归行有值、其余行 --）。每表尾一行统计各列 "X*/Y†" 次数。
+    双方各取默认指标均值最优组合（与主表同规则），差值按同 seed 配对
+    （run 顺序即 seed 0..N−1）。数据缺失时返回 None（跳过）。
     """
     if not list(RESULTS_DIR.glob("*.html")):
         return None
-    # 每个 (task, backbone) 的各模型 best 行（beta/anchor 供定位日志目录）
+    # 每个 (task, backbone) 的各模型 best 行（beta/anchor 供定位日志目录）；
+    # 同一 (task, backbone) 的多个 html 合并（ncbd/adacap 单模型表与汇总表并存）
     grid = {}
     for path in sorted(RESULTS_DIR.glob("*.html")):
         task, backbone, rows = parse_file_rows(path)
@@ -498,7 +523,7 @@ def gen_result_ci():
             pool = bests or entries
             _, key, mean, std, b, a = max(pool, key=lambda e: e[2])
             best[model] = (key, b, a)
-        grid[(task, backbone)] = best
+        grid.setdefault((task, backbone), {}).update(best)
     if not grid:
         return None
 
@@ -592,7 +617,8 @@ def gen_result_ci():
         "%（分类百分点、回归 R²）；加粗 = CI 下限 > 0（显著更优）、† = CI 下限 > −δ",
         f"%（非劣界 δ={DIFF_CI_DELTA['Acc'] * 100:g} 百分点 / {DIFF_CI_DELTA['R2']:g}）记 tied；",
         f"% 同 seed 配对（run 顺序即 seed 0..N−1），bootstrap B={DIFF_CI_B}（固定 seed {DIFF_CI_SEED}，百分位法）。",
-        "% 因 7 个差值列超页宽，按列拆两张表（baselines / ceb+dvcca+GPB-L）；表尾一行统计各列 */† 次数。",
+        "% 差值列超页宽，按列拆四张表（baselines / svib+nib / ceb+dvcca+GPB-L / ncbd+adacap）；",
+        "% 表尾一行统计各列 */† 次数；ncbd 仅分类行、adacap 仅回归行有值。",
         "",
     ]
     out = "\n".join(head)
@@ -614,6 +640,12 @@ def gen_result_ci():
             "and the free-head ablation GPB-L (GPB minus baseline, per setting; "
             "classification in percentage points, regression in $R^2$). Bold/† as in "
             "the baselines table."
+        ),
+        "tab:main_result_ci_external": (
+            "Paired-difference 95\\% confidence intervals of GPB over the external "
+            "non-IB baselines NCBD (classification settings only) and AdaCap "
+            "(regression settings only); GPB minus baseline, classification in "
+            "percentage points, regression in $R^2$. Bold/† as in the baselines table."
         ),
     }
     for cols, label in CI_COL_GROUPS:
@@ -771,12 +803,16 @@ def _gen_table(grid, fmt_fn, with_std):
         f"% 分类任务为测试 Acc（%）、回归任务为测试 R²；均为 {std_note}。",
         "% 每格取该模型在 β / anchor-scale 调参网格上的最优配置（tune_results 各表绿色高亮行），",
         "% 每行（数据集）的最优指标加粗、次优（并列次优全部）加下划线；表尾两行统计各方法跨行的平均排名（越低越好）与最优/并列最优次数。",
+        "% NCBD/AdaCap 为非 IB 外部基线：NCBD 仅分类 7 行、AdaCap 仅回归 5 行有值（其余行 --），",
+        "% 排名与最优计数均只在该模型适用的行上计算。",
         "\\begin{table*}[t]",
         "\\centering",
         "\\caption{Test accuracy (\\%) on classification tasks and test $R^2$ on regression "
         + ("tasks (mean over runs" if not with_std else "tasks (mean $\\pm$ std. over runs")
         + "). Each entry reports the best configuration over "
-        "the tuned $\\beta$ (and anchor-scale) grid; the best entry per dataset is bolded.}",
+        "the tuned $\\beta$ (and anchor-scale) grid; the best entry per dataset is bolded. "
+        "NCBD (classification settings only) and AdaCap (regression settings only) are "
+        "external non-IB baselines; dashes mark the settings where a method does not apply.}",
         "\\label{tab:main_result_std}" if with_std else "\\label{tab:main_result}",
         "\\small",
         "{",  # 花括号限定 tabcolsep 只在本表生效，不泄漏到论文其他表格
@@ -794,26 +830,31 @@ def _gen_table(grid, fmt_fn, with_std):
     lines.extend(_block_lines(grid, reg_keys, fmt_fn))
     lines.append("\\hline")
 
-    # 表尾两行汇总：各方法在所有数据集行上的平均排名（并列取平均名次，越小越好）
-    # 与 最优/并列最优 次数（每行最优分相同时各并列方法均计数）
+    # 表尾两行汇总：各方法在其适用数据集行上的平均排名（并列取平均名次，越小越好）
+    # 与 最优/并列最优 次数（每行最优分相同时各并列方法均计数）；
+    # 排名只在适用列上计算（NCBD 仅分类 7 行、AdaCap 仅回归 5 行，其余行缺失不参与）
     all_keys = cls_keys + reg_keys
     rank_sums = [0.0] * len(COLUMN_ORDER)
     best_counts = [0] * len(COLUMN_ORDER)
+    n_applicable = [0] * len(COLUMN_ORDER)
     for kk in all_keys:
         cells = grid[kk]
-        # 缺失列（如 opb 结果暂被改名为 opbl）以 -inf 参与排名（沉底、不计最优）
-        means = [cells.get(c, (None, float("-inf"), 0.0))[1] for c in COLUMN_ORDER]
+        applicable = [c for c in COLUMN_ORDER if c in cells]
+        means = [cells[c][1] for c in applicable]
         ranks = rank_scores(means)
         best_mean = max(means)
-        for j, mean in enumerate(means):
-            rank_sums[j] += ranks[j]
-            if mean == best_mean:
-                best_counts[j] += 1
+        for j, c in enumerate(applicable):
+            idx = COLUMN_ORDER.index(c)
+            rank_sums[idx] += ranks[j]
+            n_applicable[idx] += 1
+            if means[j] == best_mean:
+                best_counts[idx] += 1
     n_rows = len(all_keys)
-    lines.append("\\multicolumn{2}{l}{Mean rank (of %d)} & %s \\\\" % (
-        n_rows, " & ".join(f"{r / n_rows:.2f}" for r in rank_sums)))
-    lines.append("\\multicolumn{2}{l}{Best or tied-best (of %d)} & %s \\\\" % (
-        n_rows, " & ".join(str(c) for c in best_counts)))
+    lines.append("\\multicolumn{2}{l}{Mean rank} & %s \\\\" % (
+        " & ".join(f"{rank_sums[j] / n_applicable[j]:.2f}" if n_applicable[j] else "--"
+                   for j in range(len(COLUMN_ORDER)))))
+    lines.append("\\multicolumn{2}{l}{Best or tied-best} & %s \\\\" % (
+        " & ".join(str(c) for c in best_counts)))
     lines.append("\\hline")
     lines.append("\\end{tabular}")
     lines.append("}")
@@ -827,11 +868,11 @@ def gen_table(grid):
 
 
 def gen_table_std(grid):
-    r"""生成 main_result_std.tex 内容：主结果带标准差版，因 8 方法列 ×
+    r"""生成 main_result_std.tex 内容：主结果带标准差版，因 10 方法列 ×
     (均值±std) 超出页宽，按列拆成两张 table* 浮动体——
-    (a) baselines（Base/VIB/SVIB/NIB，tab:main_result_std_baselines）与
-    (b) CEB/DVCCA | GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）；
-    每表含全部 12 行（分类/回归块间双横线），加粗/下划线按该行全部 8 列的均值
+    (a) baselines（Base/VIB/SVIB/NIB/NCBD，tab:main_result_std_baselines）与
+    (b) CEB/DVCCA/AdaCap | GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）；
+    每表含全部 12 行（分类/回归块间双横线），加粗/下划线按该行全部 10 列的均值
     判定、与 main_result.tex 一致；表尾排名行省略（与主表重复）。"""
     order = {k: i for i, k in enumerate(ROW_ORDER)}
     keys = sorted(grid, key=lambda k: (order.get(k, len(order)), k))
@@ -853,7 +894,7 @@ def gen_table_std(grid):
             "\\label{" + label + "}",
             "\\small",
             "{",
-            "\\setlength{\\tabcolsep}{2pt}",
+            "\\setlength{\\tabcolsep}{1.5pt}",
             "\\begin{tabular}{" + colspec + "}",
             "\\hline",
             " & ".join(["Dataset", "Backbone"] + [COLUMN_NAMES[c] for c in col_subset]) + " \\\\",
@@ -868,28 +909,28 @@ def gen_table_std(grid):
 
     head = [
         "% 主结果表（带标准差）：由 paper/make_table.py 从 tune_results/*.html 自动生成，请勿手改。",
-        "% 因 8 方法列 × (均值±std) 超出页宽，按列拆为两张表：",
-        "% (a) baselines（Base/VIB/SVIB/NIB，tab:main_result_std_baselines）；",
-        "% (b) CEB/DVCCA 与 GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）。",
-        "% 每表含全部 12 行；分类 Acc（%）、回归 R²，单元格为均值±std；",
-        "% 加粗/下划线按该行全部 8 列的均值判定（与 main_result.tex 一致）；",
+        "% 因 10 方法列 × (均值±std) 超出页宽，按列拆为两张表：",
+        "% (a) baselines（Base/VIB/SVIB/NIB/NCBD，tab:main_result_std_baselines）；",
+        "% (b) CEB/DVCCA/AdaCap 与 GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）。",
+        "% 每表含全部 12 行；分类 Acc（%）、回归 R²，单元格为均值±std；NCBD/AdaCap 不适用行显示 --；",
+        "% 加粗/下划线按该行全部 10 列的均值判定（与 main_result.tex 一致）；",
         "% 表尾排名行省略（与主表重复）。",
         "",
     ]
     out = "\n".join(head)
     out += block_float(
-        ["base", "vib", "svib", "nib"],
+        ["base", "vib", "svib", "nib", "ncbd"],
         "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
-        "the plain backbone and the variational baselines; same configurations as "
-        "Table~\\ref{tab:main_result}.",
+        "the plain backbone, the variational baselines, and NCBD (classification "
+        "settings only); same configurations as Table~\\ref{tab:main_result}.",
         "tab:main_result_std_baselines",
     )
     out += block_float(
-        ["ceb", "dvcca", "opb", "opbl"],
+        ["ceb", "dvcca", "adacap", "opb", "opbl"],
         "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
-        "CEB, DVCCA, and our method; same configurations as "
-        "Table~\\ref{tab:main_result}. GPB and GPB-L are separated from the "
-        "references by the vertical rule.",
+        "CEB, DVCCA, AdaCap (regression settings only), and our method; same "
+        "configurations as Table~\\ref{tab:main_result}. GPB and GPB-L are "
+        "separated from the references by the vertical rule.",
         "tab:main_result_std_variants",
     )
     return out
@@ -916,7 +957,7 @@ def main():
     else:
         MAIN_RESULT_CI_PATH.write_text(result_ci, encoding="utf-8")
         print(f"已生成 {MAIN_RESULT_CI_PATH}（GPB − baseline 配对差值 95% CI，"
-              f"按列拆两张表；加粗 = CI 下限 > 0、† = tied）")
+              f"按列拆四张表（含 NCBD/AdaCap 外部基线表）；加粗 = CI 下限 > 0、† = tied）")
 
     full = collect_full(COMPRESSION_TASKS)
     RESULT1_PATH.write_text(gen_result1(full), encoding="utf-8")

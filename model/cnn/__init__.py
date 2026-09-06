@@ -1,7 +1,9 @@
 """CNN 模型包：CNN / VIB / SVIB / CEB / FGIB / OPB / NIB / DVCCA 及 CNN 编码器工具。"""
 
+from .adacap import AdaCap
 from .ceb import CEB
 from .cnn import CNN
+from .ncbd import NCBD
 from .dvcca import DVCCA
 from .fgib import FGIB
 from .nib import NIB

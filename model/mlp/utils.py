@@ -129,3 +129,22 @@ class ContinuousAnchorPrior(nn.Module):
         )
         mu_p = self.anchor_scale * feat
         return mu_p, self.anchor_logvar.expand_as(mu_p)
+
+
+def nonl_loss(u: torch.Tensor, w: torch.Tensor, labels: torch.Tensor,
+              temperature: float) -> torch.Tensor:
+    """NONL 损失（Neural Collapse by Design，ICML 2026，论文 Eq. 9；官方代码 symmetric 模式）。
+
+    u 为 (M, d) 逐行归一化特征，w 为 (K, d) 逐行归一化可学习类原型：
+        L = −(1/M)Σᵢ log[ exp(uᵢᵀŵ_{yᵢ}/τ) / Σ_{j: yⱼ≠yᵢ} exp(uⱼᵀŵ_{yᵢ}/τ) ]
+    分子为样本自身特征对本类原型的对齐，分母只归一化同批异类样本对该原型的
+    得分（解耦类内对齐与类间排斥）。labels 为 (M,) 类别索引。整批同类时
+    （退化情况）分母行 logsumexp 为 -inf，兜底置 0 避免损失 NaN。
+    """
+    num = (u * w[labels]).sum(dim=1) / temperature  # u_i^T w_{y_i} / tau
+    A = (w[labels] @ u.t()) / temperature          # (M, M)：A[i, j] = u_j^T w_{y_i} / tau
+    mask = labels.unsqueeze(1) != labels.unsqueeze(0)  # [i, j]：y_i ≠ y_j
+    A_masked = A.masked_fill(~mask, float("-inf"))
+    den = torch.logsumexp(A_masked, dim=1)
+    den = torch.where(torch.isfinite(den), den, torch.zeros_like(den))
+    return -(num - den).mean()

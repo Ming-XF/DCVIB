@@ -58,11 +58,13 @@ def build_tune_parser():
     parser = build_parser()
     replace_arg(
         parser, "model", ["--model"],
-        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "opbl", "svib", "nib", "dvcca"],
+        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "opbl", "svib", "nib", "dvcca", "ncbd", "adacap"],
         default=["mlp"],
         help="模型列表，调参网格的一维；基础模型无 beta/anchor 维度，"
-        "vib/ceb/svib/nib/dvcca 仅 beta 维度，fgib/opb/opbl 为 beta × anchor-scale 两维"
-        "（opbl 为 opb 的结果显示别名，仅 tune/rebuild 层使用，train.py 不认识；默认 [mlp]）",
+        "vib/ceb/svib/nib/dvcca/ncbd/adacap 仅 beta 维度（ncbd 的 beta 槽位为"
+        "温度 τ、adacap 的 beta 槽位为 Tikhonov λ 初始值），fgib/opb/opbl 为 "
+        "beta × anchor-scale 两维（opbl 为 opb 的结果显示别名，仅 tune/rebuild "
+        "层使用，train.py 不认识；默认 [mlp]）",
     )
     replace_arg(
         parser, "beta", ["--beta"],

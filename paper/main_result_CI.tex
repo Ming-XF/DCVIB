@@ -3,7 +3,8 @@
 %（分类百分点、回归 R²）；加粗 = CI 下限 > 0（显著更优）、† = CI 下限 > −δ
 %（非劣界 δ=0.2 百分点 / 0.005）记 tied；
 % 同 seed 配对（run 顺序即 seed 0..N−1），bootstrap B=10000（固定 seed 0，百分位法）。
-% 因 7 个差值列超页宽，按列拆两张表（baselines / ceb+dvcca+GPB-L）；表尾一行统计各列 */† 次数。
+% 差值列超页宽，按列拆四张表（baselines / svib+nib / ceb+dvcca+GPB-L / ncbd+adacap）；
+% 表尾一行统计各列 */† 次数；ncbd 仅分类行、adacap 仅回归行有值。
 \begin{table*}[t]
 \centering
 \caption{Paired-difference 95\% confidence intervals of GPB over the plain backbone and VIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold: lower CI bound above zero; $^{\dagger}$: lower bound within the non-inferiority margin $\delta$ (tied).}
@@ -92,6 +93,37 @@ AgeDB & MLP & \textbf{+0.022 [+0.006, +0.038]} & \textbf{+0.036 [+0.012, +0.057]
 AgeDB & CNN & \textbf{+0.082 [+0.064, +0.099]} & \textbf{+0.149 [+0.065, +0.310]} & \textbf{+0.031 [+0.018, +0.046]} \\
 \hline
  &  & 8*/3† & 8*/2† & 5*/3† \\
+\hline
+\end{tabular}
+}
+\end{table*}
+\par\smallskip
+\begin{table*}[t]
+\centering
+\caption{Paired-difference 95\% confidence intervals of GPB over the external non-IB baselines NCBD (classification settings only) and AdaCap (regression settings only); GPB minus baseline, classification in percentage points, regression in $R^2$. Bold/† as in the baselines table.}
+\label{tab:main_result_ci_external}
+\small
+{
+\setlength{\tabcolsep}{0.5pt}
+\begin{tabular}{llcc}
+\hline
+Dataset & Backbone & NCBD & AdaCap \\
+\hline
+MNIST & MLP & \textbf{+0.6 [+0.4, +0.8]} & -- \\
+MNIST & CNN & \textbf{+0.1 [+0.1, +0.2]} & -- \\
+ImageNet-100 & MLP & \textbf{+0.8 [+0.6, +0.9]} & -- \\
+ImageNet-100 & CNN & \textbf{+5.5 [+4.3, +6.9]} & -- \\
+Cora & GCN & \textbf{+0.8 [+0.0, +1.9]} & -- \\
+IMDb & RNN & +0.2 [-0.5, +0.7] & -- \\
+AG News & RNN & \textbf{+0.5 [+0.2, +0.8]} & -- \\
+\hline\hline
+Cal. Housing & MLP & -- & \textbf{+0.014 [+0.009, +0.019]} \\
+STS-B & RNN & -- & \textbf{+0.115 [+0.086, +0.135]} \\
+ZINC & GCN & -- & -0.043 [-0.046, -0.041] \\
+AgeDB & MLP & -- & +0.005 [-0.007, +0.021] \\
+AgeDB & CNN & -- & +0.002 [-0.004, +0.006]$^{\dagger}$ \\
+\hline
+ &  & 6*/0† & 2*/1† \\
 \hline
 \end{tabular}
 }

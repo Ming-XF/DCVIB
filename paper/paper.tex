@@ -619,6 +619,20 @@ variational methods
 share the encoder, the posterior heads, and the loss convention of
 Eq.~\eqref{eq:pgib-objective}.
 
+\paragraph{External baselines.} Two non-IB comparison methods complete the
+reference set. \emph{NCBD} \citep{koromilas2026neural} (Neural Collapse by Design)
+normalizes features and trainable class prototypes to the unit hypersphere and
+replaces the classification loss by the NONL contrastive objective, whose global
+optimum is the simplex ETF; its temperature $\tau$ occupies the $\beta$ slot of the
+sweep (grid $\{0.05,0.1,0.2,0.3,0.5,1\}$), and it applies to classification settings
+only. \emph{AdaCap} \citep{belucci2026adacap} targets small-sample regression: a
+permutation-based contrastive loss plus a Tikhonov closed-form output layer
+$\hat y = H\,(H^{\top}H + \lambda I)^{-1}H^{\top}y$ with learnable $\lambda$,
+initialized from the swept grid $\{10^{-2},\dots,10^{3}\}$; at evaluation the
+readout is refit on the training-set representations. It applies to regression
+settings only. Both train under the shared backbones, splits, early-stopping
+protocol, and five seeds per configuration.
+
 \paragraph{Our variants.} \emph{GPB} denotes our method in the tables. On
 classification rows it is \emph{OPB}, the orthogonal-frame prior of
 Eq.~\eqref{eq:opb-prior} with the anchor-energy classifier of
@@ -750,16 +764,19 @@ deviations over five seeds.}
 Table~\ref{tab:main_result} reports test accuracy (classification) and test $R^2$
 (regression), averaged over runs, for each method's best configuration; bold
 marks the best mean per row and underline the second best, and the vertical rule
-separates GPB and its free-head ablation GPB-L from the baselines. Statistical
-claims (best vs.\ tied) follow the paired-difference confidence intervals of
-Appendix~\ref{app:main-ci}.
+separates GPB and its free-head ablation GPB-L from the baselines. NCBD
+(classification settings only) and AdaCap (regression settings only) are external
+non-IB baselines under the same protocol; dashes mark the settings where a method
+does not apply. Statistical claims (best vs.\ tied) follow the paired-difference
+confidence intervals of Appendix~\ref{app:main-ci}.
 Standard deviations are omitted for width and are reported in
 Appendix~\ref{app:main-std}. Three
 observations.
 
 \emph{The constructed geometry is free, and it usually pays.} GPB is best or
-tied-best in $7$ of $12$ settings with mean rank $1.75$, against $4.25$ for the plain
-backbone and $5.0$--$6.5$ for the variational baselines, none of which is ever best.
+tied-best in $7$ of $12$ settings with mean rank $1.83$, against $4.83$ for the plain
+backbone and $5.50$--$7.00$ for the variational baselines, none of which is ever
+best; among the external baselines NCBD never wins and AdaCap wins once (ZINC).
 By the paired bootstrap $95\%$ CIs (Appendix~\ref{app:main-ci}), the GPB--CEB
 difference is significantly positive in $8$ of $12$ settings and within the
 non-inferiority margin in three more; only on STS-B does the interval overlap zero
@@ -769,15 +786,16 @@ methods on seven rows.
 The gains concentrate where the label structure is rich or supervision is scarce:
 $+3.1$ accuracy over CEB on ImageNet-100 with the CNN backbone ($86.1$ vs.\ $83.0$),
 $+1.9$ on Cora, and $+0.08$ $R^2$ on AgeDB over the plain CNN ($0.470$ vs.\ $0.388$).
-On saturated settings (MNIST) the margin is small but consistent, and on the three
-rows where the plain backbone remains best (STS-B, ZINC, AG News) the gap is
-marginal ($\le 0.03$): the geometry is neutral there rather than harmful, and two
-of the three are regression tasks where every bottleneck method trails the plain
-backbone.
+On saturated settings (MNIST) the margin is small but consistent, and on the two
+rows where the plain backbone remains best (STS-B, AG News) the gap is
+marginal ($\le 0.03$): the geometry is neutral there rather than harmful. On
+ZINC every bottleneck method trails the plain backbone, but the closed-form
+AdaCap readout edges it out ($0.677$ vs.\ $0.635$ $R^2$), the one setting where
+any comparison method significantly beats GPB (see below).
 
 \emph{Prediction does not require the free head.} GPB-L, the free linear head on the
 same geometric prior, is best or tied-best in $2$ of $12$ settings (mean rank
-$2.29$), and the GPB--GPB-L gap is within $0.4$ accuracy or $R^2$ points in $11$ of
+$2.54$), and the GPB--GPB-L gap is within $0.4$ accuracy or $R^2$ points in $11$ of
 $12$ settings (the exception is ImageNet-100 CNN, $1.2$ points): the zero-parameter
 anchor-energy classifier --- whose weights are the frame itself --- reaches the
 accuracy of a freely trained head in almost all settings, so the degrees of freedom
@@ -795,6 +813,21 @@ classifier can overfit its own scale or the scarce supervision: fixing the
 prediction rule to the prior's geometry removes both escape routes, consistent with
 the fixed-scale condition under which the aligned surrogate of
 Proposition~\ref{prop:opb-sweep} has a unique interior optimum per $\beta$.
+
+\emph{External baselines do not close the gap.} By the paired CIs
+(Appendix~\ref{app:main-ci}), GPB beats NCBD significantly on $6$ of $7$
+classification settings; the exception is IMDb ($+0.2$ points, CI $[-0.5,+0.7]$
+crossing zero), where the GPB margin is within noise. The largest margin is
+ImageNet-100 with the CNN backbone ($+5.5$ points, CI $[+4.3,+6.9]$). On the
+regression side GPB beats AdaCap significantly on Cal.\ Housing ($+0.014$ $R^2$)
+and STS-B ($+0.115$ $R^2$), and the AgeDB intervals straddle zero (the CNN one
+within the non-inferiority margin). The single reversal is ZINC, where AdaCap is
+the only method with a significant advantage over GPB ($-0.043$ $R^2$, CI
+$[-0.046,-0.041]$): its ridge readout, refit on the training set at evaluation
+time, exploits the low-dimensional regression structure of molecular-graph labels
+without any compression objective. Neither external baseline performs
+information-bottleneck compression, so their sweeps exercise the same data but a
+different axis of the comparison.
 
 \subsection{Attribution ablations: what drives the gain?}
 \label{sec:ablation}
