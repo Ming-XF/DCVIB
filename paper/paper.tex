@@ -64,20 +64,22 @@ isometric regression axis (EPB) for regression, both with prediction rules tied
 to the geometry by construction (the zero-parameter anchor-energy classifier and
 the tied projection head). The framework preserves the CEB certificate for any
 stateless conditional prior and yields a comparator-dependent alignment bound for
-arbitrary label noise and model misspecification. Its residual floor separates
+arbitrary label noise and model misspecification. Its residual floor algebraically separates
 irreducible label ambiguity, encoder approximation, and covariance mismatch; the
 exact $O(1/\beta)$ rate is recovered only as the noiseless, exactly realizable special
 case. A controlled known-noise experiment recovers the predicted non-zero floors at
 three noise levels and the zero floor when labels are deterministic. Independently of
-this optimization bound, the observed anchor mismatch transfers the declared prior
-separation to the posterior. At the strongest reported compression, direct benchmark
-diagnostics show this bound is informative for $96.9\%$ of ImageNet-100 class pairs
-with the largest anchors, while the regression bound is consistent but often vacuous.
+this optimization bound, the observed anchor mismatch yields a deterministic lower
+bound on posterior separation. At the strongest reported compression, this bound is
+positive for $96.9\%$, $62.3\%$, and $0\%$ of ImageNet-100 class pairs at anchor
+scales $a=12,6,1$, respectively, showing that its informativeness is conditional on
+the selected scale and realized mismatch; the regression bound is consistent but
+often vacuous.
 The construction removes the unspecified
 inter-class geometry of the reference. Across
 nine datasets and four backbones, GPB is best or tied-best in $7$ of $12$ settings
-and dominates CEB everywhere, and the anchor scale converts the $\beta$-knob from
-a collapse dial into a plateau dial.
+and has a higher mean than CEB in all twelve settings. These predictive comparisons
+are reported separately from the conditional theoretical statements.
 \end{abstract}
 
 
@@ -143,32 +145,41 @@ certificate gap identity holds pointwise for any stateless prior
 (Proposition~\ref{prop:opb-certificate}). Second, for arbitrary $P_{XY}$ and any
 feasible comparator $w_0$, every $\varepsilon$-near-optimum obeys the oracle inequality
 \begin{equation*}
-\E[D_{\widehat w}(Y)]
+\mathcal D(\widehat w)
 \le \mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon}{\beta},
 \end{equation*}
 where $\mathcal R$ is prediction risk and $\mathcal K$ is the conditional KL
 (Theorem~\ref{prop:pgib-alignment}). For OPB and EPB, $\mathcal K(w_0)$ decomposes
 into an irreducible conditional-label-variability term, encoder approximation, and
-covariance mismatch. Thus noisy or capacity-limited problems have an explicit
-alignment floor rather than an unsupported convergence-to-zero claim. The familiar
+covariance mismatch. This decomposition identifies the sources of a non-zero floor,
+but does not make its numerical value identifiable on a single-label benchmark; a
+specified comparator's total KL can instead be estimated on held-out data. The bound
+is informative for a target mismatch only when the comparator KL lies below that
+target. The familiar
 $O(1/\beta)$ statement follows only as the zero-floor corollary: deterministic labels,
 exact posterior--prior matching, and a compatible prediction head
 (Corollary~\ref{cor:pgib-exact-alignment}). Third, without any optimization or
-realizability premise, the realized mismatch transfers prior separation to posterior
-separation (Proposition~\ref{prop:pgib-separation}). None of these statements guarantees
-task accuracy; they characterize the certificate and the transfer of declared geometry.
+realizability premise, the realized mismatch gives a lower bound on posterior
+separation (Proposition~\ref{prop:pgib-separation}). The latter bound is informative
+only when the mismatch radii are smaller than the declared prior margin, a condition
+that depends on anchor scale. None of these statements guarantees task accuracy or
+selects that scale; they characterize the certificate and a mismatch-conditioned
+geometric constraint.
 
-\textbf{Experiments.} We separate predictive performance from evidence about the
-theoretical mechanism. The twelve real-data settings compare utility: GPB is best or
-tied-best in $7$ of $12$ settings and dominates CEB in all $12$, but these comparisons
-are not presented as verification of an alignment rate. The mechanism analysis instead
-asks whether the constructed prior geometry is transferred to the posterior and can be
-read out without a free prediction head. Direct mismatch measurements make this link
-quantitative: large OPB anchors retain positive separation bounds for most ImageNet-100
-class pairs, whereas EPB transfers the regression axis more strongly than its scale. A
+\textbf{Experiments.} We separate predictive performance from structural diagnostics.
+The twelve real-data settings compare utility: GPB is best or
+tied-best in $7$ of $12$ settings and has a higher mean than CEB in all $12$, but these comparisons
+are not presented as verification of an alignment rate. The structural analysis instead
+reports posterior geometry and tied-head prediction without assigning a causal effect.
+Direct mismatch measurements evaluate the separation inequality quantitatively: at
+$\beta=25$ its positive-pair fraction on ImageNet-100 is $96.9\%$, $62.3\%$, and
+$0\%$ for $a=12,6,1$, whereas the EPB posterior follows the regression axis more
+closely in direction than in scale. A
 separate controlled experiment spans
 deterministic and noisy labels: it recovers the analytic ambiguity floor throughout the
-$\beta$ sweep, while making no claim that the real-data comparator floors are known.
+$\beta$ sweep. On a real dataset, a specified feasible comparator's total KL can be
+estimated on held-out data, but the best comparator and its ambiguity--approximation
+decomposition are not identified by a single-label benchmark.
 
 Our contributions are: (1) the identification and formalization of the missing
 cross-label geometric constraint in CEB (Proposition~\ref{prop:geom-blind});
@@ -176,7 +187,7 @@ cross-label geometric constraint in CEB (Proposition~\ref{prop:geom-blind});
 to the prior geometry; (3) a comparator-dependent alignment bound for arbitrary label
 distributions and approximate model families, with explicit ambiguity, encoder, and
 covariance terms, plus the exact-realizability result as a zero-floor corollary;
-(4) unconditional certificate preservation and mismatch-dependent separation transfer
+(4) unconditional certificate preservation and mismatch-conditioned posterior separation
 for any qualified geometric prior; and (5) performance comparisons separated explicitly
 from direct mismatch diagnostics and a controlled known-noise illustration of the
 analytic ambiguity floor.
@@ -403,8 +414,8 @@ conditional covariance rather than silently substituting the canonical $\tau^2I$
 \label{sec:guarantees}
 
 The theory separates three statements with different scopes. The certificate identity
-holds for every stateless conditional prior. The geometric separation transfer holds for
-the mismatch realized by any fitted model. The optimization-dependent statement is an
+holds for every stateless conditional prior. The posterior-separation inequality holds
+for the mismatch realized by any fitted model. The optimization-dependent statement is an
 oracle inequality against any feasible comparator in the actual model and head families;
 it allows stochastic labels and approximate rather than exact posterior--prior matching.
 Only its zero-approximation-error special case has a pure $O(1/\beta)$ rate to zero.
@@ -426,7 +437,7 @@ defined, the gap identity of Eq.~\eqref{eq:gap} applies pointwise in $\theta$:
 A batch-dependent prior would break the conditional-prior argument.
 \end{proposition}
 
-\begin{proposition}[Mismatch-dependent separation transfer for any qualified geometric prior]
+\begin{proposition}[Mismatch-conditioned posterior separation for any qualified geometric prior]
 \label{prop:pgib-separation}
 Let $\mathcal{G}$ be qualified with variance bound $\tau^2_{\max}$.
 \emph{(a) Discrete labels.} With posterior class centers
@@ -464,6 +475,31 @@ are defined for $P_Y$-a.e.\ $y$, and for $P_Y$-a.e.\ pair $y \ne y'$,
 \label{eq:pgib-separation-continuous}
 \end{equation}
 \end{proposition}
+
+\paragraph{When the separation inequality is informative.}
+The proposition is a conditional stability statement, not a claim that every
+qualified prior produces a non-vacuous posterior bound. For a discrete pair, define
+the normalized mismatch radius
+\begin{equation}
+\Gamma_{ij}:=
+\frac{\sqrt{2\tau^2_{\max}D_i}+\sqrt{2\tau^2_{\max}D_j}}
+{\|m_\theta(i)-m_\theta(j)\|}.
+\label{eq:separation-tightness-ratio}
+\end{equation}
+The raw lower bound is positive exactly when $\Gamma_{ij}<1$, and in that case it
+retains a fraction $1-\Gamma_{ij}$ of the declared pairwise distance. For OPB this
+condition becomes
+$\tau_{\max}(\sqrt{D_i}+\sqrt{D_j})<a$; if $D_i=D_j=D$, it reduces to
+$D<a^2/(4\tau^2_{\max})$. For regression, the corresponding condition is
+\begin{equation*}
+\sqrt{2\tau^2_{\max}D(y)}+\sqrt{2\tau^2_{\max}D(y')}
+<\rho_{\min}d_Y(y,y'),
+\end{equation*}
+so nearby label pairs are inherently more likely to have a vacuous lower bound.
+Increasing the anchor scale does not by itself enforce these conditions because it
+also changes the fitted mismatch and the optimization problem. The proposition
+therefore neither selects $a$ or $\rho$ nor guarantees that a validation-selected
+scale has a positive bound.
 
 We next state the optimization link without assuming deterministic labels or an exactly
 aligned posterior. Let $w=(\phi,\theta,\psi)$ denote all fitted parameters and define
@@ -505,6 +541,44 @@ irreducible label ambiguity enter through the comparator KL
 $\delta_{\mathrm{app}}$, while optimization error enters through
 $\varepsilon/\beta$.
 \end{theorem}
+
+\paragraph{When the comparator bound is informative.}
+Theorem~\ref{prop:pgib-alignment} is an oracle inequality relative to a specified
+feasible comparator; it is not a prediction determined by the dataset and $\beta$
+alone. For a desired mismatch level $d_\star$, its right-hand side can certify
+$\mathcal D(\widehat w)\le d_\star$ only if there is a comparator with
+$\mathcal K(w_0)<d_\star$. A sufficient condition is
+\begin{equation}
+\beta\ge
+\frac{\mathcal R(w_0)+\varepsilon}
+{d_\star-\mathcal K(w_0)}.
+\label{eq:comparator-informative-condition}
+\end{equation}
+Thus $\mathcal K(w_0)$ is the floor of this comparator-specific certificate: increasing
+$\beta$ cannot certify a target below it, and a pure rate to zero requires a
+zero-KL comparator.
+
+For a fixed comparator $w_0$ chosen independently of a held-out sample
+$S=\{(x_i,y_i)\}_{i=1}^n$, its two observable terms admit the plug-in estimates
+\begin{equation}
+\widehat{\mathcal K}_S(w_0)=\frac1n\sum_{i=1}^n
+\KL\!\left(q_{\phi_0}(z|x_i)\,\|\,p_{\theta_0}(z|y_i)\right),
+\qquad
+\widehat{\mathcal R}_S(w_0)=\frac1n\sum_{i=1}^n
+\E_{q_{\phi_0}(z|x_i)}[\ell(c_{\psi_0}(Z),y_i)].
+\label{eq:heldout-comparator-estimates}
+\end{equation}
+The Gaussian KL is analytic, and under the usual integrability assumptions these
+sample averages consistently estimate the chosen comparator's population terms.
+They do not identify the best comparator, certify the global optimization error
+$\varepsilon$, or by themselves produce a finite-sample population guarantee. In
+particular, choosing the reported solution itself as $w_0$ after seeing the results
+makes the comparison nearly tautological. Moreover, on a benchmark with one observed
+label per input, $P(Y\mid X)$ and hence the separate ambiguity term in
+Proposition~\ref{prop:pgib-ambiguity-decomposition} are not identifiable without
+additional annotation or modeling assumptions. What can be estimated without that
+decomposition is the total KL of a prespecified feasible comparator; it should be
+described as a comparator-specific floor, not an intrinsic floor of the dataset.
 
 For the two concrete GPB instances, the approximation floor has an explicit
 interpretation. Let
@@ -592,7 +666,7 @@ $B_0:=\mathcal K(w_0)+(\mathcal R(w_0)+\varepsilon)/\beta$.
 \label{eq:pgib-alignment-separation}
 \end{equation}
 \emph{(b) Regression.} For any $t>0$, the label set
-$S_t:=\{y:D(y)\le t\}$ has $P_Y$-measure at least $1-B_0/t$, and the pointwise transfer of
+$S_t:=\{y:D(y)\le t\}$ has $P_Y$-measure at least $1-B_0/t$, and the pointwise inequality of
 Proposition~\ref{prop:pgib-separation}(b) yields, for $P_Y$-a.e. $y,y'\in S_t$,
 \begin{equation}
 \|m(y) - m(y')\| \;\ge\; \rho_{\min}\, d_Y(y, y')
@@ -618,7 +692,7 @@ $\mu \equiv 0$ is a penalized configuration rather than a free optimum, whenever
 $a > 0$ and two classes have positive probability.
 \end{proposition}
 
-\begin{corollary}[The orthogonal instance instantiates the conditional separation transfer]
+\begin{corollary}[The orthogonal instance instantiates conditional posterior separation]
 \label{prop:opb-separation}
 The orthogonal instance is qualified with $\tau^2_{\max} = \tau^2$ and
 $\Delta = \bar\Delta = \sqrt{2}\,a$; Proposition~\ref{prop:pgib-separation}
@@ -653,19 +727,19 @@ Proposition~\ref{prop:opb-sweep}), and the implementation details are in the app
 % 与机制分析（sec:mechanism，\input{result3} + fig:mechanism）。
 % 已补：噪声合成与直接失配分析。
 
-The experiments are organized into three evidence tracks. The first is a performance
-comparison: does replacing CEB's unconstrained reference by a constructed geometry
-improve end-to-end prediction, and does prediction survive when the readout is tied to
-that geometry? The main sweep answers these questions on twelve dataset--backbone
+The experiments are organized into three evidence tracks. The first is a predictive
+comparison: it reports end-to-end performance for CEB, GPB, and the other baselines,
+including a tied-readout variant, under the same selection protocol. The main sweep
+reports these comparisons on twelve dataset--backbone
 settings, with compression--accuracy curves in Section~\ref{sec:sweep} and adversarial
-robustness in Section~\ref{sec:robustness}. The second is mechanism analysis: does the
-declared geometry actually appear in the fitted posterior? Section~\ref{sec:mechanism}
-uses geometric diagnostics and directly analyzes the mismatch appearing in
+robustness in Section~\ref{sec:robustness}. The second is structural analysis:
+Section~\ref{sec:mechanism} reports geometric diagnostics and directly analyzes the
+mismatch appearing in
 Proposition~\ref{prop:pgib-separation}. The third is controlled theory illustration:
 Section~\ref{sec:controlled-validation} varies known label ambiguity continuously from
 the exactly realizable zero-floor case to non-zero analytic floors. Performance
-improvements in the first track are not treated as verification of the alignment bounds
-in the other two.
+differences in the first track are not assigned to the theoretical bounds in the other
+two.
 
 \subsection{Experimental setup}
 \label{sec:setup}
@@ -753,13 +827,16 @@ The main table reports, per method and setting, the test metric of the best
 validation configuration, so all methods are compared under an identical selection
 protocol (Base has no sweep and early-stops as usual).
 
-\paragraph{Separation of performance and mechanism evidence.} The main benchmark
+\paragraph{Separation of performance and structural diagnostics.} The main benchmark
 table is a performance comparison, not a test of an alignment theorem. The general
 comparator inequality, Theorem~\ref{prop:pgib-alignment}, applies without deterministic
 labels, but its benchmark-specific floor depends on unknown label ambiguity and model
-approximation terms. We therefore do not infer an alignment rate from test accuracy.
-The mechanism analysis separately measures whether the prior geometry reaches the
-posterior and whether its tied readout remains predictive. Finally, the controlled
+approximation terms. The benchmark protocol does not designate an independent feasible
+comparator, so it does not report twelve post-hoc ``floor estimates'': using the fitted
+solution itself would be nearly tautological. Equation~\eqref{eq:heldout-comparator-estimates}
+instead gives a held-out estimation procedure when a comparator is prespecified. We do
+not infer an alignment rate from test accuracy. The structural analysis separately
+reports posterior geometry and tied-readout performance. Finally, the controlled
 synthetic experiment isolates both theoretical regimes: exact realizability for the
 zero-floor corollary and known label noise for the non-zero floor of
 Proposition~\ref{prop:pgib-ambiguity-decomposition}.
@@ -875,10 +952,10 @@ non-IB baselines under the same protocol; dashes mark the settings where a metho
 does not apply. Statistical claims (best vs.\ tied) follow the paired-difference
 confidence intervals of Appendix~\ref{app:main-ci}.
 Standard deviations are omitted for width and are reported in
-Appendix~\ref{app:main-std}. Three
+Appendix~\ref{app:main-std}. Four
 observations.
 
-\emph{The constructed geometry is free, and it usually pays.} GPB is best or
+\emph{Predictive comparison under the shared protocol.} GPB is best or
 tied-best in $7$ of $12$ settings with mean rank $1.83$, against $4.83$ for the plain
 backbone and $5.50$--$7.00$ for the variational baselines, none of which is ever
 best; among the external baselines NCBD never wins and AdaCap wins once (ZINC).
@@ -886,14 +963,14 @@ By the paired bootstrap $95\%$ CIs (Appendix~\ref{app:main-ci}), the GPB--CEB
 difference is significantly positive in $8$ of $12$ settings and within the
 non-inferiority margin in three more; only on STS-B does the interval overlap zero
 beyond the margin ($[-0.009, +0.025]$), so no setting shows a significant CEB
-advantage. GPB dominates CEB by mean in all $12$ settings and is best among all
+advantage. GPB has a higher mean than CEB in all $12$ settings and is best among all
 methods on seven rows.
-The gains concentrate where the label structure is rich or supervision is scarce:
+The largest positive differences occur on the high-cardinality or lower-data settings:
 $+3.1$ accuracy over CEB on ImageNet-100 with the CNN backbone ($86.1$ vs.\ $83.0$),
 $+1.9$ on Cora, and $+0.08$ $R^2$ on AgeDB over the plain CNN ($0.470$ vs.\ $0.388$).
 On saturated settings (MNIST) the margin is small but consistent, and on the two
-rows where the plain backbone remains best (STS-B, AG News) the gap is
-marginal ($\le 0.03$): the geometry is neutral there rather than harmful. On
+rows where the plain backbone remains best (STS-B, AG News) the difference is
+marginal ($\le 0.03$). On
 ZINC every bottleneck method trails the plain backbone, but the closed-form
 AdaCap readout edges it out ($0.677$ vs.\ $0.635$ $R^2$), the one setting where
 any comparison method significantly beats GPB (see below).
@@ -903,21 +980,20 @@ same geometric prior, is best or tied-best in $2$ of $12$ settings (mean rank
 $2.54$), and the GPB--GPB-L gap is within $0.4$ accuracy or $R^2$ points in $11$ of
 $12$ settings (the exception is ImageNet-100 CNN, $1.2$ points): the zero-parameter
 anchor-energy classifier --- whose weights are the frame itself --- reaches the
-accuracy of a freely trained head in almost all settings, so the degrees of freedom
-removed by construction are not required for prediction, as claimed in the
-introduction. The three settings where GPB-L edges out GPB by mean (IMDb, AG News,
+accuracy of a freely trained head in almost all tested settings. This shows that the
+removed degrees of freedom are not necessary to reproduce those particular results;
+it is not a claim about all data distributions. The three settings where GPB-L edges out GPB by mean (IMDb, AG News,
 Cal.\ Housing) do so with paired CIs overlapping zero, confirming that the tie
 does not inflate the numbers. On the five
 regression rows the tied projection head of EPB wins or matches the free
 regression head in four (the exception is Cal.\ Housing by $0.002$).
 
-\emph{The tie regularizes the high-cardinality and low-data regimes.} The two
-settings with the largest GPB margins (ImageNet-100, with $K = 100$, and AgeDB, a
-small, high-variance regression task) are exactly those where an unconstrained
-classifier can overfit its own scale or the scarce supervision: fixing the
-prediction rule to the prior's geometry removes both escape routes, consistent with
-the fixed-scale condition under which the aligned surrogate of
-Proposition~\ref{prop:opb-sweep} has a unique interior optimum per $\beta$.
+\emph{Tied and free readouts by regime.} The two settings with the largest GPB
+margins are ImageNet-100, with $K=100$, and AgeDB, a small, high-variance regression
+task. This pattern is consistent with the fixed-scale condition under which the
+aligned surrogate of Proposition~\ref{prop:opb-sweep} has a unique interior optimum
+per $\beta$, but the cross-dataset comparison does not identify regularization by the
+tied rule as the cause of either margin.
 
 \emph{External baselines do not close the gap.} By the paired CIs
 (Appendix~\ref{app:main-ci}), GPB beats NCBD significantly on $6$ of $7$
@@ -934,16 +1010,17 @@ without any compression objective. Neither external baseline performs
 information-bottleneck compression, so their sweeps exercise the same data but a
 different axis of the comparison.
 
-\subsection{Attribution ablations: what drives the gain?}
+\subsection{Factor-wise attribution ablations}
 \label{sec:ablation}
 
-The GPB construction bundles three mechanisms --- the orthogonal/isometric
+The GPB construction bundles three design factors --- the orthogonal/isometric
 geometry, the fixed anchor scale, and the tied geometric readout --- with the
-IB objective itself, and the main table alone cannot attribute the gain among
-them. This section switches each factor off separately. All variants are
+IB objective itself, and the main table alone cannot compare their marginal
+associations with performance. This section switches each factor separately. All
+variants are
 trained under the protocol of Section~\ref{sec:setup} (same $\beta$ and anchor
 grids, five seeds, per-variant configuration selection) on the three settings
-of the mechanism analysis, and the reference models (Base, CEB, GPB, GPB-L)
+of the structural analysis, and the reference models (Base, CEB, GPB, GPB-L)
 are re-trained in the same batch so every comparison is paired by seed.
 
 \paragraph{The ablation ladder.} \emph{NCM-learn} removes the bottleneck
@@ -966,27 +1043,26 @@ geometry (CEB-energy vs.\ OPB-FS), scale (OPB-FS vs.\ GPB), readout
 
 \input{ablation_result_ci}
 
-\paragraph{Where the gain comes from.} Table~\ref{tab:ablation} reports the
+\paragraph{Factor-wise paired differences.} Table~\ref{tab:ablation} reports the
 best configuration of each variant and Table~\ref{tab:ablation-ci} the
-factor-wise paired differences. On ImageNet-100 the decomposition is clean:
-the geometry contributes $+2.67$ points (OPB-FS $-$ CEB-energy,
-CI $[2.45, 2.92]$), the IB term $+1.89$ (GPB $-$ NCM-ortho,
+factor-wise paired differences. On ImageNet-100, OPB-FS exceeds CEB-energy by
+$2.67$ points (CI $[2.45, 2.92]$), the IB contrast is $+1.89$
+(GPB $-$ NCM-ortho,
 $[1.41, 2.36]$), and the restricted readout $+0.82$ (GPB $-$ GPB-L,
 $[0.34, 1.17]$), while the fixed scale is neutral ($-0.04$,
 $[-0.07, -0.01]$). The readout effect flips sign on the free-geometry side,
-where the energy head costs CEB $1.19$ points ($[-1.50, -0.96]$): the
-restricted readout pays only on the constructed geometry. Most informative is
+where CEB-energy is $1.19$ points below CEB ($[-1.50, -0.96]$): the sign of the
+restricted-readout contrast depends on the accompanying geometry. Most informative is
 the negative result on the prototype readout alone: NCM-learn trails the
-plain backbone by $0.96$ points ($[-1.30, -0.69]$), so the gain is not a
-nearest-class-mean effect in disguise --- the prototypes need the IB
-objective and the orthogonal geometry to carry prediction. On MNIST the same
+plain backbone by $0.96$ points ($[-1.30, -0.69]$), so a nearest-class-mean
+readout alone does not reproduce the GPB result. On MNIST the same
 ordering holds with small margins (geometry $+0.32$, IB $+0.34$, scale
 $+0.09$, readout $\approx 0$), and on Cal.\ Housing every EPB variant ties
 within $0.01$ $R^2$, consistent with the flat EPB plateaus of
-Section~\ref{sec:sweep}. The conclusion is that the orthogonal geometry is
-the primary driver of the ImageNet-100 gain, and it acts \emph{within} the IB
-framework: geometry, IB, and readout each contribute positively, in that
-order, and none of the bundled mechanisms is doing the work alone.
+Section~\ref{sec:sweep}. Among the paired ImageNet-100 contrasts, the geometry
+contrast is largest, followed by the IB and readout contrasts. These interventions
+change the fitted training problem and therefore support factor-wise attribution, not
+a unique causal decomposition of the benchmark margin.
 
 \subsection{Compression--accuracy and the KL certificate over $\beta$}
 \label{sec:sweep}
@@ -1014,19 +1090,20 @@ explosions are visible at the extremes of the sweep.
 scale), $\beta \in \{5{\cdot}10^{-5}, \dots, 25\}$; CEB one curve per panel, GPB
 three ($a$ on classification, $\rho$ on regression, both $\in \{1, 6, 12\}$).
 (a)--(b) Test accuracy (\%) on ImageNet-100 (MLP) and test $R^2$ on Cal.\
-Housing (MLP) against $\beta$: OPB with $a = 12$ holds the plateau out to
+Housing (MLP) against $\beta$: OPB with $a = 12$ remains on the plateau out to
 $\beta = 25$ while CEB and OPB ($a = 1$) collapse. (c)--(d) The realized
 test-set $\E[\KL]$ against $\beta$ (log scale) for the same runs: CEB's
 certificate collapses with its reference, EPB ($\rho = 1$) explodes near
-$\beta = 5{\cdot}10^{-5}$, and the larger anchors keep $\E[\KL]$ in a stable
-band.}
+$\beta = 5{\cdot}10^{-5}$, and the larger-anchor trajectories remain in a
+stable $\E[\KL]$ band.}
 \label{fig:compression}
 \end{figure*}
 
 Figure~\ref{fig:compression}
 exhibits the two roles of the anchor scale across the $\beta$ sweep, with panels
 (c)--(d) translating each point into its realized compression.
-\emph{(i) Without a scale, the reference collapses.} On ImageNet-100, CEB's
+\emph{(i) Collapse occurs for the free reference and the smallest anchor.} On
+ImageNet-100, CEB's
 accuracy erodes to $71.5\%$ at $\beta = 0.1$ ($\E[\KL] \approx 3.6$) and its
 reference escapes entirely at $\beta \ge 0.5$ ($\E[\KL] \to 0$ with accuracy at
 chance, panel c); OPB at $a = 1$ survives one grid step longer ($83.3\%$ at
@@ -1034,12 +1111,12 @@ $\beta = 0.1$) and collapses at the same end of the sweep. OPB ($a = 6$) holds
 accuracy above $74\%$ out to $\beta = 5$ and falls to $64.7\%$ at $\beta = 25$.
 On Housing, CEB drops to $R^2 = 0.49$ at $\beta = 0.1$ and below $0.1$
 by $\beta \ge 0.5$, while every EPB curve keeps $R^2 \ge 0.76$ out to
-$\beta = 25$. Orthogonality alone therefore does not prevent the collapse: the
+$\beta = 25$. Orthogonality alone therefore does not prevent collapse: the
 frame is fixed up to rotation, but the anchor-energy classifier's margin is
 $a^2/\tau^2$ (Proposition~\ref{prop:opb-energy}), and at $a = 1$ that margin is
-too small to carry a solution at strong compression. \emph{(ii) The anchor scale
-controls where the collapse sets in, and at matched compression the geometry pays
-or ties.} On ImageNet-100, OPB ($a = 12$) attains $84.2\%$ at $\beta = 1$
+accompanied by collapse at strong compression. \emph{(ii) The observed collapse
+point varies with anchor scale, and GPB matches or exceeds CEB at the reported
+matched-compression points.} On ImageNet-100, OPB ($a = 12$) attains $84.2\%$ at $\beta = 1$
 ($\E[\KL] \approx 21$), above CEB's best point anywhere on its sweep
 ($82.8\%$ at $\beta = 10^{-2}$), and still $79.4\%$ at $\beta = 25$
 ($\E[\KL] \approx 2.2$); on Housing the four curves peak within half a point
@@ -1054,8 +1131,9 @@ $\beta = 10^{-4}$ ($\E[\KL] \gtrsim 300$), OPB trails CEB by one to three points
 fixed-scale energy rule when compression is weak. On Housing the same regime
 shows EPB ($\rho = 1$) dipping to $R^2 = 0.53$ at $\beta = 5{\cdot}10^{-5}$,
 where its certificate explodes to $\approx 10^{8}$ (panel d): with a unit axis
-and negligible $\beta$ the off-axis variance is unconstrained. The construction
-pays for itself in the strong-compression regime, where CEB is at chance.
+and negligible $\beta$ the off-axis variance is unconstrained. In the reported
+strong-compression regime, the GPB trajectories retain substantially higher task
+metrics while CEB reaches chance or near-zero $R^2$.
 
 These curves are empirical compression diagnostics, not a test of the zero-floor
 rate. For every benchmark distribution, Theorem~\ref{prop:pgib-alignment} bounds
@@ -1067,20 +1145,20 @@ governed by the scale-to-noise ratio $a/\tau$ (the nearest-anchor error probabil
 $\Phi(-a/(\sqrt{2}\tau))$; appendix). For the benchmark runs, the realized KL and
 geometry are therefore inspected directly. With the classifier scale
 fixed at $a/\tau^2$ by construction, the only remaining lever at full compression is
-$a$ itself: the anchor scale converts the compression knob from a collapse dial into
-a plateau dial. The KL decomposition shows the two channels at work: OPB's $\E[\KL]$ is
+$a$ itself; across the measured grid, the location of the performance plateau varies
+with this validation-selected hyperparameter. The KL decomposition shows that OPB's $\E[\KL]$ is
 dominated by the mean-mismatch term (anchor displacement; $a = 12$, $\beta = 1$:
 $20.6$ mean vs.\ $0.36$ variance), while CEB's reference absorbs compression by
-shrinking both terms toward zero: the reference chases the posterior, exactly the
-degeneracy the constructed geometry excludes
+shrinking both terms toward zero; the constructed reference excludes the corresponding
+zero-margin reference configuration
 (Lemma~\ref{lem:opb-kl-decomposition}). This decomposition motivates the direct
 mismatch diagnostics of Section~\ref{sec:direct-mismatch}; it does not by itself
-verify the comparator bound. The geometry transfer is characterized by the
-mismatch-dependent separation statement (Proposition~\ref{prop:pgib-separation}) and
+verify the comparator bound. Posterior separation is constrained by the
+mismatch-conditioned statement (Proposition~\ref{prop:pgib-separation}) and
 the fixed-scale condition of
 Proposition~\ref{prop:opb-sweep}; consistent with that proposition's scope, we do
-not claim that the map $\beta \mapsto$ accuracy is monotone, only that the
-constructed scale keeps the plateau from collapsing.
+not claim that the map $\beta \mapsto$ accuracy is monotone; the larger-scale
+configurations simply maintain a plateau over a wider part of this observed sweep.
 
 \subsection{Information-plane analysis}
 \label{sec:info-plane}
@@ -1128,22 +1206,22 @@ critical point rather than a midpoint: the per-seed accuracy is bimodal
 $96.5$--$97.8\%$). The two axes fall together --- the reference absorbs the
 compression by absorbing the task information.
 
-\emph{(ii) The plateau has a floor at the task information.} OPB
+\emph{(ii) The estimated plateau lies near the task-information level.} OPB
 ($a = 6$, $12$) keeps MNIST accuracy at $98.1$--$98.6\%$ for every $\beta$ up
 to $25$; $I(X;Z)$ saturates at $2.2$--$2.4$ nat while $I(Y;Z)$ stays at
 $\approx 2.2$ (against $H(Y) = \ln 10 \approx 2.30$), and the certificate sits
 at $\approx 0$ ($a = 12$, $\beta = 15$: $0.00 \pm 0.21$; $a = 6$,
-$\beta = 5$: $0.09$). The floor is the data-processing inequality made
-visible: at full compression the frame leaves room for exactly the
-task-relevant information and nothing else.
+$\beta = 5$: $0.09$). These estimator-level values lie near $H(Y)$; because the
+information-plane quantities are lower-bound estimates, they do not establish that
+the representation contains exactly the task-relevant information and nothing else.
 
-\emph{(iii) At matched compression the geometry keeps more of the task.}
+\emph{(iii) Matched-compression performance.}
 Table~\ref{tab:info-plane-matched} pairs each CEB point with the OPB
 configuration of nearest estimated $I(X;Z)$. At $\approx 2.0$ nat, CEB
 ($\beta = 0.5$) retains $86.0\%$ while OPB ($a = 1$, $\beta = 0.5$) retains
 $97.8\%$; at $\approx 2.5$ nat ($\beta = 0.1$) the two tie ($98.2\%$ vs.\
-$98.1\%$) --- the geometry pays nothing where compression is mild and carries
-the task where it is not.
+$98.1\%$). These are paired empirical comparisons at two estimated compression
+levels, not a causal attribution to geometry.
 
 \begin{table}[t]
 \centering
@@ -1287,12 +1365,12 @@ model-specific, so neither model's robustness is an artifact of the other's
 gradients.
 
 % =====================================================================
-\subsection{Mechanism analysis: posterior geometry and tied prediction}
+\subsection{Structural diagnostics: posterior geometry and tied prediction}
 \label{sec:mechanism}
 % =====================================================================
 
-The main sweep compares predictive performance. This section separately evaluates
-the proposed mechanism on two representative settings, MNIST (MLP, classification)
+The main sweep compares predictive performance. This section separately reports
+structural diagnostics on two representative settings, MNIST (MLP, classification)
 and California Housing (MLP, regression), trained at the matched compression
 $\beta = 0.1$ with anchor scale $a = \rho = 12$. The table is a
 matched-configuration geometric snapshot; Section~\ref{sec:direct-mismatch} then
@@ -1308,8 +1386,8 @@ isometry through the origin, both verified at machine precision.
 
 \input{result3}
 
-\paragraph{The posterior.} Table~\ref{tab:mechanism} shows that this geometry
-transfers to the posterior. On classification the posterior class centers are
+\paragraph{The posterior.} Table~\ref{tab:mechanism} shows that the fitted posterior
+has geometry close to the declared reference. On classification the posterior class centers are
 nearly orthogonal (the mean off-diagonal Gram cosine is $5.9\times$ lower than
 CEB's) and sit at radius $\lVert\bar c\rVert = 11.00$ ($92\%$ of $a$), with
 $2.5\times$ lower cross-seed drift; the Fisher ratio is comparable
@@ -1323,7 +1401,7 @@ axis \emph{direction} itself can rotate rigidly with the representation (mean
 direction cosine $0.03$--$0.06$ for both models), so the discriminative
 stability evidence is the scale, not the direction.
 Figures~\ref{fig:mechanism-gram} and~\ref{fig:mechanism-axis} show both
-mechanisms directly.
+diagnostics directly.
 
 \begin{figure*}[t]
 \centering
@@ -1338,23 +1416,23 @@ orthogonal; CEB shows no such structure.}
 \centering
 \includegraphics[width=\linewidth]{figures/fig_mechanism_axis.png}
 \caption{The axial coordinate $u^{\top}\mu_q(x)$ against the normalized label on
-Housing (one representative run per model). The EPB posterior hugs the prior line
+Housing (one representative run per model). The EPB posterior lies near the prior line
 $\rho\tilde y$, shrunk toward $\rho\,\mathbb{E}[\tilde y \mid x]$ by the
 encoder's uncertainty.}
 \label{fig:mechanism-axis}
 \end{figure*}
 
-\paragraph{Prediction reads off the geometry.} Both heads of
+\paragraph{Tied-readout performance.} Both heads of
 Section~\ref{sec:variants} have no free parameters. At the matched configuration
 the anchor-energy classifier attains $98.44\%$ test accuracy against CEB's
 $98.16\%$ on MNIST, and the tied projection head attains $R^2 = 0.778$ against
-CEB's $0.491$ on Housing: under this strong compression CEB collapses while the
-geometric readout retains the signal, consistent with the main-table GPB column
+CEB's $0.491$ on Housing. At this strong-compression setting, these values are
+consistent with the main-table GPB column
 (Section~\ref{sec:main-results}) and with the nearest-anchor analysis of the
-appendix. At this matched configuration, the evidence supports both links of the
-mechanism: the constructed prior is accompanied by the declared posterior geometry,
-and a zero-parameter rule that reads that geometry carries the prediction. This is
-mechanism evidence rather than a verification of the comparator inequality.
+appendix. The same fitted models exhibit posterior geometry close to the reference
+and non-trivial prediction under a zero-parameter readout. Their co-occurrence is a
+structural consistency diagnostic, not a causal attribution or a verification of the
+comparator inequality.
 
 \subsubsection{Direct mismatch analysis across compression strengths}
 \label{sec:direct-mismatch}
@@ -1389,9 +1467,10 @@ the posterior-center distance $S_{ij}=\|m_i-m_j\|$ with the raw empirical lower 
 \end{equation}
 At $\beta=25$, this bound is positive for $96.9\%$ of class pairs at $a=12$
 (mean lower bound $3.95$), $62.3\%$ at $a=6$, and none at $a=1$. The last case is
-informative rather than contradictory: with $a=1$ the posterior centers collapse at
-$\beta=25$ (mean $S_{ij}=0$), so the small declared margin is entirely consumed by
-mismatch. At the other end, $a=6$ overshoots the frame at
+a failure of practical informativeness: with $a=1$ the posterior centers collapse at
+$\beta=25$ (mean $S_{ij}=0$), and the mismatch consumes the entire declared margin.
+Equivalently, no pair satisfies the empirical counterpart of
+Eq.~\eqref{eq:separation-tightness-ratio}. At the other end, $a=6$ overshoots the frame at
 $\beta=5\cdot10^{-5}$ ($S/(\sqrt2a)=1.39$); this ratio falls to $0.51$ at
 $\beta=25$ as compression pulls the posterior inward. Every applicable
 seed--checkpoint pair has non-negative separation slack to numerical tolerance, and
@@ -1400,7 +1479,7 @@ unconditional inequality, not independent evidence for an optimization rate.
 
 \paragraph{Regression.} On Housing with $\rho=6$, $\widehat D$ falls from $0.264$
 at $\beta=5\cdot10^{-5}$ to $0.026$ at $\beta=25$, while $R^2$ changes only from
-$0.786$ to $0.767$. This separates the mechanism measurement from the performance
+$0.786$ to $0.767$. This separates the mismatch diagnostic from the performance
 comparison: a tenfold mismatch reduction need not imply a comparable task-metric gain.
 The mismatch is almost entirely axial (a representative axial contribution is about
 $0.2$, against an off-axis contribution of about $0.004$), and the normalized axial
@@ -1427,9 +1506,10 @@ deviations are over five seeds; no checkpoint is omitted.}
 \end{figure*}
 
 The two tasks expose complementary limits of the geometric claim. Classification has
-a discrete declared margin, and sufficiently large anchors leave an informative
-positive separation certificate for most class pairs. Regression transfers direction
-more clearly than scale, and its finite-bin lower bound is often vacuous. Neither
+a discrete declared margin; at the tested larger scales, the bound is positive for
+most class pairs, whereas it is positive for none at $a=1$. The regression posterior
+is closer to the declared direction than to its scale, and its finite-bin lower bound
+is often vacuous. Neither
 observation turns benchmark accuracy into a test of Theorem~\ref{prop:pgib-alignment};
 they directly evaluate the realized mismatch on which the unconditional
 Proposition~\ref{prop:pgib-separation} depends.

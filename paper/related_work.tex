@@ -65,15 +65,53 @@ from the prior encoder, and the anchor-energy classifier reads the same frame wi
 introducing an independent classifier scale. Thus the geometric class code and the
 conditional KL are coupled during training.
 
+Table~\ref{tab:geometry-boundary} summarizes this object-level distinction. The
+geometric primitive is shared with several preceding lines of work, but its role in
+the objective is different: OPB anchors are constrained class centers that serve
+simultaneously as Gaussian-prior means, KL targets, and readout anchors. In the
+shared-covariance canonical instance, the induced readout is an orthogonal classifier
+as a consequence of the Gaussian Bayes rule. It is not an ETF construction: OPB has
+Gram matrix $a^2 I_K$ (zero pairwise inner products), whereas a centered simplex ETF
+has constant negative off-diagonal inner products in a $(K-1)$-dimensional subspace.
+The frame is recomputed from the prior encoder and may rotate, rather than fixing a
+coordinate frame or optimizing a separate prototype table.
+
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{p{2.35cm} p{2.65cm} p{2.0cm} p{2.35cm} p{1.95cm}}
+\hline
+Approach & Constrained object & Enters an IB KL? & Readout tied to geometry? & Stochastic posterior? \\
+\hline
+Prototype methods~\citep{deng2014equidistant} & prototypes or features & No & Usually no/partial & Usually no \\
+ETF / orthogonal classifiers~\citep{xu2022orthogonal,ji2023etf} & classifier weights or feature directions & No & Yes & Usually no \\
+Fixed or hierarchy-aware frames~\citep{tong2023fixed_frame} & feature coordinates or a frame & No & Method-dependent & Usually no \\
+CEB~\citep{fischer2020conditional} & label-conditional reference & Yes (conditional KL) & No (free head) & Yes \\
+GPB (OPB / EPB) & label-conditional Gaussian prior means and covariance & Yes (conditional KL) & Yes (tied rule) & Yes \\
+\hline
+\end{tabular}
+\caption{Conceptual boundary between geometric representation methods and GPB. The
+entries describe the object constrained by the method, not whether a particular
+implementation may contain additional components. GPB reuses familiar geometric
+primitives while placing them in the conditional prior used by the bottleneck and
+using the same prior geometry for prediction.}
+\label{tab:geometry-boundary}
+\end{table*}
+
 \paragraph{Distance-preserving regression and geometric priors.}
 Isometric representation learning has traditionally focused on preserving distances
 on a data manifold, including deep extensions of isomap-style mappings
 \citep{pai2022isometric}. Orthogonal label regression has also been used as a
 discriminative device in domain adaptation \citep{luo2023doll}. These methods motivate
-using a declared label metric, but they do not formulate that metric as the mean map
-of a conditional Gaussian information-bottleneck prior. EPB uses the scalar label
-case: after standardization, prior means lie on a normalized axis with a fixed scale,
-so latent prior distances equal the declared label distances up to that scale. The
+using a declared label metric, but they generally constrain a deterministic feature
+map rather than the mean map of a conditional Gaussian information-bottleneck prior.
+EPB uses the scalar label case: after standardization, prior means lie on a normalized
+axis with a fixed scale, so latent prior distances equal the declared label distances
+up to that scale. The same axis is also the tied regression readout and the target of
+the conditional KL. Thus EPB is a conditional-prior use of distance geometry, not a
+new distance-preserving primitive. The
 regression information-bottleneck literature, including divergence-based bounds,
 provides complementary compression objectives rather than this geometric prior
 construction \citep{yu2024csd_ib}. AdaCap pairs a permutation-based contrastive
