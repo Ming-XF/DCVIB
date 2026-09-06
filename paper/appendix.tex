@@ -203,6 +203,12 @@ channel rather than treating it as fixed.
 \subsection{Construction details}
 \label{app:construction}
 
+\begin{assumption}[Full rank]
+\label{ass:fullrank}
+$U_\theta$ has full column rank wherever the polar factor and its backward pass are
+evaluated; this is monitored rather than imposed by an extra loss.
+\end{assumption}
+
 \paragraph{Polar permutation equivariance.} For any label permutation matrix $P$,
 \begin{equation}
 Q_\theta(U_\theta P)
@@ -229,6 +235,13 @@ Eq.~\eqref{eq:opb-geometry} follows from $Q_\theta^{\top}Q_\theta = I_K$ after s
 by $a$; in particular
 $\|a_i - a_j\|^2 = \|a_i\|^2 + \|a_j\|^2 - 2a_i^{\top}a_j = 2a^2$.
 \end{proof}
+
+\begin{proposition}[Anchor-energy classifier equivalence]
+\label{prop:opb-energy}
+The scores $s_k(z)=-\|z-aq_{\theta,k}\|^2/(2\tau^2)+\log\pi_k$ are Gaussian Bayes
+scores up to a class-independent term. For uniform classes, the corresponding linear
+weights are $(a/\tau^2)q_{\theta,k}$.
+\end{proposition}
 
 \paragraph{Initialization, monitoring, and re-initialization.} The posterior logvar
 head is zero-initialized ($\sigma^2 = \tau^2 = 1$ at initialization, so training

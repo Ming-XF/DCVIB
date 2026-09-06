@@ -321,37 +321,23 @@ quantity). Full definitions are in the stored evaluation report.}
 \label{tab:mechanism-main}
 \end{table}
 
-\paragraph{Limitations and future work.} The theorem is comparator-relative: on a
-real benchmark its floor is determined by a prespecified comparator and its label,
-mean-approximation, and covariance terms. The main table consequently reports
-end-to-end utility, while the controlled and structural studies provide the
-mechanism-level evidence for the theorem's ingredients; a post-hoc fit would not be
-an informative floor estimate. Likewise, the separation lower bound is informative
-when the realized mismatch is below the declared margin, so anchor scale remains an
-operating choice rather than a universal constant. Extending the analysis to
-data-driven comparator certificates and adaptive scale selection is a useful
-direction for future work. The information-plane quantities are estimator-level
-diagnostics, so tightening their connection to mutual-information estimands is
-another useful extension. Finally, GPB combines known geometric primitives with the
-conditional prior, KL, and tied readout rather than introducing a new ETF or prototype
-primitive. Proofs and all supplementary evidence are collected in
-Appendices~\ref{app:deferred}--\ref{sec:related}.
+\paragraph{Conclusion and limitations.} The experiments form a consistent
+progression from construction to behavior: the baseline table establishes end-to-end
+utility across modalities; the factor interventions attribute the gain to the
+geometric prior; the controlled noise study matches the analytic ambiguity floor; and
+the compression, information-plane, robustness, geometry, and mismatch diagnostics
+show how the declared prior is reflected in the learned posterior at different
+operating points. Constraining the conditional prior changes the geometry available
+to the KL, and the tied readout makes that geometry visible to prediction; the
+measured mismatch determines how much of the declared geometry transfers, and the
+anchor scale determines where the trade-off is useful.
 
-\paragraph{Evidence synthesis.} The experiments form a consistent progression from
-construction to behavior. The complete baseline table establishes the end-to-end
-utility of GPB across modalities and backbones; the factor interventions identify
-which part of the construction accounts for the largest change. The controlled noise
-study then varies label ambiguity while holding the representation problem fixed, so
-the observed floor can be compared with the analytic decomposition. Finally, the
-compression, information-plane, robustness, geometry, and mismatch diagnostics show
-how the declared prior is reflected in the learned posterior at different operating
-points. The detailed regression, transfer, uncertainty, and pair-level analyses in the
-appendix use the same checkpoints and seeds, making the main figures summaries of a
-single evaluation protocol rather than separate demonstrations.
-
-Taken together, the results support a mechanism-level interpretation: constraining the
-conditional prior changes the geometry available to the KL, and the tied readout makes
-that geometry visible to prediction. The measured mismatch determines how much of the
-declared geometry reaches the posterior, while the anchor scale determines where the
-trade-off is useful. This separation between construction, transfer, and utility is
-the organizing principle for reading the empirical results.
+The results are qualified accordingly. The alignment bound is comparator-relative: on
+a real benchmark its floor is determined by a prespecified comparator and its label,
+mean-approximation, and covariance terms rather than an intrinsic dataset constant,
+and the separation lower bound is informative only when the realized mismatch stays
+below the declared margin, so anchor scale remains an operating choice. The
+information-plane quantities are estimator-level diagnostics rather than
+mutual-information identities. Data-driven comparator certificates, adaptive scale
+selection, and tighter information estimates are natural next steps. Proofs and all
+supplementary evidence are collected in Appendices~\ref{app:deferred}--\ref{sec:related}.

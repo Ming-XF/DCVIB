@@ -1,3 +1,5 @@
+\subsection{Constructing the geometric prior family}
+
 Let $Y-X-Z$ and let the encoder posterior be
 $q_\phi(z|x)=\mathcal N(\mu_\phi(x),\operatorname{diag}\sigma_\phi^2(x))$.
 CEB~\citep{fischer2020conditional} replaces the VIB marginal reference by a
@@ -56,16 +58,12 @@ Q_\theta=U_\theta(U_\theta^\top U_\theta)^{-1/2},
 \qquad Q_\theta^\top Q_\theta=I_K,
 \label{eq:opb-qr}
 \end{equation}
-and we assume the monitored matrix has full column rank:
-\begin{assumption}[Full rank]
-\label{ass:fullrank}
-$U_\theta$ has full column rank wherever the polar factor and its backward pass are
-evaluated; this is monitored rather than imposed by an extra loss.
-\end{assumption}
+and we assume, monitoring rather than imposing it, that the monitored matrix has
+full column rank (Assumption~\ref{ass:fullrank} in the appendix).
 The anchors are
 \begin{equation}
-p_\theta^{\rm OPB}(z|Y=k)=\mathcal N(aq_{\theta,k},\tau^2I),qquad
-Q_\theta^\top Q_\theta=I_K,qquad\|aq_i-aq_j\|=\sqrt2a.
+p_\theta^{\rm OPB}(z|Y=k)=\mathcal N(aq_{\theta,k},\tau^2I),\qquad
+Q_\theta^\top Q_\theta=I_K,\qquad\|aq_i-aq_j\|=\sqrt2a.
 \label{eq:opb-prior}
 \end{equation}
 The construction also gives the fixed geometry
@@ -80,23 +78,33 @@ s_k(z)=-\frac{\|z-aq_{\theta,k}\|^2}{2\tau^2}+\log\pi_k,
 \label{eq:opb-energy}
 \end{equation}
 the Gaussian Bayes scores; with uniform priors this induces an orthogonal classifier
-whose scale is fixed by the prior (Proposition~\ref{prop:opb-energy}). For regression, EPB uses
-\begin{equation}
-p_\theta^{\rm EPB}(z|y)=\mathcal N(\rho\tilde y\,u,\tau^2I),qquad
-\|\mu_p(y)-\mu_p(y')\|=\rho|\tilde y-\tilde y'|,
-\label{eq:epb-prior}
-\end{equation}
-and the tied projection $\hat{\tilde y}=u^\top z/\rho$. Detailed polar construction,
-initialization, covariance relaxation, and the relation to prototype/ETF methods are
-given in Appendices~\ref{app:construction} and~\ref{sec:related}.
-
-For OPB, the general objective is equivalently
+whose scale is fixed by the prior (Appendix~\ref{app:construction}). For OPB, the
+general objective is equivalently
 \begin{equation}
 \mathcal L_{\rm OPB}=\E\left[\CE(c_\psi(Z),Y)+\beta\KL\bigl(q_\phi(z|X)\|p_\theta^{\rm OPB}(z|Y)\bigr)\right],
 \qquad Z\sim q_\phi(\cdot|X),
 \label{eq:opb-objective}
 \end{equation}
-so the same stateless anchors enter both the KL and the tied readout.
+so the same stateless anchors enter both the KL and the tied readout. Detailed polar
+construction, initialization, covariance relaxation, and the relation to
+prototype/ETF methods are given in Appendices~\ref{app:construction} and~\ref{sec:related}.
+
+For regression, EPB uses a one-dimensional continuous label, standardized once on
+the training set as $\tilde y$ with the statistics frozen. Let $W\in\R^{d\times1}$ be
+a trainable direction with per-step normalization $u=W/\|W\|$; the isometric prior is
+\begin{equation}
+p_\theta^{\rm EPB}(z|y)=\mathcal N(\rho\tilde y\,u,\tau^2I),\qquad
+\|\mu_p(y)-\mu_p(y')\|=\rho|\tilde y-\tilde y'|,
+\label{eq:epb-prior}
+\end{equation}
+so latent distances equal $\rho$ times standardized label distances exactly --- order
+and magnitude of label differences are encoded with equality, which qualifies the
+family (Eq.~\eqref{eq:pgib-lipschitz} with $\rho_{\min}=\rho_{\max}=\rho$). The
+prediction head is the tied projection $\hat{\tilde y}=u^\top z/\rho$, the regression
+analogue of the anchor-energy classifier: no free direction or scale can bypass the
+prior. The main variant uses the trainable normalized axis with no bias; the
+fixed-axis and unconstrained-scale ablations are in
+Appendix~\ref{app:construction}.
 
 \begin{proposition}[Stateless GPB priors preserve the CEB certificate]
 \label{prop:opb-certificate}
@@ -111,14 +119,7 @@ Thus restricting the prior family changes its geometry without changing the CEB
 certificate identity; batch-dependent references would not satisfy this statement.
 \end{proposition}
 
-\begin{proposition}[Anchor-energy classifier equivalence]
-\label{prop:opb-energy}
-The scores $s_k(z)=-\|z-aq_{\theta,k}\|^2/(2\tau^2)+\log\pi_k$ are Gaussian Bayes
-scores up to a class-independent term. For uniform classes, the corresponding linear
-weights are $(a/\tau^2)q_{\theta,k}$.
-\end{proposition}
-
-\subsection{Theory}
+\subsection{Alignment and separation guarantees}
 \label{sec:guarantees}
 Define
 \begin{equation}
