@@ -50,6 +50,11 @@ MAIN_RESULT_CI_PATH = Path(__file__).resolve().parent / "main_result_CI.tex"
 RESULT1_PATH = Path(__file__).resolve().parent / "result1.tex"
 RESULT3_PATH = Path(__file__).resolve().parent / "result3.tex"
 RESULT4_PATH = Path(__file__).resolve().parent / "result4.tex"
+RESULT5_PATH = Path(__file__).resolve().parent / "result5.tex"
+# 噪声合成试验结果（synthetic_noisy_align.py 输出；population 模式、
+# fixed 帧、paper 后验方差、best checkpoint）
+NOISY_CSV = ROOT / "output" / "synthetic_noisy_align" / "synthetic_noisy_align.csv"
+NOISY_REF_CSV = ROOT / "output" / "synthetic_noisy_align" / "reference.csv"
 # 几何机制表数据源（prior_geometry.py / posterior_geometry.py 输出）
 POSTERIOR_JSON = ROOT / "output" / "pri-pos" / "pos_results" / "posterior_geometry.json"
 PRIOR_SUMMARY_JSON = ROOT / "output" / "pri-pos" / "pri_results" / "prior_summary.json"
@@ -936,6 +941,79 @@ def gen_table_std(grid):
     return out
 
 
+def gen_result5():
+    r"""生成 result5.tex：受控标签噪声试验表（synthetic_noisy_align 输出）。
+
+    行 = 噪声率 r ∈ {0, 0.1, 0.2, 0.4}，列 = 解析地板 δ_noise、九点 β 网格
+    两端的实测 D̂（β=10⁻³ 与 β=10，mean±std over 5 seeds）、全网格最大超额
+    max_β mean(D̂)−δ、以及 β=10 处 L̂−L_comp（拟合目标 − 显式 comparator 目标，
+    负值 = 优于 comparator）。数据缺失时返回 None（跳过）。
+    """
+    if not NOISY_CSV.exists() or not NOISY_REF_CSV.exists():
+        return None
+    ref = {}
+    with open(NOISY_REF_CSV, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            ref[float(row["noise_rate"])] = float(row["delta_noise"])
+    data = {}
+    with open(NOISY_CSV, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if (row["fail"] or row["mode"] != "population"
+                    or row["frame_type"] != "fixed"
+                    or row["posterior_var_mode"] != "paper"
+                    or row["checkpoint"] != "best"):
+                continue
+            r = float(row["noise_rate"])
+            b = float(row["beta"])
+            data.setdefault(r, {}).setdefault(b, []).append(
+                (float(row["d_hat"]), float(row["L_hat_minus_L_comp"])))
+    if not data:
+        return None
+
+    def ms(vals):
+        v = np.array(vals)
+        return float(v.mean()), float(v.std())
+
+    lines = [
+        "% 受控标签噪声试验表：由 paper/make_table.py 从 output/synthetic_noisy_align 自动生成，请勿手改。",
+        "% population 模式、fixed 帧、paper 后验方差、best checkpoint；九点 β 网格 {1e-3..10}。",
+        "% max excess = max_β mean(D̂)−δ_noise；L̂−L_comp 取 β=10（负值 = 拟合目标优于显式 comparator）。",
+        "\\begin{table}[t]",
+        "\\centering",
+        "\\small",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\begin{tabular}{c c c c c c}",
+        "\\hline",
+        "$r$ & $\\delta_{\\rm noise}$ & $\\widehat D(\\beta{=}10^{-3})$ & "
+        "$\\widehat D(\\beta{=}10)$ & max excess & $\\widehat L-L_{\\rm comp}$ \\\\",
+        "\\hline",
+    ]
+    for r in sorted(data):
+        d03, s03 = ms([v[0] for v in data[r][1e-3]])
+        d10, s10 = ms([v[0] for v in data[r][10.0]])
+        d = ref[r]
+        max_excess = max(ms([v[0] for v in data[r][b]])[0] - d
+                         for b in sorted(data[r]))
+        lh, ls = ms([v[1] for v in data[r][10.0]])
+        lines.append(
+            f"${r:g}$ & ${d:.3f}$ & ${d03:.4f}\\pm{s03:.4f}$ & "
+            f"${d10:.4f}\\pm{s10:.4f}$ & ${max_excess:.3f}$ & "
+            f"${lh:.3f}\\pm{ls:.3f}$ \\\\"
+        )
+    lines += [
+        "\\hline",
+        "\\end{tabular}",
+        "\\caption{Controlled label-noise floor (mean $\\pm$ std over five seeds). "
+        "The nine-point $\\beta$ grid spans $10^{-3}$ to $10$; max excess is the "
+        "largest mean excess over the grid; the last column is the fitted "
+        "population objective minus the explicit comparator objective at "
+        "$\\beta=10$ (negative means the fit improves on the comparator).}",
+        "\\label{tab:controlled-noisy-alignment}",
+        "\\end{table}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def main():
     if not list(RESULTS_DIR.glob("*.html")):
         raise SystemExit(f"{RESULTS_DIR} 下未找到 html 文件")
@@ -963,6 +1041,15 @@ def main():
     RESULT1_PATH.write_text(gen_result1(full), encoding="utf-8")
     print(f"已生成 {RESULT1_PATH}（压缩-精度表：CEB + GPB（OPB a / EPB ρ = 1/6/12）× β 网格，"
           f"仅 {', '.join(f'{TASK_NAMES.get(t, t)} ({b})' for t, b in COMPRESSION_TASKS)}）")
+
+    result5 = gen_result5()
+    if result5 is None:
+        print(f"警告：{NOISY_CSV} 不存在，跳过受控标签噪声表"
+              f"（先运行 synthetic_noisy_align.py 生成）")
+    else:
+        RESULT5_PATH.write_text(result5, encoding="utf-8")
+        print(f"已生成 {RESULT5_PATH}（受控标签噪声表：r × 解析地板 / 两端 β 实测 D̂ / "
+              f"max excess / L̂−L_comp）")
 
     result4 = gen_result4()
     if result4 is None:

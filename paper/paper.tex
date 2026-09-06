@@ -2,12 +2,9 @@
 % 基于 paper/OPB.txt（分类）、paper/OPB-R.txt（回归）、paper/theory.tex（理论）撰写；
 % 结构参照 paper/template.tex（ICLR 2027 投稿格式）。本仓库未随附 iclr2027_conference.sty
 % 与 math_commands.tex，故 preamble 自带最小等价设置（拿到样式文件后替换即可）。
-% 当前包含：题目、abstract、Intro、方法（2.1 From CEB to GPB / 2.2 几何实例 OPB/EPB /
-% 2.3 理论保证，含统一对齐主定理）、实验（3.1 设置 / 3.2 主结果 \input{main_result} /
-% 3.3 压缩-精度曲线（横轴 = β：每任务 β-acc 与 β-KL 两张，图 fig:compression 2×2）/
-% 3.4 对抗鲁棒性（targeted PGD 图 fig:adv-targeted + 迁移图 fig:adv-transfer）/ 3.5 机制验证 \input{result3} + 图）、
-% 语句小节、参考文献、附录（\input{appendix.tex}：诊断/证明/构造细节/补充结果）。
-% 相关工作由 related_work.tex 单独维护，并在正文中通过 \input 引入。
+% 当前包含：题目、abstract、Intro、精简方法与理论、完整 baseline 主表、
+% 分类压缩与 targeted 白盒鲁棒性主图、机制/失配摘要，以及参考文献和附录。
+% 回归压缩、迁移攻击、逐类失配图、完整消融和 related work 均在附录维护。
 
 \documentclass{article} % For LaTeX2e
 \usepackage{iclr2027_conference,times}
@@ -52,34 +49,22 @@
 \maketitle
 
 \begin{abstract}
-The conditional entropy bottleneck (CEB) compresses representations against a
-label-conditional reference whose geometry is left entirely to the optimizer. We
-show that this reference has two failure channels: in deterministic settings the
-CEB knob is dead (a known Caveat), and, more fundamentally, the certificate is
-blind to the relationships between labels: no cross-class term constrains the
-geometry among the class priors. We close this channel by declaring the geometry:
-the prior is confined to a qualified geometric family computed statelessly at
-every training step: an orthogonal class frame (OPB) for classification and an
-isometric regression axis (EPB) for regression, both with prediction rules tied
-to the geometry by construction (the zero-parameter anchor-energy classifier and
-the tied projection head). The framework preserves the CEB certificate for any
-stateless conditional prior and yields a comparator-dependent alignment bound for
-arbitrary label noise and model misspecification. Its residual floor algebraically separates
-irreducible label ambiguity, encoder approximation, and covariance mismatch; the
-exact $O(1/\beta)$ rate is recovered only as the noiseless, exactly realizable special
-case. A controlled known-noise experiment recovers the predicted non-zero floors at
-three noise levels and the zero floor when labels are deterministic. Independently of
-this optimization bound, the observed anchor mismatch yields a deterministic lower
-bound on posterior separation. At the strongest reported compression, this bound is
-positive for $96.9\%$, $62.3\%$, and $0\%$ of ImageNet-100 class pairs at anchor
-scales $a=12,6,1$, respectively, showing that its informativeness is conditional on
-the selected scale and realized mismatch; the regression bound is consistent but
-often vacuous.
-The construction removes the unspecified
-inter-class geometry of the reference. Across
-nine datasets and four backbones, GPB is best or tied-best in $7$ of $12$ settings
-and has a higher mean than CEB in all twelve settings. These predictive comparisons
-are reported separately from the conditional theoretical statements.
+The information bottleneck (IB) principle seeks representations that retain target
+information while discarding input variation. The conditional entropy bottleneck
+(CEB) uses a label-conditional reference, but its class-wise matching terms leave
+the geometry between different labels unspecified. We introduce a geometric prior
+bottleneck (GPB) that declares this geometry statelessly: OPB uses an orthogonal
+class frame for classification and EPB an isometric label axis for regression. In
+both cases, the same geometric means are used as conditional-Gaussian KL targets
+and prediction anchors through a parameter-free energy or projection head.
+GPB preserves the CEB certificate and yields a comparator-dependent alignment
+inequality whose floor decomposes label ambiguity, encoder approximation, and
+covariance mismatch; a separate mismatch-conditioned result transfers prior
+separation to posterior centers. Controlled label-noise, direct mismatch,
+robustness, and posterior-geometry studies characterize these mechanisms, while
+the full benchmark comparison spans twelve dataset--backbone settings and complete
+IB and non-IB baselines. GPB is best or tied-best in seven settings and has a
+higher mean than CEB in all twelve.
 \end{abstract}
 
 
@@ -87,115 +72,91 @@ are reported separately from the conditional theoretical statements.
 \section{Introduction}
 % =====================================================================
 
-The information bottleneck (IB) principle \citep{tishby2000information} seeks a
-representation $Z$ of an input $X$ that retains the information needed to predict the
-label $Y$ while discarding the rest. The variational IB (VIB) \citep{alemi2017deep}
-bounds the compression term with a fixed marginal prior $\mathcal{N}(0,I)$; the
-conditional entropy bottleneck (CEB) \citep{fischer2020conditional} sharpens the bound
-to the residual information by replacing the marginal prior with a trainable
-label-conditional reference $b(z|y)$, certified by the gap
-$\mathrm{ReX} = \E[\KL(q(z|x)\,\|\,b(z|y))] \ge I(X;Z|Y)$. We call this gap the
-\emph{certificate}; its failure modes are our starting point.
-
-\textbf{The problem: a reference with no declared geometry.} Two facts about CEB are
-established. First, \emph{the knob is dead}: in the deterministic setting $Y = f(X)$,
-every compression weight selects the same corner of the information plane
-\citep{kolchinsky2019caveats}; this is settled background, repaired by their squared
-compression term, and we return to it only as a mechanism connection
-(Proposition~\ref{prop:opb-sweep}, Appendix). Second, and less recognized, \emph{the
-certificate is blind to the relationships between labels}: the CEB compression term is
-a sum of per-class matching terms (each sample's KL touches only its own class
-prior, and no term couples two distinct class priors), so at its class-wise matched
-optimum it reduces to $I(X;Z|Y)$, irrespective of the inter-class geometry realized by
-those matched conditionals (Proposition~\ref{prop:geom-blind}). Class means may merge,
-coincide, or point anywhere without changing the certificate; on the family
-$T_\alpha = B_\alpha\cdot Y$ that interpolates from collapse to the exact copy of the
-label, the certificate reads zero across the whole retention axis
-(Proposition~\ref{prop:flat}, Appendix). CEB therefore compresses against a reference
-whose inter-class geometry the optimizer may choose at will: what a properly compressed
-representation should look like (class means separated, ordered, or laid out on a
-frame) is exactly what the certificate leaves unspecified.
-
-\textbf{A geometric prior bottleneck.} We close this gap by \emph{declaring} the
-geometry of the reference. The prior $p(z|y)$ is confined to a \emph{qualified
-geometric family}: label-conditional Gaussians with a bounded diagonal covariance and
-a mean map that encodes the label structure at a fixed, declared scale: a two-sided
-separation condition for discrete labels and a two-sided metric condition for
-continuous labels (Section~\ref{sec:theory}). The prior is recomputed statelessly at
-every step, so the degenerate references --- merged classes, a collapsed point, an
-arbitrarily rescaled geometry --- are excluded by construction rather than by the
-optimizer's good behavior. We call this family of objectives a \emph{geometric prior
-bottleneck} (GPB). Two instantiations realize the principle: \emph{OPB} (orthogonal
-prior bottleneck) for classification, where the prior means form the scaled orthogonal
-frame $a\,q_{\theta,k}$ (every pair of distinct classes at distance $\sqrt2\,a$,
-with class-mean Gram matrix $a^2 I_K$ by construction), and \emph{EPB} (equidistant
-prior bottleneck) for regression, where the prior means lie on a unit axis,
-$\rho\,\tilde y\,u$, so latent distances equal $\rho$ times standardized label
-distances exactly. Both keep the CEB posterior, a single KL, and the residual
-certificate unchanged; the classification head is the anchor-energy classifier
-$\propto \exp(-\tfrac{1}{2\tau^2}\|z - a\,q_{\theta,k}\|^2)$ and the regression head
-the tied projection $\hat{\tilde y} = u^{\top}z/\rho$: prediction rules tied to the
-prior geometry by construction, with no free parameters. The constraints bind the
-\emph{reference}, not the deployed representation; the framework constrains the
-geometric \emph{form} of the label code and does not claim that the certificate meters
-retained label information.
-
-\textbf{Theoretical guarantees and scope.} The theory has three levels. First, the
-certificate gap identity holds pointwise for any stateless prior
-(Proposition~\ref{prop:opb-certificate}). Second, for arbitrary $P_{XY}$ and any
-feasible comparator $w_0$, every $\varepsilon$-near-optimum obeys the oracle inequality
+The information bottleneck (IB) principle~\citep{tishby2000information} formulates
+representation learning as a balance between predictive sufficiency and compression:
+the representation $Z$ should retain information about a target $Y$ while discarding
+variation in the input $X$ that does not support prediction. Variational IB (VIB)
+~\citep{alemi2017deep} makes this trade-off trainable with a stochastic encoder and
+a marginal reference distribution. The conditional entropy bottleneck (CEB)
+~\citep{fischer2020conditional} replaces that marginal reference with a
+label-conditional distribution and thereby targets the residual information
+$I(X;Z\mid Y)$. Its variational certificate,
 \begin{equation*}
-\mathcal D(\widehat w)
-\le \mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon}{\beta},
+\E\KL(q(z|x)\|b(z|y))\ge I(X;Z\mid Y),
 \end{equation*}
-where $\mathcal R$ is prediction risk and $\mathcal K$ is the conditional KL
-(Theorem~\ref{prop:pgib-alignment}). For OPB and EPB, $\mathcal K(w_0)$ decomposes
-into an irreducible conditional-label-variability term, encoder approximation, and
-covariance mismatch. This decomposition identifies the sources of a non-zero floor,
-but does not make its numerical value identifiable on a single-label benchmark; a
-specified comparator's total KL can instead be estimated on held-out data. The bound
-is informative for a target mismatch only when the comparator KL lies below that
-target. The familiar
-$O(1/\beta)$ statement follows only as the zero-floor corollary: deterministic labels,
-exact posterior--prior matching, and a compatible prediction head
-(Corollary~\ref{cor:pgib-exact-alignment}). Third, without any optimization or
-realizability premise, the realized mismatch gives a lower bound on posterior
-separation (Proposition~\ref{prop:pgib-separation}). The latter bound is informative
-only when the mismatch radii are smaller than the declared prior margin, a condition
-that depends on anchor scale. None of these statements guarantees task accuracy or
-selects that scale; they characterize the certificate and a mismatch-conditioned
-geometric constraint.
+is attractive because the reference can adapt to the label structure rather than
+forcing every class toward a common origin.
 
-\textbf{Experiments.} We separate predictive performance from structural diagnostics.
-The twelve real-data settings compare utility: GPB is best or
-tied-best in $7$ of $12$ settings and has a higher mean than CEB in all $12$, but these comparisons
-are not presented as verification of an alignment rate. The structural analysis instead
-reports posterior geometry and tied-head prediction without assigning a causal effect.
-Direct mismatch measurements evaluate the separation inequality quantitatively: at
-$\beta=25$ its positive-pair fraction on ImageNet-100 is $96.9\%$, $62.3\%$, and
-$0\%$ for $a=12,6,1$, whereas the EPB posterior follows the regression axis more
-closely in direction than in scale. A
-separate controlled experiment spans
-deterministic and noisy labels: it recovers the analytic ambiguity floor throughout the
-$\beta$ sweep. On a real dataset, a specified feasible comparator's total KL can be
-estimated on held-out data, but the best comparator and its ambiguity--approximation
-decomposition are not identified by a single-label benchmark.
+The same flexibility creates a geometric gap. CEB matches each posterior to the
+reference associated with its own label, but the certificate contains no term that
+compares two distinct label conditionals. Consequently, class means, directions, and
+pairwise margins are determined by optimization dynamics and prediction-head freedom,
+rather than by the compression criterion. The deterministic-label corner phenomenon
+identified in prior work is one manifestation of this freedom; a complementary issue
+persists even when labels are noisy or the information-plane knob moves: the
+certificate can be tight while the inter-label arrangement remains arbitrary. On the
+$T_\alpha=B_\alpha\!\cdot\!Y$ family, for example, the conditional residual can stay
+zero while retained label information changes across the family
+(Proposition~\ref{prop:geom-blind}; the full construction is in Appendix~\ref{app:diagnosis}).
+This observation motivates a prior whose geometry is part of the model definition.
 
-Our contributions are: (1) the identification and formalization of the missing
-cross-label geometric constraint in CEB (Proposition~\ref{prop:geom-blind});
-(2) the GPB framework and its two instances, OPB and EPB, with prediction rules tied
-to the prior geometry; (3) a comparator-dependent alignment bound for arbitrary label
-distributions and approximate model families, with explicit ambiguity, encoder, and
-covariance terms, plus the exact-realizability result as a zero-floor corollary;
-(4) unconditional certificate preservation and mismatch-conditioned posterior separation
-for any qualified geometric prior; and (5) performance comparisons separated explicitly
-from direct mismatch diagnostics and a controlled known-noise illustration of the
-analytic ambiguity floor.
+We introduce the geometric prior bottleneck (GPB), which keeps CEB's stochastic
+posterior and single conditional KL while restricting the reference to a qualified,
+bounded, stateless family. For classification, the orthogonal prior bottleneck (OPB)
+maps the class table to an equal-radius orthogonal frame and uses the corresponding
+Gaussian anchor energies as the classifier. For regression, the equidistant prior
+bottleneck (EPB) maps standardized labels to an isometric axis and uses the same axis
+for prediction. Thus each prior mean has two simultaneous roles: it is a target in the
+KL and an anchor in the readout. The construction is computed from the current
+all-label prior table, with no EMA, prototype memory, or batch-dependent geometry.
+
+GPB reuses geometric primitives that appear in prototype, ETF, orthogonal-classifier,
+and fixed-frame methods, but changes the object to which they are attached. OPB does
+not introduce a new ETF or prototype objective: its frame is the mean map of a
+conditional Gaussian prior, and its anchor-energy rule is the Bayes readout induced by
+the shared covariance. EPB similarly uses distance preservation as a prior mean map,
+not as a separate contrastive loss. This object-level distinction, together with the
+relationship to existing geometric classifiers, is summarized in the boundary table
+of Appendix~\ref{sec:related}.
+
+The construction leads to two complementary theoretical statements. First, the CEB
+gap identity continues to hold for every stateless conditional prior. Second, for a
+near-optimal solution and any feasible comparator $w_0$,
+\begin{equation*}
+\mathcal D(\widehat w)\le \mathcal K(w_0)+
+\frac{\mathcal R(w_0)+\varepsilon}{\beta},
+\end{equation*}
+so alignment is governed by a comparator's KL floor and prediction risk. The floor
+decomposes into irreducible label ambiguity, encoder mean approximation, and covariance
+mismatch (Appendix~\ref{app:deferred-theory}). Independently, the mismatch-conditioned
+separation proposition converts the realized distance to the declared prior anchors
+into a lower bound on posterior-center separation. Together these results connect the
+constructed geometry to both optimization and the representation actually produced by
+the encoder.
+
+We evaluate GPB through complementary evidence. The main table compares GPB with the
+complete IB and non-IB baseline set on twelve dataset--backbone settings. The controlled
+label-noise study follows the predicted zero-to-nonzero ambiguity floor; the direct
+mismatch study measures how much of the declared geometry reaches the posterior; and
+the compression, information-plane, robustness, and mechanism analyses examine the
+behavioral consequences of that transfer. Detailed uncertainty, regression curves,
+transfer attacks, pair-level diagnostics, and construction checks are provided in the
+corresponding appendices~\ref{app:construction}--\ref{app:main-ci}.
+
+In summary, our contributions are: (i) identifying and formalizing the missing
+cross-label geometric constraint in CEB; (ii) introducing GPB with OPB and EPB, whose
+prior means serve simultaneously as KL targets and prediction anchors; (iii) deriving
+comparator-dependent alignment and mismatch-conditioned separation results with an
+explicit ambiguity--approximation decomposition; and (iv) providing controlled and
+benchmark evidence that separates geometric mechanism, compression behavior, and
+end-to-end utility.
 
 % =====================================================================
 % =====================================================================
 \section{Method}
 % =====================================================================
+\input{method_core}
+\iffalse
 
 \subsection{From CEB to GPB}
 \label{sec:theory}
@@ -667,7 +628,7 @@ $B_0:=\mathcal K(w_0)+(\mathcal R(w_0)+\varepsilon)/\beta$.
 \end{equation}
 \emph{(b) Regression.} For any $t>0$, the label set
 $S_t:=\{y:D(y)\le t\}$ has $P_Y$-measure at least $1-B_0/t$, and the pointwise inequality of
-Proposition~\ref{prop:pgib-separation}(b) yields, for $P_Y$-a.e. $y,y'\in S_t$,
+Theorem~\ref{thm:pgib-separation}(b) yields, for $P_Y$-a.e. $y,y'\in S_t$,
 \begin{equation}
 \|m(y) - m(y')\| \;\ge\; \rho_{\min}\, d_Y(y, y')
 - 2\sqrt{2\tau^2_{\max}\, t} ;
@@ -718,9 +679,12 @@ Proposition~\ref{prop:opb-sweep}), and the implementation details are in the app
 
 % =====================================================================
 % =====================================================================
+\fi
 \section{Experiments}
 \label{sec:experiments}
 % =====================================================================
+\input{experiment_core}
+\iffalse
 
 % 已撰写：实验设置（sec:setup）、主结果（sec:main-results，\input{main_result}）、
 % 压缩-精度曲线（sec:sweep）、对抗鲁棒性（sec:robustness，fig:adv-targeted + fig:adv-transfer）
@@ -919,7 +883,10 @@ than loss of the underlying class signal.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/fig_noisy_alignment.png}
+\includegraphics[width=0.24\linewidth]{figures/fig_noisy_a_dhat_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_noisy_b_excess_invbeta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_noisy_c_beta_excess.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_noisy_d_acc_beta.png}
 \caption{Controlled illustration of approximate realizability. (a) Anchor mismatch
 $\widehat D$ against $\beta$; dashed lines are the analytic ambiguity floors and dotted
 lines the comparator references
@@ -1472,7 +1439,13 @@ $\beta=25$ (mean $S_{ij}=0$), and the mismatch consumes the entire declared marg
 Equivalently, no pair satisfies the empirical counterpart of
 Eq.~\eqref{eq:separation-tightness-ratio}. At the other end, $a=6$ overshoots the frame at
 $\beta=5\cdot10^{-5}$ ($S/(\sqrt2a)=1.39$); this ratio falls to $0.51$ at
-$\beta=25$ as compression pulls the posterior inward. Every applicable
+$\beta=25$ as compression pulls the posterior inward. Two scale-ordering
+observations sharpen this: at $\beta=5\cdot10^{-5}$ the mismatch is largest for the
+smallest frame ($349.8$ at $a=1$, against $82.1$ at $a=12$ and $62.3$ at $a=6$), and
+the ordering reverses at $\beta=25$ ($0.56$ at $a=12$ against $2.54$ at $a=6$; the
+$0.385$ at $a=1$ reflects the collapse above). Since the anchor-energy readout attains
+its prediction optimum exactly at the anchors, a larger declared scale exerts a
+stronger pull, making the tied readout self-enforcing. Every applicable
 seed--checkpoint pair has non-negative separation slack to numerical tolerance, and
 the Jensen check on every class also holds. These are consistency checks of an
 unconditional inequality, not independent evidence for an optimization rate.
@@ -1495,7 +1468,10 @@ must be read together.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/fig_mismatch_main.png}
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_a_imagenet100_d_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_d_housing_r2_vs_d.png}
 \caption{Direct mismatch diagnostics over the full compression sweeps. (a)
 ImageNet-100 anchor mismatch $\widehat D$ and total KL against $\beta$, by anchor
 scale. (b) MC-10 accuracy against $\widehat D$; color denotes $\beta$ and marker shape
@@ -1515,7 +1491,7 @@ they directly evaluate the realized mismatch on which the unconditional
 Proposition~\ref{prop:pgib-separation} depends.
 
 % =====================================================================
-\input{related_work.tex}
+\fi
 
 % =====================================================================
 \section*{AI use statement}
@@ -1544,13 +1520,17 @@ Appendix~\ref{app:main-ci}.
 
 % 待填：经费与致谢信息（模板要求放在文末）
 
+% References are placed before the appendix so the nine-page main-text count
+% ends at the reproducibility/acknowledgment material above.
+\clearpage
 \bibliography{paper_refs}
 \bibliographystyle{iclr2027_conference}
 
-
-% =====================================================================
+\clearpage
 \appendix
 \input{appendix.tex}
+\input{appendix_additional.tex}
+\input{related_work.tex}
 
 
 

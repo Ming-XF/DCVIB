@@ -1,0 +1,201 @@
+Let $Y-X-Z$ and let the encoder posterior be
+$q_\phi(z|x)=\mathcal N(\mu_\phi(x),\operatorname{diag}\sigma_\phi^2(x))$.
+CEB~\citep{fischer2020conditional} replaces the VIB marginal reference by a
+label-conditional reference $r(z|y)$ and uses the certificate
+\begin{equation}
+\E\KL(q_\phi(z|X)\|r(z|Y))
+=I(X;Z|Y)+\E_Y\KL(q_\phi(z|Y)\|r(z|Y))\ge I(X;Z|Y).
+\label{eq:gap}
+\end{equation}
+The certificate is a sum of class-wise matching terms. At $r=q(z|y)$ it reduces to
+$I(X;Z|Y)$, independently of the pairwise arrangement of the class conditionals
+(Proposition~\ref{prop:geom-blind}); the $T_\alpha$ counterexample is deferred to
+Appendix~\ref{app:diagnosis}.
+
+\begin{proposition}[The certificate records nothing about inter-label geometry]
+\label{prop:geom-blind}
+The CEB compression term contains no term coupling two distinct class priors; at its
+class-wise matched optimum it equals
+\begin{equation}
+\mathrm{ReX}=I(X;Z|Y),
+\label{eq:reix-residual}
+\end{equation}
+regardless of their inter-class means or directions.
+\end{proposition}
+
+\paragraph{Qualified geometric prior.}
+GPB restricts the reference to stateless conditional Gaussians
+\begin{equation}
+p_\theta(z|y)=\mathcal N(m_\theta(y),\Sigma_\theta(y)),\qquad
+\Sigma_\theta(y)\preceq\tau_{\max}^2I,
+\label{eq:pgib-covariance}
+\end{equation}
+whose means obey a declared two-sided separation for discrete labels,
+\begin{equation}
+\Delta\le\|m_\theta(y)-m_\theta(y')\|\le\bar\Delta,
+\label{eq:pgib-separation-condition}
+\end{equation}
+or a two-sided label metric condition
+\begin{equation}
+\rho_{\min}d_Y(y,y')\le\|m_\theta(y)-m_\theta(y')\|
+\le\rho_{\max}d_Y(y,y'),
+\label{eq:pgib-lipschitz}
+\end{equation}
+with constants fixed before training. The objective is
+\begin{equation}
+\mathcal L_{\rm GPB}=\E[\CE(c_\psi(z),Y)+\beta\KL(q_\phi(z|X)\|p_\theta(z|Y))],
+\qquad z\sim q_\phi(z|X).
+\label{eq:pgib-objective}
+\end{equation}
+
+\paragraph{Instances.}\label{sec:opb}
+For classification, OPB evaluates a prior encoder on all class labels and uses its
+thin polar factor $Q_\theta$. If $U_\theta$ is the resulting all-class matrix, then
+\begin{equation}
+Q_\theta=U_\theta(U_\theta^\top U_\theta)^{-1/2},
+\qquad Q_\theta^\top Q_\theta=I_K,
+\label{eq:opb-qr}
+\end{equation}
+and we assume the monitored matrix has full column rank:
+\begin{assumption}[Full rank]
+\label{ass:fullrank}
+$U_\theta$ has full column rank wherever the polar factor and its backward pass are
+evaluated; this is monitored rather than imposed by an extra loss.
+\end{assumption}
+The anchors are
+\begin{equation}
+p_\theta^{\rm OPB}(z|Y=k)=\mathcal N(aq_{\theta,k},\tau^2I),qquad
+Q_\theta^\top Q_\theta=I_K,qquad\|aq_i-aq_j\|=\sqrt2a.
+\label{eq:opb-prior}
+\end{equation}
+The construction also gives the fixed geometry
+\begin{equation}
+(aq_i)^\top(aq_j)=a^2\mathbf 1\{i=j\},
+\qquad \|aq_i-aq_j\|=\sqrt2a\quad(i\ne j).
+\label{eq:opb-geometry}
+\end{equation}
+The anchor-energy scores are
+\begin{equation}
+s_k(z)=-\frac{\|z-aq_{\theta,k}\|^2}{2\tau^2}+\log\pi_k,
+\label{eq:opb-energy}
+\end{equation}
+the Gaussian Bayes scores; with uniform priors this induces an orthogonal classifier
+whose scale is fixed by the prior (Proposition~\ref{prop:opb-energy}). For regression, EPB uses
+\begin{equation}
+p_\theta^{\rm EPB}(z|y)=\mathcal N(\rho\tilde y\,u,\tau^2I),qquad
+\|\mu_p(y)-\mu_p(y')\|=\rho|\tilde y-\tilde y'|,
+\label{eq:epb-prior}
+\end{equation}
+and the tied projection $\hat{\tilde y}=u^\top z/\rho$. Detailed polar construction,
+initialization, covariance relaxation, and the relation to prototype/ETF methods are
+given in Appendices~\ref{app:construction} and~\ref{sec:related}.
+
+For OPB, the general objective is equivalently
+\begin{equation}
+\mathcal L_{\rm OPB}=\E\left[\CE(c_\psi(Z),Y)+\beta\KL\bigl(q_\phi(z|X)\|p_\theta^{\rm OPB}(z|Y)\bigr)\right],
+\qquad Z\sim q_\phi(\cdot|X),
+\label{eq:opb-objective}
+\end{equation}
+so the same stateless anchors enter both the KL and the tied readout.
+
+\begin{proposition}[Stateless GPB priors preserve the CEB certificate]
+\label{prop:opb-certificate}
+For every conditional prior $p_\theta(z|y)$ independent of $x$,
+\begin{equation}
+\E\KL\bigl(q_\phi(z|X)\|p_\theta(z|Y)\bigr)
+=I(X;Z|Y)+\E_Y\KL\bigl(q_\phi(z|Y)\|p_\theta(z|Y)\bigr)
+\ge I(X;Z|Y).
+\label{eq:opb-certificate}
+\end{equation}
+Thus restricting the prior family changes its geometry without changing the CEB
+certificate identity; batch-dependent references would not satisfy this statement.
+\end{proposition}
+
+\begin{proposition}[Anchor-energy classifier equivalence]
+\label{prop:opb-energy}
+The scores $s_k(z)=-\|z-aq_{\theta,k}\|^2/(2\tau^2)+\log\pi_k$ are Gaussian Bayes
+scores up to a class-independent term. For uniform classes, the corresponding linear
+weights are $(a/\tau^2)q_{\theta,k}$.
+\end{proposition}
+
+\subsection{Theory}
+\label{sec:guarantees}
+Define
+\begin{equation}
+\mathcal R(w)=\E[\ell(c_\psi(Z),Y)],\qquad
+\mathcal K(w)=\E\KL(q_\phi(z|X)\|p_\theta(z|Y)),
+\label{eq:risk-rate-definitions}
+\end{equation}
+and
+\begin{equation}
+\mathcal D(w)=\frac{\E\|\mu_\phi(X)-m_\theta(Y)\|^2}{2\tau_{\max}^2}.
+\label{eq:expected-anchor-mismatch}
+\end{equation}
+\begin{theorem}[Comparator-dependent alignment under approximate realizability]
+\label{prop:pgib-alignment}
+If $\widehat w$ is $\varepsilon$-optimal for $\mathcal R+\beta\mathcal K$, then for
+every feasible comparator $w_0$,
+\begin{equation}
+\mathcal D(\widehat w)\le\mathcal K(\widehat w)\le
+\mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon}{\beta}.
+\label{eq:pgib-comparator-bound}
+\end{equation}
+Thus a comparator with total KL $\delta_{\rm app}$ and risk $C_{\rm app}$ gives
+\begin{equation}
+\mathcal D(\widehat w)\le\delta_{\rm app}
+ +\frac{C_{\rm app}+\varepsilon}{\beta}.
+\label{eq:pgib-approximate-alignment}
+\end{equation}
+The exact $O(1/\beta)$ rate is only the zero-floor, exactly realizable special case;
+the full ambiguity--approximation decomposition is in Appendix~\ref{app:deferred}.
+\end{theorem}
+
+For a target $d_\star$, the bound is informative only if
+$\mathcal K(w_0)<d_\star$ and
+\begin{equation}
+\beta\ge\frac{\mathcal R(w_0)+\varepsilon}{d_\star-\mathcal K(w_0)}.
+\label{eq:comparator-informative-condition}
+\end{equation}
+A prespecified comparator's KL and risk can be estimated on an independent held-out
+set using
+\begin{equation}
+\widehat{\mathcal K}_S(w_0)=\frac1{|S|}\sum_{(x_i,y_i)\in S}
+\KL(q_{\phi_0}(z|x_i)\|p_{\theta_0}(z|y_i)),\quad
+\widehat{\mathcal R}_S(w_0)=\frac1{|S|}\sum_{(x_i,y_i)\in S}
+\E_{q_{\phi_0}}\ell(c_{\psi_0}(Z),y_i),
+\label{eq:heldout-comparator-estimates}
+\end{equation}
+which estimates a comparator-specific floor, not an intrinsic dataset floor.
+
+\begin{theorem}[Mismatch-conditioned posterior separation]
+\label{thm:pgib-separation}
+Let
+\begin{equation}
+D_k=\frac{\E[\|\mu_\phi(X)-m_\theta(k)\|^2\mid Y=k]}{2\tau_{\max}^2}.
+\label{eq:pgib-class-rate}
+\end{equation}
+For discrete labels,
+\begin{equation}
+\|m_i-m_j\|\ge\Delta-\sqrt{2\tau_{\max}^2D_i}-\sqrt{2\tau_{\max}^2D_j}.
+\label{eq:pgib-separation}
+\end{equation}
+For continuous labels define
+\begin{equation}
+D(y)=\frac{\E[\|\mu_\phi(X)-m_\theta(y)\|^2\mid Y=y]}{2\tau_{\max}^2},
+\label{eq:pgib-class-rate-continuous}
+\end{equation}
+and the analogous lower bound is
+\begin{equation}
+\|m(y)-m(y')\|\ge\rho_{\min}d_Y(y,y')
+-\sqrt{2\tau_{\max}^2D(y)}-\sqrt{2\tau_{\max}^2D(y')},
+\label{eq:pgib-separation-continuous}
+\end{equation}
+for almost every pair. The discrete bound is positive only when
+\begin{equation}
+\Gamma_{ij}:=\frac{\sqrt{2\tau_{\max}^2D_i}+\sqrt{2\tau_{\max}^2D_j}}
+{\|m_\theta(i)-m_\theta(j)\|}<1;
+\label{eq:separation-tightness-ratio}
+\end{equation}
+for OPB with equal mismatch $D$ this is $D<a^2/(4\tau_{\max}^2)$. The scale is a
+validation-selected design parameter and does not itself guarantee a positive bound.
+\end{theorem}

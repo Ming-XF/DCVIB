@@ -85,7 +85,8 @@ def mean_std(vals):
     return mean, std
 
 
-def plot_series(ax, data, r, col, xlog=True, marker="o", linestyle="-", scale=1.0):
+def plot_series(ax, data, r, col, xlog=True, marker="o", linestyle="-", scale=1.0,
+                zorder=3, label=True):
     m = data[r]
     xs, ys, errs = [], [], []
     for b in sorted(m):
@@ -93,43 +94,86 @@ def plot_series(ax, data, r, col, xlog=True, marker="o", linestyle="-", scale=1.
         xs.append(b)
         ys.append(mean * scale)
         errs.append(std * scale)
-    ax.errorbar(xs, ys, yerr=errs, label=f"$r={r:g}$", color=R_COLORS[r],
+    ax.errorbar(xs, ys, yerr=errs, label=f"$r={r:g}$" if label else None,
+                color=R_COLORS[r],
                 marker=marker, markersize=4, linewidth=1.6, capsize=2,
-                linestyle=linestyle)
+                linestyle=linestyle, zorder=zorder,
+                markerfacecolor="white", markeredgewidth=0.8)
     if xlog:
         ax.set_xscale("log")
 
 
-def fig_main(data, ref, opt_fail):
-    fig, axes = plt.subplots(2, 2, figsize=(12.0, 8.6))
+def new_fig(w=7.2, h=4.6):
+    fig, ax = plt.subplots(figsize=(w, h))
+    ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
+    ax.set_facecolor("white")
+    fig.patch.set_facecolor("white")
+    return fig, ax
 
-    # (a) D̂ vs β + δ 水平虚线 + 参考曲线 δ+C_comp/β
-    ax = axes[0, 0]
+
+def save_fig(fig, path, title=""):
+    fig.tight_layout()
+    fig.savefig(OUT_DIR / path, dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"图已保存：{OUT_DIR / path}")
+
+
+def line_legend(ax, loc="upper right"):
+    """图例加三个样式代理项：实测标记 / 解析地板虚线 / 理论参考点线。"""
+    from matplotlib.lines import Line2D
+    handles, labels = ax.get_legend_handles_labels()
+    handles += [
+        Line2D([], [], marker="o", linestyle="", color="none", markerfacecolor="white",
+               markeredgecolor="#666666", label="measured $\\widehat D$ (colored per $r$)"),
+        Line2D([], [], linestyle="--", linewidth=2.0, color="#666666",
+               label="analytic floor $\\delta_{\\mathrm{noise}}(r)$"),
+        Line2D([], [], linestyle=":", color="#666666",
+               label="reference $\\delta_{\\mathrm{noise}}+C_{\\mathrm{comp}}/\\beta$"),
+    ]
+    labels += [h.get_label() for h in handles[-3:]]
+    ax.legend(handles=handles, labels=labels, fontsize=7.5, frameon=False, loc=loc, ncol=2)
+
+
+def fig_panel_a(data, ref, opt_fail):
+    """(a) D̂ vs β：实测只画白边标记（不连线），解析地板虚线从点间露出；
+    理论参考点线 δ+C_comp/β。右缘标注各 r 的地板值。"""
+    fig, ax = new_fig()
     for r in sorted(data):
-        plot_series(ax, data, r, "d_hat")
         betas = sorted(ref[r])
         delta = ref[r][betas[0]][0]
-        ax.axhline(delta, color=R_COLORS[r], linestyle="--", linewidth=1.0, alpha=0.7)
         c = ref[r][betas[0]][1]
-        xs = sorted(data[r])
-        ax.plot(xs, [delta + c / b for b in xs], color=R_COLORS[r], linestyle=":",
-                linewidth=1.0, alpha=0.7)
-    # 标注 opt_fail 点（×）
+        ax.axhline(delta, color=R_COLORS[r], linestyle="--", linewidth=2.0, alpha=0.85, zorder=1)
+        ax.plot(betas, [delta + c / b for b in betas], color=R_COLORS[r], linestyle=":",
+                linewidth=1.2, alpha=0.85, zorder=2)
+    for r in sorted(data):
+        plot_series(ax, data, r, "d_hat", linestyle="", zorder=4)
+    # 右缘标注地板值（r=0 的地板即横轴，不标）
+    blend = matplotlib.transforms.blended_transform_factory(ax.transAxes, ax.transData)
+    for r in sorted(data):
+        if r == 0.0:
+            continue
+        delta = ref[r][sorted(ref[r])[0]][0]
+        ax.text(1.005, delta, f"$\\delta_{{\\mathrm{{noise}}}}={delta:g}$", transform=blend,
+                color=R_COLORS[r], fontsize=7, va="center", ha="left")
     for (r, b), n in opt_fail.items():
         if n:
             ax.scatter([b], [mean_std(data[r][b]["d_hat"])[0]], marker="x",
-                       color=R_COLORS[r], s=40, linewidths=1.5, zorder=5)
+                       color=R_COLORS[r], s=40, linewidths=1.5, zorder=6)
     ax.set_xscale("log")
     ax.set_xlabel(r"$\beta$")
     ax.set_ylabel(r"$\widehat D(Y)$ (nats)")
-    ax.set_title("(a) anchor mismatch vs. $\\beta$; dashed: $\\delta_{\\mathrm{noise}}$, "
-                 "dotted: $\\delta_{\\mathrm{noise}}+C_{\\mathrm{comp}}/\\beta$", fontsize=9)
+    line_legend(ax)
+    save_fig(fig, "fig_noisy_a_dhat_beta.png",
+             "(a) anchor mismatch vs. $\beta$; dashed: $\delta_{\mathrm{noise}}$, "
+             "dotted: $\delta_{\mathrm{noise}}+C_{\mathrm{comp}}/\beta$")
 
-    # (b) D̂−δ vs 1/β，双 log、只画正值
-    ax = axes[0, 1]
+
+def fig_panel_b(data, ref):
+    """(b) D̂−δ vs 1/β，双 log，只画正值。"""
+    fig, ax = new_fig()
     for r in sorted(data):
         if r == 0.0:
-            continue  # δ=0，与 (a) 重复
+            continue
         delta = ref[r][sorted(ref[r])[0]][0]
         xs, ys, errs = [], [], []
         for b in sorted(data[r]):
@@ -139,15 +183,20 @@ def fig_main(data, ref, opt_fail):
                 ys.append(mean)
                 errs.append(std)
         ax.errorbar(xs, ys, yerr=errs, label=f"$r={r:g}$", color=R_COLORS[r],
-                    marker="o", markersize=4, linewidth=1.6, capsize=2)
+                    marker="o", markersize=4, linewidth=1.6, capsize=2,
+                    markerfacecolor="white", markeredgewidth=0.8)
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel(r"$1/\beta$")
     ax.set_ylabel(r"$\widehat D - \delta_{\mathrm{noise}}$ (nats, $>0$ only)")
-    ax.set_title("(b) excess mismatch vs. $1/\\beta$ (log-log)", fontsize=9)
+    ax.legend(fontsize=8, frameon=False, title="noise rate $r$")
+    save_fig(fig, "fig_noisy_b_excess_invbeta.png",
+             "(b) excess mismatch vs. $1/\beta$ (log-log, positive values only)")
 
-    # (c) β·(D̂−δ) vs β + C_comp 水平虚线
-    ax = axes[1, 0]
+
+def fig_panel_c(data, ref):
+    """(c) β·(D̂−δ) vs β + C_comp 水平虚线。"""
+    fig, ax = new_fig()
     for r in sorted(data):
         if r == 0.0:
             continue
@@ -157,57 +206,52 @@ def fig_main(data, ref, opt_fail):
     ax.set_xscale("log")
     ax.set_xlabel(r"$\beta$")
     ax.set_ylabel(r"$\beta\,(\widehat D - \delta_{\mathrm{noise}})$ (nats)")
-    ax.set_title("(c) scaled excess vs. $\\beta$; dashed: $C_{\\mathrm{comp}}(r)$", fontsize=9)
+    ax.legend(fontsize=8, frameon=False, title="noise rate $r$")
+    save_fig(fig, "fig_noisy_c_beta_excess.png",
+             "(c) scaled excess vs. $\beta$; dashed: $C_{\mathrm{comp}}(r)$")
 
-    # (d) noisy acc（实线）与 clean acc（虚线）
-    ax = axes[1, 1]
+
+def fig_panel_d(data):
+    """(d) noisy-label acc（实线）与 clean-class acc（虚线）vs β。"""
+    fig, ax = new_fig()
     for r in sorted(data):
         plot_series(ax, data, r, "noisy_label_acc", marker="o", linestyle="-")
-        plot_series(ax, data, r, "clean_class_acc", marker="x", linestyle="--")
+        plot_series(ax, data, r, "clean_class_acc", marker="x", linestyle="--", label=False)
     ax.set_xscale("log")
     ax.set_xlabel(r"$\beta$")
     ax.set_ylabel("accuracy")
     ax.set_ylim(-0.03, 1.03)
-    ax.set_title("(d) noisy-label acc (solid) / clean-class acc (dashed)", fontsize=9)
-
-    for ax in axes.flat:
-        ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
-        ax.set_facecolor("white")
-        ax.legend(fontsize=8, frameon=False, ncol=2 if ax is axes[0, 0] else 1)
-    fig.patch.set_facecolor("white")
-    fig.tight_layout()
-    path = OUT_DIR / "fig_noisy_alignment.png"
-    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
-    print(f"主图已保存：{path}")
+    ax.legend(fontsize=8, frameon=False, title="noise rate $r$")
+    save_fig(fig, "fig_noisy_d_acc_beta.png",
+             "(d) noisy-label acc (solid) / clean-class acc (dashed) vs. $\beta$")
 
 
 def fig_appendix(datasets, ref):
-    """三面板：var=fixed / trainable frame / sampled 敏感性（D̂ vs β + δ 虚线）。"""
-    fig, axes = plt.subplots(1, 3, figsize=(15.0, 4.4))
+    """三个稳健性面板分别成图：(i) 方差固定、(ii) 可训练帧、(iii) 采样标签。"""
+    paths = ["fig_noisy_appendix_i_varfixed.png",
+             "fig_noisy_appendix_ii_trainable.png",
+             "fig_noisy_appendix_iii_sampled.png"]
     titles = [
         "(i) posterior variance fixed ($\\sigma^2\\equiv\\tau^2$)",
         "(ii) trainable polar frame",
         "(iii) sampled labels (finite-sample sensitivity)",
     ]
-    for ax, (data, _), title in zip(axes, datasets, titles):
+    for (data, _), path, title in zip(datasets, paths, titles):
+        if not data:
+            print(f"[跳过] 无数据：{path}")
+            continue
+        fig, ax = new_fig()
         for r in sorted(data):
-            plot_series(ax, data, r, "d_hat")
             delta = ref[r][sorted(ref[r])[0]][0]
-            ax.axhline(delta, color=R_COLORS[r], linestyle="--", linewidth=1.0, alpha=0.7)
+            ax.axhline(delta, color=R_COLORS[r], linestyle="--", linewidth=2.0, alpha=0.85,
+                       zorder=1)
+        for r in sorted(data):
+            plot_series(ax, data, r, "d_hat", linestyle="", zorder=4)
         ax.set_xscale("log")
         ax.set_xlabel(r"$\beta$")
         ax.set_ylabel(r"$\widehat D(Y)$ (nats)")
-        ax.set_title(title, fontsize=9)
-        ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
-        ax.set_facecolor("white")
-        ax.legend(fontsize=7, frameon=False)
-    fig.patch.set_facecolor("white")
-    fig.tight_layout()
-    path = OUT_DIR / "fig_noisy_alignment_appendix.png"
-    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
-    print(f"附录图已保存：{path}")
+        line_legend(ax)
+        save_fig(fig, path, title + ": $\widehat D$ vs. $\beta$ with $\delta_{\mathrm{noise}}$ floors")
 
 
 def print_table(data, ref, opt_fail):
@@ -314,7 +358,10 @@ def main():
     print(f"主图数据（fixed/paper/population/best）：失败行 {fails}，"
           f"opt_fail 点 {sum(opt_fail.values())}")
     if data:
-        fig_main(data, ref, opt_fail)
+        fig_panel_a(data, ref, opt_fail)
+        fig_panel_b(data, ref)
+        fig_panel_c(data, ref)
+        fig_panel_d(data)
         print_table(data, ref, opt_fail)
         print_core_numbers(data, ref)
         cross_check_deterministic(data, ref)

@@ -1,0 +1,145 @@
+% =====================================================================
+\section{Additional theory and experiments}
+\label{app:additional}
+
+This appendix collects the detailed material omitted from the nine-page main text.
+All reported numbers use the same checkpoints and seeds as the main comparison.
+
+\subsection{Deferred theory statements}
+\label{app:deferred-theory}
+
+\begin{proposition}[Ambiguity--approximation decomposition]
+\label{prop:pgib-ambiguity-decomposition}
+For OPB classification with $\eta_k(x)=P(Y=k\mid X=x)$ and a comparator mean $h(x)$,
+\begin{equation}
+\mathcal K(w_0)=\frac{a^2}{2\tau^2}\E[1-\|\eta(X)\|_2^2]
++\frac1{2\tau^2}\E\left\|h(X)-a\sum_k\eta_k(X)q_{0,k}\right\|^2+V_0,
+\label{eq:opb-ambiguity-decomposition}
+\end{equation}
+where $V_0$ is the covariance mismatch. For EPB regression,
+\begin{equation}
+\mathcal K(w_0)=\frac{\rho^2}{2\tau^2}\E[\operatorname{Var}(\tilde Y\mid X)]
++\frac1{2\tau^2}\E\|h(X)-\rho\nu(X)u_0\|^2+V_0.
+\label{eq:epb-ambiguity-decomposition}
+\end{equation}
+\end{proposition}
+
+\begin{corollary}[Zero-floor exact-realizability special cases]
+\label{cor:pgib-exact-alignment}
+Under deterministic labels, exact posterior--prior matching, and a compatible Bayes
+head, $\mathcal K(w_0)=0$ and Theorem~\ref{prop:pgib-alignment} gives
+\begin{equation}
+\mathcal D(\widehat w)\le(\ln K+\varepsilon)/\beta
+\label{eq:pgib-alignment}
+\end{equation}
+for classification. For EPB regression,
+\begin{equation}
+\mathcal D(\widehat w)\le(\tau^2/\rho^2+\varepsilon)/\beta.
+\label{eq:pgib-alignment-regression}
+\end{equation}
+\end{corollary}
+
+\begin{corollary}[Comparator-dependent separation at near-optimal solutions]
+\label{cor:pgib-alignment-separation}
+Writing $B_0=\mathcal K(w_0)+(\mathcal R(w_0)+\varepsilon)/\beta$, classification satisfies
+\begin{equation}
+\|m_i-m_j\|\ge\|m_\theta(i)-m_\theta(j)\|
+-\sqrt{2\tau_{\max}^2B_0/\pi_i}-\sqrt{2\tau_{\max}^2B_0/\pi_j},
+\label{eq:pgib-alignment-separation}
+\end{equation}
+and the continuous-label version holds on $S_t=\{y:D(y)\le t\}$ with measure at least
+$1-B_0/t$ and loss $2\sqrt{2\tau_{\max}^2t}$ in the separation bound.
+\end{corollary}
+
+\begin{proposition}[Positive rate cost of class-independent means]
+\label{prop:opb-collapse}
+If $\E[\mu_\phi(X)\mid Y=k]=c$ for every class, then
+\begin{equation}
+\E\left[\frac{\|\mu_\phi(X)-a q_{\theta,Y}\|^2}{2\tau^2}\right]
+\ge\frac{a^2}{2\tau^2}\left(1-\sum_k\pi_k^2\right).
+\label{eq:opb-collapse}
+\end{equation}
+\end{proposition}
+
+\begin{corollary}[The orthogonal instance instantiates conditional posterior separation]
+\label{prop:opb-separation}
+For OPB, $\tau_{\max}=\tau$ and $\Delta=\sqrt2a$, so
+\begin{equation}
+\|m_i-m_j\|\ge\sqrt2a-\sqrt{2\tau^2D_i}-\sqrt{2\tau^2D_j}.
+\label{eq:opb-separation}
+\end{equation}
+\end{corollary}
+
+\subsection{Factor-wise ablations}
+\label{app:ablation}
+The factor-wise ablation ladder switches geometry, anchor scale, readout, and the IB
+term separately. The complete means appear in Table~\ref{tab:ablation} of the main
+text; the paired bootstrap intervals are reported below.
+\input{ablation_result_ci}
+On ImageNet-100, the geometry contrast OPB-FS minus CEB-energy is $+2.67$ points,
+the IB contrast is $+1.89$, and the tied-readout contrast GPB minus GPB-L is $+0.82$;
+these interventions support factor-wise attribution but not a unique causal decomposition.
+
+\subsection{Regression compression curves}
+\label{app:compression}
+The main text shows the classification compression sweep. This companion figure gives
+the complete California Housing regression sweep under the same $\beta$ grid, including
+the weak-compression variance explosion and the strong-compression EPB plateau. The
+curves are diagnostics of achieved KL and task performance, not tests of the alignment
+rate.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_beta_acc_housing.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_beta_kl_housing.png}
+\caption{California Housing compression sweep (MLP). Left: test $R^2$; right:
+realized conditional KL over $\beta$. EPB maintains a task plateau through strong
+compression, while the $\rho=1$ weak-compression points exhibit a large variance term.}
+\label{fig:compression-housing}
+\end{figure*}
+
+\subsection{Information-plane estimates}
+\label{app:info-plane}
+The information-plane quantities use the InfoNCE and cross-entropy estimators described
+in the former main-text analysis. They are estimator-level diagnostics, not information
+identities. On MNIST, CEB moves from $(I(X;Z),\mathrm{Acc})=(2.53,98.2\%)$ at
+$\beta=0.1$ to $(1.96,86.0\%)$ at $\beta=0.5$ and then collapses; OPB with $a=6,12$
+retains $98.1$--$98.6\%$ across the sweep. The MNIST panels appear in
+Fig.~\ref{fig:compression-main}(c,d) of the main text; the matched-compression table
+follows.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{l c c l c c}
+\hline
+Setting & CEB $I(X;Z)$ & CEB Acc. & OPB config. & OPB $I(X;Z)$ & OPB Acc.\\
+\hline
+MNIST, $\beta=0.1$ & $2.53$ & $98.2$ & $a=1,\beta=0.1$ & $2.55$ & $98.1$\\
+MNIST, $\beta=0.5$ & $1.96$ & $86.0$ & $a=1,\beta=0.5$ & $2.01$ & $97.8$\\
+\hline
+\end{tabular}
+\caption{Matched-compression information-plane comparison (means; standard deviations
+are in the stored evaluation report).}
+\label{tab:info-plane-matched}
+\end{table}
+
+\subsection{Adversarial robustness details}
+\label{app:robustness}
+Targeted PGD uses 20 steps, EOT-10 gradients, 10-sample MC predictions, and budgets
+$\varepsilon_\infty=0.3$ and $\varepsilon_2=6$. Curves are shown only when clean
+stochastic accuracy exceeds $90\%$. At maximum compression, OPB $(a=6,12)$ reaches
+$31.1\%/30.5\%$ targeted success under $L_\infty$, while transfer attacks from CEB
+to OPB reach at most $2.0\%$/$3.4\%$ under $L_\infty/L_2$, far below OPB's white-box
+attack. The transfer result is a gradient-masking check rather than a causal geometry
+test.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_linf_mnist.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_l2_mnist.png}
+\caption{Transfer PGD curves on MNIST (gradient-masking check). Targeted adversaries
+are generated on one model and evaluated on another; CEB-to-OPB transfer remains far
+below OPB's own white-box attack. The targeted white-box curves are in the main text.}
+\label{fig:adv-transfer}
+\end{figure*}
+

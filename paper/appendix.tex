@@ -93,7 +93,7 @@ For fixed $\theta$, apply the gap identity of Eq.~\eqref{eq:gap} to the conditio
 distribution $p_\theta(z|y)$ and the posterior $q_\phi$.
 \end{proof}
 
-\begin{proof}[Proof of Proposition~\ref{prop:pgib-separation}]
+\begin{proof}[Proof of Theorem~\ref{thm:pgib-separation}]
 For (a), Jensen gives $\|m_k - m_\theta(k)\| \le \sqrt{2\tau^2_{\max} D_k}$, and the
 triangle inequality on
 $m_i - m_j = (m_i - m_\theta(i)) + (m_\theta(i) - m_\theta(j))
@@ -170,10 +170,10 @@ Eq.~\eqref{eq:pgib-alignment-regression}.
 \begin{proof}[Proof of Corollary~\ref{cor:pgib-alignment-separation}]
 Theorem~\ref{prop:pgib-alignment} gives $\E[D(Y)]\le B_0$.
 For (a), $D_k\le B_0/\pi_k$; substituting this into
-Proposition~\ref{prop:pgib-separation}(a) gives
+Theorem~\ref{thm:pgib-separation}(a) gives
 Eq.~\eqref{eq:pgib-alignment-separation}. For (b), Markov's inequality gives
 $P_Y(D(Y)>t)\le B_0/t$; on $S_t$ the pointwise inequality of
-Proposition~\ref{prop:pgib-separation}(b) applies with $D(y),D(y')\le t$.
+Theorem~\ref{thm:pgib-separation}(b) applies with $D(y),D(y')\le t$.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\ref{prop:opb-collapse}]
@@ -242,6 +242,20 @@ objective, which remains Eq.~\eqref{eq:opb-objective} exactly. Near rank deficie
 the polar factor's gradient is delicate; should the monitor flag a near-deficient
 step, the recommended handling is a re-initialization of the prior encoder (the
 reported runs never triggered it).
+
+\paragraph{Covariance protocol.} Equations~\eqref{eq:opb-prior} and
+\eqref{eq:epb-prior} define the fixed-covariance canonical instances used for the
+exact Bayes-head equivalence and the controlled label-ambiguity experiment of
+Section~\ref{sec:controlled-validation}. The real-data benchmark protocol retains the
+common CEB parameterization of a learned label-conditional diagonal covariance, with
+log-variance clamped to a fixed interval. It is therefore a covariance-relaxed member
+of $\mathcal G$: the OPB/EPB mean geometry and readout scale remain fixed, while
+Eq.~\eqref{eq:pgib-covariance} holds with the clamp-induced $\tau^2_{\max}$.
+Proposition~\ref{prop:opb-energy} is an exact Gaussian Bayes equivalence only for the
+shared-covariance canonical instance; in the relaxed benchmark it remains a
+zero-parameter readout of the same anchor means. The direct diagnostics in
+Section~\ref{sec:direct-mismatch} use each checkpoint's realized conditional
+covariance rather than silently substituting the canonical $\tau^2I$.
 
 \paragraph{EPB axis choices.} Three variants of the direction: (A) \emph{fixed
 axis}, $u = [1, 0, \dots, 0]$, with no trainable prior direction: the
@@ -458,7 +472,9 @@ structural controls satisfy the gate at every point.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/fig_noisy_alignment_appendix.png}
+\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_i_varfixed.png}\hfill
+\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_ii_trainable.png}\hfill
+\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_iii_sampled.png}
 \caption{Sensitivity analyses for the controlled label-ambiguity experiment.
 (a) Posterior variance fixed to the prior variance. (b) Trainable stateless polar
 frame. (c) Labels sampled rather than integrated with their exact population weights;
@@ -471,72 +487,30 @@ over five seeds.}
 \subsection{Direct mismatch definitions and separation diagnostics}
 \label{app:direct-mismatch}
 
-This section gives the finite-sample quantities behind
-Section~\ref{sec:direct-mismatch}. All statistics are first computed within each seed
-and then aggregated across the five seeds; class or bin pairs are not treated as
-independent replicates. Every checkpoint in both requested grids is present, and no
-collapse or variance-explosion point is removed.
+This section gives the remaining regression panels behind
+Section~\ref{sec:direct-mismatch} (the classification and finite-bin definitions,
+bound, and diagnostics appear in the main text). All statistics are first computed
+within each seed and then aggregated across the five seeds; class or bin pairs are
+not treated as independent replicates. Every checkpoint in both requested grids is
+present, and no collapse or variance-explosion point is removed.
 
-\paragraph{Classification.} For test examples of class $k$, define
-\begin{equation}
-\widehat D_k:=\frac{1}{n_k}\sum_{n:y_n=k}
-\frac{\|\mu_\phi(x_n)-a q_{\theta,k}\|^2}{2\widehat\tau^2_{\max}},
-\qquad
-\widehat m_k:=\frac{1}{n_k}\sum_{n:y_n=k}\mu_\phi(x_n).
-\label{eq:empirical-class-mismatch}
-\end{equation}
-Jensen gives the per-class check
-$\|\widehat m_k-aq_{\theta,k}\|
-\le\sqrt{2\widehat\tau^2_{\max}\widehat D_k}$, and the triangle inequality gives
-Eq.~\eqref{eq:empirical-class-separation-bound}. Both are evaluated without clipping
-the lower bound. Across all OPB scales, $\beta$ values, seeds, and classes, no Jensen
-or separation-slack violation exceeds $10^{-6}$. Figure~\ref{fig:direct-mismatch-class}
-shows how the actual separation, raw lower bound, fraction of informative pairs, and
-slack change over the sweep. CEB's mismatch is shown descriptively, but its bound and
-slack entries are left empty because its reference has no declared $\Delta$.
+\paragraph{Regression.} Figure~\ref{fig:direct-mismatch-housing} shows the two
+regression sweep panels deferred from the main text: the mismatch--$\beta$ curves
+with their axial/off-axis decomposition (the dotted off-axis contribution stays below
+$0.01$ nats, so the posterior lies essentially on the declared axis), and the
+$R^2$-against-$\widehat D$ scatter whose band stays within $0.75$--$0.79$ while
+$\widehat D$ spans orders of magnitude.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/fig_mismatch_appendix_cls.png}
-\caption{ImageNet-100 class-separation diagnostics. (a) Mean posterior-center
-distance and the raw (unclipped) mismatch-dependent lower bound against $\beta$;
-CEB mismatch is included only as a descriptive reference. (b) Fraction of OPB class
-pairs with a positive lower bound. (c) The $5$th, $50$th, and $95$th percentiles of
-the separation slack. Statistics are computed within seed before aggregation.}
-\label{fig:direct-mismatch-class}
-\end{figure*}
-
-\paragraph{Regression.} We partition the standardized test labels into $20$
-equal-width bins and merge any bin containing fewer than $30$ examples. For bin
-$B_b$, let $\bar y_b$ be its mean label, $\widehat m_b$ its posterior center,
-$\widehat D_b$ its average sample-to-own-anchor mismatch, and
-$h_b:=\operatorname{diam}(B_b)$. The finite-bin lower bound used in the diagnostic is
-\begin{align}
-\widehat{\mathrm{LB}}_{bc}
-={}&\rho|\bar y_b-\bar y_c|
--\sqrt{2\widehat\tau^2_{\max}\widehat D_b}
--\sqrt{2\widehat\tau^2_{\max}\widehat D_c}
--\rho(h_b+h_c).
-\label{eq:empirical-regression-separation-bound}
-\end{align}
-The last term is the quantization correction from
-Remark~\ref{rem:pgib-binning}. Figure~\ref{fig:direct-mismatch-regression} plots the
-actual bin-center distances against the declared isometric distances for four
-$\beta$ values at $\rho=6$. The points lie systematically below the identity line,
-consistent with the measured normalized axial slope of $0.73$--$0.77$. After the
-quantization correction, $43\%$ of bin pairs have a positive bound; all raw slacks
-remain non-negative to numerical tolerance.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/fig_mismatch_appendix_reg.png}
-\caption{Cal.\ Housing finite-bin regression diagnostic at $\rho=6$. Each panel
-compares posterior bin-center distance with the declared prior distance
-$\rho|\bar y_b-\bar y_c|$ at one $\beta$; the identity line denotes exact scale
-transfer. The mismatch-dependent bound additionally includes the two mismatch terms
-and the bin-diameter correction of
-Eq.~\eqref{eq:empirical-regression-separation-bound}.}
-\label{fig:direct-mismatch-regression}
+\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_d_housing_r2_vs_d.png}
+\caption{Cal.\ Housing mismatch sweep panels (deferred from the main text). (a)
+Anchor mismatch $\widehat D$ against $\beta$, by isometric scale $\rho$, decomposed
+into axial and off-axis contributions. (b) Test $R^2$ against $\widehat D$; color
+denotes $\beta$ and marker shape $\rho$. Means and standard deviations are over five
+seeds; no checkpoint is omitted.}
+\label{fig:direct-mismatch-housing}
 \end{figure*}
 
 \paragraph{Normalization and variance extremes.} The empirical mismatch uses one
@@ -582,9 +556,10 @@ ZINC ($-0.043$ $R^2$).
 \subsection{Information-plane panels for Cal.~Housing}
 \label{app:info-plane-extra}
 
-Figure~\ref{fig:info-plane-extra} completes Fig.~\ref{fig:info-plane} of the
-main text with the regression setting, under the same $\beta$ grid, axis
-conventions, and five runs per point (Section~\ref{sec:info-plane}); here
+Figure~\ref{fig:info-plane-extra} completes panels (c)--(d) of
+Fig.~\ref{fig:compression-main} in the main text with the regression setting, under
+the same $\beta$ grid, axis
+conventions, and five runs per point; here
 $I(Y;Z)$ is the Gaussian approximation
 $\tfrac12 \ln\bigl(\mathrm{Var}(y)/\mathrm{Var}(y-\hat y)\bigr)$, a heuristic
 rather than a bound. On Cal.~Housing this approximation consistently reads
@@ -599,8 +574,8 @@ $\beta = 25$.
 \includegraphics[width=0.48\linewidth]{figures/fig_info_plane_housing.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_certificate_plane_housing.png}
 \caption{Information plane (a) and certificate plane (b) for Cal.~Housing,
-companion panels to Fig.~\ref{fig:info-plane}: identical estimators, $\beta$
-grid (log $x$-scale in (a); linear where the estimated residual turns negative
+companion panels to Fig.~\ref{fig:compression-main}(c,d): identical estimators,
+$\beta$ grid (log $x$-scale in (a); linear where the estimated residual turns negative
 in (b)), five runs per point, lines connect $\beta$ in ascending order. CEB
 one curve per panel; EPB three ($\rho \in \{1, 6, 12\}$).}
 \label{fig:info-plane-extra}
