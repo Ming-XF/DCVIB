@@ -27,7 +27,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from compression_plot import SERIES_COLORS
+from compression_plot import (
+    SERIES_COLORS,
+    PANEL_LABELSIZE,
+    PANEL_TICKSIZE,
+    PANEL_LEGENDSIZE,
+    _panel_label,
+)
 from prior_geometry import _setup_rc
 
 ROOT = Path(__file__).resolve().parent
@@ -82,15 +88,23 @@ def series_points(data, is_cls):
     return out
 
 
-def _setup_axes(ax, xlabel, ylabel):
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.legend(fontsize=8, frameon=False)
-    ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
+def _setup_axes(ax, xlabel, ylabel, paper_style):
+    if paper_style:
+        # 论文图 4：放大字号、取消网格线
+        ax.set_xlabel(xlabel, fontsize=PANEL_LABELSIZE)
+        ax.set_ylabel(ylabel, fontsize=PANEL_LABELSIZE)
+        ax.tick_params(labelsize=PANEL_TICKSIZE)
+        ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    else:
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.legend(fontsize=8, frameon=False)
+        ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
     ax.set_facecolor("white")
 
 
-def _draw(series, xs, ys, fig_path, xlabel, ylabel, xlog=True):
+def _draw(series, xs, ys, fig_path, xlabel, ylabel, xlog=True, paper_style=False,
+          letter=None):
     fig, ax = plt.subplots(figsize=(7.2, 4.6))
     for label, pts in series:
         xv = [xs(p) for p in pts]
@@ -99,7 +113,9 @@ def _draw(series, xs, ys, fig_path, xlabel, ylabel, xlog=True):
                 marker="o", markersize=4, linewidth=1.6)
     if xlog:
         ax.set_xscale("log")
-    _setup_axes(ax, xlabel, ylabel)
+    _setup_axes(ax, xlabel, ylabel, paper_style)
+    if letter:
+        _panel_label(ax, letter)
     fig.patch.set_facecolor("white")
     fig.savefig(fig_path, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
@@ -109,19 +125,24 @@ def _draw(series, xs, ys, fig_path, xlabel, ylabel, xlog=True):
 def plot_task(task, data):
     series = series_points(data, is_cls=task != "housing")
     name = TASK_DISPLAY.get(task, task)
+    paper_style = task == "mnist"  # 论文图 4（附录 imagenet100/housing 平面保持原样式）
     # 信息平面：x = I(X;Z)（对数），y = I(Y;Z)
     _draw(series, lambda p: p[1], lambda p: p[2],
           FIG_DIR / f"fig_info_plane_{task}.png",
-          "$I(X;Z)$ (nats, InfoNCE lower bound)",
+          "$I(X;Z)$ (nats, InfoNCE lb.)" if paper_style
+          else "$I(X;Z)$ (nats, InfoNCE lower bound)",
           "$I(Y;Z)$ (nats)" if task != "housing" else "$I(Y;Z)$ (nats, Gaussian approx.)",
-          xlog=True)
+          xlog=True, paper_style=paper_style,
+          letter="(c)" if paper_style else None)
     # 证书平面：x = I(X;Z|Y)，y = I(Y;Z)；负值退化为线性刻度
     cert_min = min(p[3] for _, pts in series for p in pts)
     _draw(series, lambda p: p[3], lambda p: p[2],
           FIG_DIR / f"fig_certificate_plane_{task}.png",
-          "$I(X;Z|Y)$ (nats, heuristic estimate)",
+          "$I(X;Z|Y)$ (nats, heuristic)" if paper_style
+          else "$I(X;Z|Y)$ (nats, heuristic estimate)",
           "$I(Y;Z)$ (nats)" if task != "housing" else "$I(Y;Z)$ (nats, Gaussian approx.)",
-          xlog=cert_min > 0)
+          xlog=cert_min > 0, paper_style=paper_style,
+          letter="(d)" if paper_style else None)
 
 
 def matched_compression_table(data):

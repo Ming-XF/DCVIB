@@ -36,6 +36,18 @@ OUT_ROOT = ROOT / "output" / "mismatch_eval"
 A_COLORS = {1.0: "#2a78d6", 6.0: "#eb6834", 12.0: "#4f9a5f"}
 A_MARKERS = {1.0: "o", 6.0: "s", 12.0: "^"}
 
+# 论文图 1 四面板（a/b/(i)/(ii)）的放大文字字号：画布尺寸保持默认 7.2×4.6 不变，
+# 仅直接放大文字（轴标签/刻度/图例/色条）
+PANEL_LABELSIZE = 33
+PANEL_TICKSIZE = 29
+PANEL_LEGENDSIZE = 20
+
+
+def _panel_label(ax, letter):
+    """论文面板角标：面板左上角外侧加粗字母（(a)/(b)/...）。"""
+    ax.text(0.0, 1.04, letter, transform=ax.transAxes, fontsize=PANEL_LABELSIZE,
+            fontweight="bold", va="bottom", ha="left")
+
 
 def load(csv_path):
     """→ {model: {(beta, anchor): {col: [seed 值]}}}，跳过 failed 行。"""
@@ -94,6 +106,7 @@ def save_fig(fig, path):
 def fig_panel_a(cls_data):
     """(a) ImageNet-100: D vs β（实线）+ total KL（虚线），按 a 分曲线。"""
     fig, ax = new_fig()
+    ax.grid(False)  # 论文图 1：取消网格线
     opb = cls_data["opb"]
     for a in (1.0, 6.0, 12.0):
         for col, ls in (("d_mean", "-"), ("kl_total", "--")):
@@ -102,22 +115,24 @@ def fig_panel_a(cls_data):
                 continue
             xs = [p[0] for p in pts]
             ys = [p[1] for p in pts]
-            errs = [p[2] for p in pts]
-            ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[a], linestyle=ls,
-                        marker=A_MARKERS[a] if ls == "-" else None, markersize=4,
-                        linewidth=1.6, capsize=2,
-                        markerfacecolor="white", markeredgewidth=0.8,
-                        label=f"$a={a:g}$: $D$" if ls == "-" else f"$a={a:g}$: total KL")
+            ax.plot(xs, ys, color=A_COLORS[a], linestyle=ls,
+                    marker=A_MARKERS[a] if ls == "-" else None, markersize=4,
+                    linewidth=1.6,
+                    markerfacecolor="white", markeredgewidth=0.8,
+                    label=f"$a={a:g}$: $D$" if ls == "-" else f"$a={a:g}$: total KL")
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\beta$")
-    ax.set_ylabel("nats")
-    ax.legend(fontsize=8, frameon=False)
+    ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
+    ax.set_ylabel("nats", fontsize=PANEL_LABELSIZE)
+    ax.tick_params(labelsize=PANEL_TICKSIZE)
+    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    _panel_label(ax, "(a)")
     save_fig(fig, "fig_mismatch_a_imagenet100_d_beta.png")
 
 
 def fig_panel_b(cls_data):
     """(b) ImageNet-100: MC-10 acc vs D 散点，颜色 = β（对数色标）、形状 = a。"""
     fig, ax = new_fig()
+    ax.grid(False)  # 论文图 1：取消网格线
     opb = cls_data["opb"]
     for a in (1.0, 6.0, 12.0):
         pts = series(opb, "d_mean").get(a, [])
@@ -130,10 +145,14 @@ def fig_panel_b(cls_data):
         sc = ax.scatter(xs, ys, c=bs, norm=matplotlib.colors.LogNorm(), cmap="viridis",
                         marker=A_MARKERS[a], s=45, edgecolors="white", linewidths=0.4,
                         label=f"$a={a:g}$")
-    ax.set_xlabel(r"$D$ (nats)")
-    ax.set_ylabel("MC-10 accuracy (%)")
-    ax.legend(fontsize=8, frameon=False)
-    plt.colorbar(sc, ax=ax, label=r"$\beta$")
+    ax.set_xlabel(r"$D$ (nats)", fontsize=PANEL_LABELSIZE)
+    ax.set_ylabel("MC-10 acc. (%)", fontsize=PANEL_LABELSIZE)
+    ax.tick_params(labelsize=PANEL_TICKSIZE)
+    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    cbar = plt.colorbar(sc, ax=ax)
+    cbar.set_label(r"$\beta$", fontsize=PANEL_LABELSIZE)
+    cbar.ax.tick_params(labelsize=PANEL_TICKSIZE)
+    _panel_label(ax, "(b)")
     save_fig(fig, "fig_mismatch_b_imagenet100_acc_vs_d.png")
 
 
@@ -189,6 +208,7 @@ def fig_appendix_cls(cls_data):
 
     # (i) S 与 LB vs β（CEB 的 D 作灰色点线描述性参照）
     fig, ax = new_fig()
+    ax.grid(False)  # 论文图 1：取消网格线
     for a in (1.0, 6.0, 12.0):
         for col, ls, mk in (("center_distance_mean", "-", "o"), ("lower_bound_mean", "--", None)):
             pts = series(opb, col).get(a)
@@ -196,43 +216,47 @@ def fig_appendix_cls(cls_data):
                 continue
             xs = [p[0] for p in pts]
             ys = [p[1] for p in pts]
-            errs = [p[2] for p in pts]
-            ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[a], linestyle=ls, marker=mk,
-                        markersize=4, linewidth=1.6, capsize=2,
-                        markerfacecolor="white", markeredgewidth=0.8,
-                        label=f"$a={a:g}$" if col == "center_distance_mean" else None)
+            ax.plot(xs, ys, color=A_COLORS[a], linestyle=ls, marker=mk,
+                    markersize=4, linewidth=1.6,
+                    markerfacecolor="white", markeredgewidth=0.8,
+                    label=f"$a={a:g}$" if col == "center_distance_mean" else None)
     pts = series(ceb, "d_mean").get(None)
     if pts:
         xs = [p[0] for p in pts]
         ys = [p[1] for p in pts]
         ax.plot(xs, ys, color="#8a8a8a", linestyle=":", linewidth=1.4, label="CEB: $D$")
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\beta$")
-    ax.set_ylabel("distance (nats$^{1/2}$)")
-    ax.legend(fontsize=8, frameon=False)
+    ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
+    ax.set_ylabel("dist. (nats$^{1/2}$)", fontsize=PANEL_LABELSIZE)
+    ax.tick_params(labelsize=PANEL_TICKSIZE)
+    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    _panel_label(ax, "(c)")
     save_fig(fig, "fig_mismatch_appendix_cls_i_separation_beta.png")
 
     # (ii) P(LB>0) vs β
     fig, ax = new_fig()
+    ax.grid(False)  # 论文图 1：取消网格线
     for a in (1.0, 6.0, 12.0):
         pts = series(opb, "positive_bound_fraction").get(a)
         if not pts:
             continue
         xs = [p[0] for p in pts]
         ys = [p[1] for p in pts]
-        errs = [p[2] for p in pts]
-        ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[a], marker=A_MARKERS[a],
-                    markersize=4, linewidth=1.6, capsize=2,
-                    markerfacecolor="white", markeredgewidth=0.8, label=f"$a={a:g}$")
+        ax.plot(xs, ys, color=A_COLORS[a], marker=A_MARKERS[a],
+                markersize=4, linewidth=1.6,
+                markerfacecolor="white", markeredgewidth=0.8, label=f"$a={a:g}$")
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\beta$")
-    ax.set_ylabel(r"$P(\mathrm{LB}_{ij}>0)$")
+    ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
+    ax.set_ylabel(r"$P(\mathrm{LB}_{ij}>0)$", fontsize=PANEL_LABELSIZE)
     ax.set_ylim(-0.05, 1.05)
-    ax.legend(fontsize=8, frameon=False)
+    ax.tick_params(labelsize=PANEL_TICKSIZE)
+    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    _panel_label(ax, "(d)")
     save_fig(fig, "fig_mismatch_appendix_cls_ii_positive_fraction.png")
 
     # (iii) slack 分位带
     fig, ax = new_fig()
+    ax.grid(False)  # 论文图 2：取消网格线
     for a in (1.0, 6.0, 12.0):
         p50 = series(opb, "slack_p50").get(a)
         p05 = series(opb, "slack_p05").get(a)
@@ -247,9 +271,11 @@ def fig_appendix_cls(cls_data):
                 linewidth=1.6, label=f"$a={a:g}$")
         ax.fill_between(xs, lo, hi, color=A_COLORS[a], alpha=0.15)
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\beta$")
-    ax.set_ylabel("slack = $S_{ij} - $ LB$_{ij}$")
-    ax.legend(fontsize=8, frameon=False)
+    ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
+    ax.set_ylabel("slack", fontsize=PANEL_LABELSIZE)
+    ax.tick_params(labelsize=PANEL_TICKSIZE)
+    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    _panel_label(ax, "(e)")
     save_fig(fig, "fig_mismatch_appendix_cls_iii_slack.png")
 
 
@@ -276,6 +302,41 @@ def fig_appendix_reg():
         ax.set_title(rf"Housing, $\rho=6$, $\beta={beta:g}$: bin separation vs. declared distance",
                      fontsize=9)
         save_fig(fig, f"fig_mismatch_appendix_reg_beta_{beta:g}.png")
+
+
+def fig_appendix_reg_binscatter():
+    """论文图 2(f)：回归 bin 对散点（ρ=6、seed 0），全部 β 合成一张，
+    S_bc vs ρ|ȳ_b−ȳ_c|，颜色 = β（对数色标）+ y=x 参考线。"""
+    betas = [1e-4, 1e-2, 1.0, 10.0]
+    fig, ax = new_fig(6.4, 4.6)
+    ax.grid(False)  # 论文图 2：取消网格线
+    # 归一化必须在全部 β 上共享（每 scatter 新建 norm 会在单值数据上退化）
+    norm = matplotlib.colors.LogNorm(vmin=min(betas), vmax=max(betas))
+    sc = None
+    for beta in betas:
+        path = OUT_ROOT / "detail_california_mlp" / f"california_mlp_opb_beta_{beta:g}_anchor_6_run1.npz"
+        if not path.exists():
+            print(f"[跳过] {path.name} 不存在")
+            continue
+        z = np.load(path)
+        m_b, yb = z["m_b"], z["ybar_b"]
+        rho = 6.0
+        S = np.linalg.norm(m_b[:, None, :] - m_b[None, :, :], axis=-1)
+        x = rho * np.abs(yb[:, None] - yb[None, :])
+        triu = np.triu(np.ones_like(S, dtype=bool), 1)
+        sc = ax.scatter(x[triu], S[triu], s=14, c=np.full(int(triu.sum()), beta),
+                        norm=norm, cmap="viridis", alpha=0.7)
+    lims = [ax.get_xlim()[0], ax.get_xlim()[1]]
+    ax.plot(lims, lims, color="k", linestyle="--", linewidth=1.0, alpha=0.6)
+    ax.set_xlabel(r"$\rho\,|\bar y_b - \bar y_c|$ (declared dist.)", fontsize=PANEL_LABELSIZE)
+    ax.set_ylabel(r"$S_{bc}$", fontsize=PANEL_LABELSIZE)
+    ax.tick_params(labelsize=PANEL_TICKSIZE)
+    if sc is not None:
+        cbar = plt.colorbar(sc, ax=ax)
+        cbar.set_label(r"$\beta$", fontsize=PANEL_LABELSIZE)
+        cbar.ax.tick_params(labelsize=PANEL_TICKSIZE)
+    _panel_label(ax, "(f)")
+    save_fig(fig, "fig_mismatch_appendix_reg_binscatter.png")
 
 
 def print_consistency_and_core(cls_data, reg_data):
@@ -330,6 +391,7 @@ def main():
     fig_panel_d(reg_data)
     fig_appendix_cls(cls_data)
     fig_appendix_reg()
+    fig_appendix_reg_binscatter()
     print_consistency_and_core(cls_data, reg_data)
 
 

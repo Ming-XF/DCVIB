@@ -47,6 +47,17 @@ FIG_DIR = ROOT / "paper" / "figures"
 BASELINE_LABEL = "Deterministic MLP"
 BASELINE_COLOR = "#8a8880"
 
+# 论文图 3 两面板的放大文字字号（画布尺寸保持 7.2×4.6 不变，仅直接放大文字）
+PANEL_LABELSIZE = 31
+PANEL_TICKSIZE = 27
+PANEL_LEGENDSIZE = 18
+
+
+def _panel_label(ax, letter):
+    """论文面板角标：面板左上角外侧加粗字母（(a)/(b)/...）。"""
+    ax.text(0.0, 1.04, letter, transform=ax.transAxes, fontsize=PANEL_LABELSIZE,
+            fontweight="bold", va="bottom", ha="left")
+
 
 def load_succ():
     """读 targeted csv → {norm: {eps: {(model, anchor): {beta: [succ per run]}}}}。
@@ -134,9 +145,10 @@ def series_points(d, beta_max_map):
     return out
 
 
-def plot_norm(norm, eps, series):
+def plot_norm(norm, eps, series, letter):
     """单范数论文图：x = β（对数刻度），y = targeted 成功率（%）。"""
     fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    ax.grid(False)  # 论文图 3：取消网格线
     y_max = 0.0
     for label, pts in series:
         if not pts:
@@ -153,14 +165,15 @@ def plot_norm(norm, eps, series):
             )
         y_max = max(y_max, max(p[1] for p in pts))
     ax.set_xscale("log")
-    ax.set_xlabel("$\\beta$")
-    ax.set_ylabel("targeted attack success (%)")
+    ax.set_xlabel("$\\beta$", fontsize=PANEL_LABELSIZE)
+    ax.set_ylabel("targeted succ. (%)", fontsize=PANEL_LABELSIZE)
+    ax.tick_params(labelsize=PANEL_TICKSIZE)
     eps_s = f"$\\varepsilon_\\infty={eps:g}$" if norm == "linf" else f"$\\varepsilon_2={eps:g}$"
-    ax.text(0.03, 0.96, eps_s, transform=ax.transAxes, fontsize=9,
+    ax.text(0.03, 0.96, eps_s, transform=ax.transAxes, fontsize=PANEL_TICKSIZE,
             va="top", color="#52514e")
     ax.set_ylim(0.0, max(5.0, y_max * 1.15))
-    ax.legend(fontsize=8, frameon=False)
-    ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
+    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    _panel_label(ax, letter)
     ax.set_facecolor("white")
     fig.patch.set_facecolor("white")
     path = FIG_DIR / f"fig_adv_targeted_{norm}_mnist.png"
@@ -190,7 +203,7 @@ def main():
         for label, pts in series:
             print(f"  {label:10s} n={len(pts)} succ[{min(p[1] for p in pts):.2f},"
                   f"{max(p[1] for p in pts):.2f}]%")
-        plot_norm(norm, eps, series)
+        plot_norm(norm, eps, series, "(a)" if norm == "linf" else "(b)")
 
 
 if __name__ == "__main__":

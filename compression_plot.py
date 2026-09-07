@@ -44,6 +44,18 @@ SERIES_COLORS = {
     "EPB (ρ=12)": "#9a6ac4",
 }
 
+# 论文图 4 子图的放大文字字号（画布尺寸保持 7.2×4.6 不变，仅直接放大文字；
+# info_plane_plot.py 复用）
+PANEL_LABELSIZE = 33
+PANEL_TICKSIZE = 29
+PANEL_LEGENDSIZE = 20
+
+
+def _panel_label(ax, letter):
+    """论文面板角标：面板左上角外侧加粗字母（(a)/(b)/...）。"""
+    ax.text(0.0, 1.04, letter, transform=ax.transAxes, fontsize=PANEL_LABELSIZE,
+            fontweight="bold", va="bottom", ha="left")
+
 
 def load():
     """读汇总 csv → {(task, model, beta, anchor): dict}。"""
@@ -107,7 +119,10 @@ def series_points_beta(rows, task, metric):
 def plot_task_metric(task, metric, rows):
     """单任务单指标论文图：x = β（对数刻度），y = Acc/R² 或 E[KL]（对数刻度）。"""
     is_cls = task == "imagenet100"
+    paper_style = is_cls  # 论文图 4：放大字号、取消网格线（housing 附录图保持原样式）
     fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    if not paper_style:
+        ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
     for label, pts in series_points_beta(rows, task, metric):
         color = SERIES_COLORS[label]
         ax.plot(
@@ -116,16 +131,24 @@ def plot_task_metric(task, metric, rows):
             marker="o", markersize=4, linewidth=1.6,
         )
     ax.set_xscale("log")
-    ax.set_xlabel("$\\beta$")
+    if paper_style:
+        ax.set_xlabel("$\\beta$", fontsize=PANEL_LABELSIZE)
+        ax.tick_params(labelsize=PANEL_TICKSIZE)
+    else:
+        ax.set_xlabel("$\\beta$")
     if metric == "kl":
         ax.set_yscale("log")
-        ax.set_ylabel("test $\\mathbb{E}[\\mathrm{KL}]$")
+        ax.set_ylabel("test $\\mathbb{E}[\\mathrm{KL}]$",
+                      fontsize=PANEL_LABELSIZE if paper_style else None)
     elif is_cls:
-        ax.set_ylabel("test accuracy (%)")
+        ax.set_ylabel("test accuracy (%)",
+                      fontsize=PANEL_LABELSIZE if paper_style else None)
     else:
-        ax.set_ylabel("test $R^2$")
-    ax.legend(fontsize=8, frameon=False)
-    ax.grid(True, which="both", linewidth=0.6, color="#e1e0d9")
+        ax.set_ylabel("test $R^2$",
+                      fontsize=PANEL_LABELSIZE if paper_style else None)
+    ax.legend(fontsize=PANEL_LEGENDSIZE if paper_style else 8, frameon=False)
+    if paper_style:
+        _panel_label(ax, "(a)" if metric == "acc" else "(b)")
     ax.set_facecolor("white")
     fig.patch.set_facecolor("white")
     path = FIG_DIR / f"fig_beta_{metric}_{task}.png"

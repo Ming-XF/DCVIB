@@ -73,6 +73,17 @@ from train import build_model, build_parser
 
 ROOT = Path(__file__).resolve().parent
 
+# 论文图 5 两面板的放大文字字号（画布尺寸不变，仅直接放大文字）
+PANEL_LABELSIZE = 33
+PANEL_TICKSIZE = 29
+PANEL_LEGENDSIZE = 20
+
+
+def _panel_label(ax, letter):
+    """论文面板角标：面板左上角外侧加粗字母（(a)/(b)/...）。"""
+    ax.text(0.0, 1.04, letter, transform=ax.transAxes, fontsize=PANEL_LABELSIZE,
+            fontweight="bold", va="bottom", ha="left")
+
 # cross_run_summary 额外统计的标量键（基础键为实验一的几何指标）
 EXTRA_SCALAR_KEYS = [
     "mean_diag_align",
@@ -225,52 +236,48 @@ def plot_axis_scatter(results, path):
 
 
 def plot_paper_gram(cls_results, path):
-    """论文版 Gram 图（全宽单行，英文标签，dpi 200）：1×2 面板（CEB | OPB），
-    每面板为跨 run 平均的类中心余弦 Gram 热力图（发散色带 + 数值标注）。"""
-    labels = list(cls_results)
-    fig, axes = plt.subplots(
-        1, len(labels), figsize=(5.6 * len(labels), 4.6), squeeze=False
-    )
-    for ax, label in zip(axes[0], labels):
-        gram = torch.tensor([s["gram"] for s in cls_results[label]["runs"]]).mean(0)
+    """论文版 Gram 图（英文标签，dpi 200）：每模型一张独立 PNG（CEB | OPB 各一），
+    每张为跨 run 平均的类中心余弦 Gram 热力图（发散色带、无格内数值标注；
+    论文图 5：放大字号、取消网格线）。path 为输出 stem，实际保存
+    {stem}_{ceb|opb}.png。"""
+    for i, label in enumerate(cls_results):
+        res = cls_results[label]
+        fig, ax = plt.subplots(figsize=(5.6, 4.6))
+        gram = torch.tensor([s["gram"] for s in res["runs"]]).mean(0)
         K = gram.size(0)
         norm = TwoSlopeNorm(vcenter=0.0, vmin=-1.0, vmax=1.0)
         im = ax.imshow(gram, cmap=DIVERGING_CMAP, norm=norm, aspect="equal")
         ax.set_xticks(range(K), range(K))
         ax.set_yticks(range(K), range(K))
-        ax.tick_params(length=0, labelsize=8)
+        ax.tick_params(length=0, labelsize=PANEL_TICKSIZE)
         ax.grid(False)
-        for i in range(K):
-            for j in range(K):
-                v = gram[i, j].item()
-                ax.text(
-                    j, i, f"{v:.2f}", ha="center", va="center", fontsize=6.5,
-                    color="#ffffff" if abs(v) > 0.45 else INK,
-                )
-        ax.set_xlabel("class $j$")
-        ax.set_ylabel("class $k$")
-        ax.set_title(cls_results[label]["model"].upper(), fontsize=11)
-    fig.colorbar(im, ax=axes, shrink=0.9, label="cosine")
-    # 论文图：白底、无总标题（论文已有 caption）
-    fig.patch.set_facecolor("white")
-    for ax in axes.flat:
+        ax.set_xlabel("class $j$", fontsize=PANEL_LABELSIZE)
+        ax.set_ylabel("class $k$", fontsize=PANEL_LABELSIZE)
+        ax.set_title(res["model"].upper(), fontsize=PANEL_LABELSIZE)
+        cbar = fig.colorbar(im, ax=ax, shrink=0.9)
+        cbar.set_label("cosine", fontsize=PANEL_LABELSIZE)
+        cbar.ax.tick_params(labelsize=PANEL_TICKSIZE)
+        _panel_label(ax, "(a)" if i == 0 else "(b)")
+        # 论文图：白底、无总标题（论文已有 caption）
+        fig.patch.set_facecolor("white")
         ax.set_facecolor("white")
-    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
+        out = path.with_name(f"{path.stem}_{res['model']}{path.suffix}")
+        fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
     return path
 
 
 def plot_paper_axis(results, path):
-    """论文版贴轴图（全宽单行，英文标签，dpi 200）：1×2 面板（CEB | EPB），
-    每面板 run1 的后验轴向坐标散点 + 该模型先验线参考线。"""
+    """论文版贴轴图（英文标签，dpi 200）：每模型一张独立 PNG（CEB | EPB 各一），
+    每张为 run1 的后验轴向坐标散点 + 该模型先验线参考线。
+    论文图 5：放大字号、取消网格线。path 为输出 stem，实际保存
+    {stem}_{ceb|epb}.png。"""
     reg_labels = [l for l, res in results.items() if res["mode"] == "regression"]
     if not reg_labels:
         return None
-    fig, axes = plt.subplots(
-        1, len(reg_labels), figsize=(5.4 * len(reg_labels), 4.4), squeeze=False
-    )
-    for ax, label in zip(axes[0], reg_labels):
+    for i, label in enumerate(reg_labels):
         res = results[label]
+        fig, ax = plt.subplots(figsize=(5.4, 4.4))
         color = _series_color(label)
         s = res["runs"][0]
         ys, ts = torch.tensor(s["y"]), torch.tensor(s["t"])
@@ -284,17 +291,21 @@ def plot_paper_axis(results, path):
             linestyle="--",
             label=f"prior line $t={s['scale']:.1f}\\,\\tilde y+{s['bias_proj']:.1f}$",
         )
-        ax.set_xlabel("normalized label $\\tilde y$")
-        ax.set_ylabel("axial coordinate $u^{\\top}\\mu_q(x)$")
+        ax.set_xlabel("normalized label $\\tilde y$", fontsize=PANEL_LABELSIZE)
+        ax.set_ylabel("axial coord. $u^{\\top}\\mu_q(x)$", fontsize=PANEL_LABELSIZE)
+        ax.tick_params(labelsize=PANEL_TICKSIZE)
+        ax.grid(False)
         model = "EPB" if res["model"] == "opb" else res["model"].upper()
-        ax.set_title(model, fontsize=11)
-        ax.legend(fontsize=9)
-    # 论文图：白底、无总标题（论文已有 caption）
-    fig.patch.set_facecolor("white")
-    for ax in axes.flat:
+        model_file = "epb" if res["model"] == "opb" else res["model"]
+        ax.set_title(model, fontsize=PANEL_LABELSIZE)
+        ax.legend(fontsize=PANEL_LEGENDSIZE)
+        _panel_label(ax, "(c)" if i == 0 else "(d)")
+        # 论文图：白底、无总标题（论文已有 caption）
+        fig.patch.set_facecolor("white")
         ax.set_facecolor("white")
-    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
+        out = path.with_name(f"{path.stem}_{model_file}{path.suffix}")
+        fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
     return path
 
 
