@@ -41,13 +41,12 @@ $r\in\{0,0.1,0.2,0.4\}$ with OPB $(a,\tau)=(6,1)$. The analytic ambiguity floor 
 \end{equation}
 which equals $0$, $3.4$, $6.4$, and $11.2$ nats. At $\beta=10$, the measured
 $\widehat D$ is $0.0000$, $3.4018$, $6.4067$, and $11.2172$, respectively; over the
-full sweep the excess remains below $0.032$ nats. Training evaluates the population
-objective by weighting all $K^2$ clean/observed-label pairs by the noise model, with
-a descending-$\beta$ warm start to remove avoidable optimization error at the
-small-$\beta$ end. The explicit comparator takes posterior mean
-$h_0(x)=a\sum_k\eta_k(x)q_k$ and covariance $\tau^2I$, where
+full sweep the excess remains below $0.032$ nats. The explicit comparator takes
+posterior mean $h_0(x)=a\sum_k\eta_k(x)q_k$ and covariance $\tau^2I$, where
 $\eta_k(x)=P(Y=k\mid X=x)$; its KL equals $\delta_{\rm noise}(r)$ exactly, and its
-anchor-energy risk $C_{\rm comp}(r)$ is estimated by Monte Carlo. Whenever the
+anchor-energy risk is $C_{\rm comp}(r)$. The training protocol (population-weighted
+objective, warm start, Monte Carlo risk estimation) is in
+Appendix~\ref{app:noisy-alignment-sensitivity}. Whenever the
 fitted objective satisfies $\widehat L\le L_{\rm comp}=C_{\rm comp}+\beta\delta_{\rm noise}$,
 non-negativity of the fitted risk gives the directly checkable comparison
 \begin{equation}
@@ -68,14 +67,11 @@ ends of the $\beta$ grid, and the largest mean excess over the entire nine-point
 sweep is $0.032$ nats. The excess is attained at the smallest $\beta$ and declines
 monotonically with compression, without implying an exact $1/\beta$ law. Every fitted
 population objective satisfies $\widehat L\le L_{\mathrm{comp}}$, so the explicit
-comparator gate holds at every reported point; the fitted margin over the fixed
-comparator grows with the noise level (from $-0.005$ to $-0.191$), as the comparator's
-prediction rule is not free to trade KL against risk. Seed variation is at the
-$10^{-4}$--$10^{-3}$ level, so the floor agreement is not an artifact of sampling
-noise, and the corrupted-label and clean-class accuracies remain at their respective
-ceilings ($1-r$ and $1$) across the sweep. Sampled-label, fixed-variance, and
-trainable-frame sensitivity controls are deferred to
-Appendix~\ref{app:noisy-alignment-sensitivity}.
+comparator gate holds at every reported point, and the fitted margin over the fixed
+comparator grows with the noise level (from $-0.005$ to $-0.191$). The corrupted-label
+and clean-class accuracies remain at their respective ceilings ($1-r$ and $1$) across
+the sweep. Sampled-label, fixed-variance, and trainable-frame sensitivity controls are
+deferred to Appendix~\ref{app:noisy-alignment-sensitivity}.
 
 \subsection{Direct mismatch analysis}
 \label{sec:direct-mismatch}
@@ -107,36 +103,30 @@ shown descriptively, but its bound and slack entries are left empty because its
 reference has no declared $\Delta$.
 
 On ImageNet-100, OPB mismatch at
-$a=6$ falls from $62.3$ to $2.54$ as $\beta$ increases from $5\cdot10^{-5}$ to $25$.
-At $\beta=25$, the separation lower bound is positive for $96.9\%$, $62.3\%$, and
-$0\%$ of class pairs at $a=12,6,1$. The raw bound rises toward the declared
-$\sqrt2a$ as $\beta$ grows while the realized separation shrinks, so the slack
-narrows exactly where the bound becomes informative. The fraction of certified pairs
-climbs from near zero at weak compression to its plateau at $\beta=25$
-(Fig.~\ref{fig:direct-mismatch}d); for $a=1$ the mismatch corrections exceed the
-declared margin $\sqrt2a$ at every $\beta$, so no pair is ever certified. The median
-slack grows with the anchor scale and narrows with compression
-(Fig.~\ref{fig:direct-mismatch}e); its wide p5--p95 band shows the conservativeness
-is non-uniform---a few pairs are near-tight while most are loose by a factor of
-several. The mismatch ordering across scales reverses
-along the sweep: at $\beta=5\cdot10^{-5}$ it is largest for the smallest frame
-($349.8$ at $a=1$, against $82.1$ at $a=12$ and $62.3$ at $a=6$), while at $\beta=25$
-the $a=12$ frame is tightest among the separated frames ($0.56$ against $2.54$ at
-$a=6$; the $0.385$ at $a=1$ reflects the collapse of its centers). Since the
-anchor-energy readout attains its prediction optimum exactly at the anchors, a larger
-declared scale exerts a stronger pull on the posterior, making the tied readout
-self-enforcing. MC-10 accuracy stays within $82$--$86\%$ while $\widehat D$ spans
-three orders of magnitude: the mechanism curve is decoupled from the task metric, so
-neither substitutes for the other. On Housing with $\rho=6$, mismatch falls from
+$a=6$ falls from $62.3$ to $2.54$ as $\beta$ increases from $5\cdot10^{-5}$ to $25$,
+and at $\beta=25$ the separation lower bound is positive for $96.9\%$, $62.3\%$, and
+$0\%$ of class pairs at $a=12,6,1$: the raw bound rises toward the declared
+$\sqrt2a$ exactly where the mismatch corrections shrink, so the slack narrows where
+the bound is informative (Fig.~\ref{fig:direct-mismatch}c,d and Fig.~\ref{fig:direct-mismatch-tail}e). For $a=1$ the
+corrections exceed the declared margin at every $\beta$, so no pair is ever certified
+and its centers collapse under strong compression.
+
+The mismatch ordering across scales reverses: at $\beta=5\cdot10^{-5}$ it is largest
+for the smallest frame ($349.8$, against $82.1$ and $62.3$), while at $\beta=25$ the
+$a=12$ frame is tightest among the separated frames ($0.56$ against $2.54$)---the
+anchor-energy readout's prediction optimum sits exactly at the anchors, so a larger
+declared scale pulls harder and the tied readout is self-enforcing. MC-10 accuracy
+stays within $82$--$86\%$ while $\widehat D$ spans three orders of magnitude:
+mechanism and task metric are decoupled. On Housing with $\rho=6$, mismatch falls from
 $0.264$ to $0.026$, the axial slope remains $0.73$--$0.77$, and $43\%$ of finite-bin
 pairs have a positive bound. The mismatch is almost entirely axial (about $0.2$
 against $0.004$ off-axis), and $R^2$ changes only from $0.786$ to $0.767$ over the
 sweep: a tenfold mismatch reduction need not imply a comparable task-metric gain.
-For the finite-bin diagnostic we partition the standardized test labels into $20$
-equal-width bins, merging any bin with fewer than $30$ examples. For bin $B_b$, let
-$\bar y_b$ be its mean label, $\widehat m_b$ its posterior center, $\widehat D_b$
-its average sample-to-own-anchor mismatch, and $h_b:=\operatorname{diam}(B_b)$. The
-finite-bin lower bound is
+For the finite-bin diagnostic (binning recipe in
+Appendix~\ref{app:direct-mismatch}), let $\bar y_b$ be the mean label of bin $B_b$,
+$\widehat m_b$ its posterior center, $\widehat D_b$ its average
+sample-to-own-anchor mismatch, and $h_b:=\operatorname{diam}(B_b)$. The finite-bin
+lower bound is
 \begin{equation}
 \widehat{\mathrm{LB}}_{bc}
 =\rho|\bar y_b-\bar y_c|
@@ -146,7 +136,7 @@ finite-bin lower bound is
 \label{eq:empirical-regression-separation-bound}
 \end{equation}
 where the last term is the quantization correction of
-Remark~\ref{rem:pgib-binning}. Figure~\ref{fig:direct-mismatch}f plots the actual
+Remark~\ref{rem:pgib-binning}. Figure~\ref{fig:direct-mismatch-tail}f plots the actual
 bin-center distances against the declared isometric distances at $\rho=6$: the cloud
 hugs a line of slope $0.73$--$0.77$ below the identity line at all four $\beta$
 values, so the posterior follows the declared metric structure at about three
@@ -158,25 +148,41 @@ Appendix~\ref{app:direct-mismatch}.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.32\linewidth]{figures/fig_mismatch_a_imagenet100_d_beta.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_mismatch_appendix_cls_i_separation_beta.png}\\[2pt]
-\includegraphics[width=0.32\linewidth]{figures/fig_mismatch_appendix_cls_ii_positive_fraction.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
-\caption{Direct mismatch diagnostics over the compression sweeps. (a) ImageNet-100
-anchor mismatch $\widehat D$ and total KL against $\beta$, by anchor scale. (b)
-MC-10 accuracy against $\widehat D$; color denotes $\beta$ and marker shape the
-anchor scale. (c) Mean posterior-center distance (solid) and the raw, unclipped
-mismatch-dependent lower bound (dashed) against $\beta$; the gray dotted line is
-CEB's mismatch, shown only as a descriptive reference. (d) Fraction of class pairs
-with a positive lower bound. (e) The $5$th, $50$th, and $95$th percentiles of the
-separation slack. (f) Cal.\ Housing bin-pair separation $S_{bc}$ against the
-declared prior distance $\rho|\bar y_b-\bar y_c|$ at $\rho=6$, colored by $\beta$;
-the identity line denotes exact scale transfer. Means and standard deviations are
-over five seeds; no checkpoint is omitted. The remaining Housing panels are in
-Appendix~\ref{app:direct-mismatch}.}
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_a_imagenet100_d_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_i_separation_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_ii_positive_fraction.png}
+\caption{Direct mismatch diagnostics over the compression sweeps. (a)
+ImageNet-100 anchor mismatch $\widehat D$ and total KL against $\beta$, by anchor
+scale. (b) MC-10 accuracy against $\widehat D$ (color $=\beta$, marker $=a$). (c)
+Mean separation (solid) and raw lower bound (dashed) against $\beta$; gray dotted:
+CEB, descriptive. (d) Fraction of positive bounds. Means and standard deviations are
+over five seeds; no checkpoint is omitted.}
 \label{fig:direct-mismatch}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\begin{minipage}[t]{0.49\linewidth}
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
+\caption{Direct mismatch diagnostics over the compression sweeps (continued). (e)
+Slack percentiles. (f) Cal.\ Housing bin-pair separation against the declared prior
+distance at $\rho=6$ (color $=\beta$; identity line: exact transfer). Means and
+standard deviations are over five seeds; no checkpoint is omitted. The remaining
+Housing panels are in Appendix~\ref{app:direct-mismatch}.}
+\label{fig:direct-mismatch-tail}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\centering
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_linf_mnist.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_l2_mnist.png}
+\caption{Targeted white-box PGD on MNIST (MLP). Left: $L_\infty$, $\varepsilon=0.3$;
+right: $L_2$, $\varepsilon=6$. Curves use the stochastic path and are shown only
+where clean accuracy exceeds $90\%$. Transfer curves are in Appendix~\ref{app:robustness}.}
+\label{fig:robustness-main}
+\end{minipage}
 \end{figure*}
 
 
@@ -234,10 +240,8 @@ ImageNet-100 classification sweep (MLP): test accuracy and realized conditional 
 against $\beta$; CEB and the smallest anchor collapse at strong compression, whereas
 $a=12$ retains the plateau. The Housing regression counterpart is provided in
 Appendix~\ref{app:compression}. (c)--(d) MNIST information-plane and
-certificate-plane estimates, which track achieved compression and task accuracy
-across the sweep; OPB preserves task accuracy farther into the compression sweep
-than CEB. The information-plane panels are estimator-level diagnostics rather than
-mutual-information identities (Appendix~\ref{app:info-plane}).}
+certificate-plane estimates (estimator-level diagnostics rather than
+mutual-information identities; Appendix~\ref{app:info-plane}).}
 \label{fig:compression-main}
 \end{figure*}
 
@@ -266,18 +270,9 @@ We use the targeted MNIST PGD protocol of CEB with EOT-10 gradients and 10-sampl
 stochastic predictions. At $\beta=25$, OPB with $a=6,12$ reaches $31.1\%/30.5\%$
 targeted success under $L_\infty$ (about 30 points below the deterministic baseline)
 while retaining clean accuracy; CEB's valid curve ends at $\beta=0.1$. The main text
-therefore reports the white-box targeted result; transfer attacks are reserved for
+therefore reports the white-box targeted result (Fig.~\ref{fig:robustness-main});
+transfer attacks are reserved for
 the gradient-masking check in Appendix~\ref{app:robustness}.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_linf_mnist.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_l2_mnist.png}
-\caption{Targeted white-box PGD on MNIST (MLP). Left: $L_\infty$, $\varepsilon=0.3$;
-right: $L_2$, $\varepsilon=6$. Curves use the stochastic path and are shown only
-where clean accuracy exceeds $90\%$. Transfer curves are in Appendix~\ref{app:robustness}.}
-\label{fig:robustness-main}
-\end{figure*}
 
 \subsection{Structural diagnostics}
 \label{sec:mechanism}

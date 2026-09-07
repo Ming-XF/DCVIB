@@ -466,9 +466,13 @@ ablation isolates it).
 \subsection{Controlled label-ambiguity sensitivity analyses}
 \label{app:noisy-alignment-sensitivity}
 
-The population-weighted experiment of Section~\ref{sec:controlled-validation} uses a
-fixed frame and the standard trainable posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity}
-changes these choices one at a time. Fixing the posterior variance to
+Training evaluates the population objective by weighting all $K^2$
+clean/observed-label pairs by the noise model, with a descending-$\beta$ warm start
+to remove avoidable optimization error at the small-$\beta$ end; the comparator risk
+$C_{\rm comp}(r)$ is estimated by Monte Carlo. The population-weighted experiment of
+Section~\ref{sec:controlled-validation} uses a fixed frame and the standard trainable
+posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity} changes these
+choices one at a time. Fixing the posterior variance to
 $\sigma^2\equiv\tau^2$ leaves the measured mismatch on the analytic floors, confirming
 that the result is not produced by a covariance compensation channel. Replacing the
 fixed frame by the trainable stateless polar frame gives the same result, so the floor
@@ -507,8 +511,12 @@ within each seed and then aggregated across the five seeds; class or bin pairs a
 not treated as independent replicates. Every checkpoint in both requested grids is
 present, and no collapse or variance-explosion point is removed.
 
-\paragraph{Regression.} Figure~\ref{fig:direct-mismatch-housing} shows the two
-regression sweep panels deferred from the main text: the mismatch--$\beta$ curves
+\paragraph{Regression.} We partition the standardized test labels into $20$
+equal-width bins and merge any bin containing fewer than $30$ examples; the bin
+notation $\bar y_b,\widehat m_b,\widehat D_b,h_b$ and the finite-bin lower bound
+Eq.~\eqref{eq:empirical-regression-separation-bound} are defined in the main text.
+Figure~\ref{fig:direct-mismatch-housing} shows the two regression sweep panels
+deferred from the main text: the mismatch--$\beta$ curves
 with their axial/off-axis decomposition (the dotted off-axis contribution stays below
 $0.01$ nats, so the posterior lies essentially on the declared axis), and the
 $R^2$-against-$\widehat D$ scatter whose band stays within $0.75$--$0.79$ while

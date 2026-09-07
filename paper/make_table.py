@@ -814,8 +814,7 @@ def _gen_table(grid, fmt_fn, with_std):
         "\\centering",
         "\\caption{Test accuracy (\\%) on classification tasks and test $R^2$ on regression "
         + ("tasks (mean over runs" if not with_std else "tasks (mean $\\pm$ std. over runs")
-        + "). Each entry reports the best configuration over "
-        "the tuned $\\beta$ (and anchor-scale) grid; the best entry per dataset is bolded. "
+        + "); the best entry per dataset is bolded. "
         "NCBD (classification settings only) and AdaCap (regression settings only) are "
         "external non-IB baselines; dashes mark the settings where a method does not apply.}",
         "\\label{tab:main_result_std}" if with_std else "\\label{tab:main_result}",
@@ -1003,11 +1002,9 @@ def gen_result5():
     lines += [
         "\\hline",
         "\\end{tabular}",
-        "\\caption{Controlled label-noise floor (mean $\\pm$ std over five seeds). "
-        "The nine-point $\\beta$ grid spans $10^{-3}$ to $10$; max excess is the "
-        "largest mean excess over the grid; the last column is the fitted "
-        "population objective minus the explicit comparator objective at "
-        "$\\beta=10$ (negative means the fit improves on the comparator).}",
+        "\\caption{Controlled label-noise floor (mean $\\pm$ std over five seeds); "
+        "the last column is the fitted objective minus the explicit comparator "
+        "objective at $\\beta=10$.}",
         "\\label{tab:controlled-noisy-alignment}",
         "\\end{table}",
     ]
