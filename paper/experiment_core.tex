@@ -186,6 +186,17 @@ where clean accuracy exceeds $90\%$. Transfer curves are in Appendix~\ref{app:ro
 \end{figure*}
 
 
+\subsection{Adversarial robustness}
+\label{sec:robustness}
+We use the targeted MNIST PGD protocol of CEB with EOT-10 gradients and 10-sample
+stochastic predictions. At $\beta=25$, OPB with $a=6,12$ reaches $31.1\%/30.5\%$
+targeted success under $L_\infty$ (about 30 points below the deterministic baseline)
+while retaining clean accuracy; CEB's valid curve ends at $\beta=0.1$. The main text
+therefore reports the white-box targeted result (Fig.~\ref{fig:robustness-main});
+transfer attacks are reserved for
+the gradient-masking check in Appendix~\ref{app:robustness}.
+
+
 \subsection{Factor-wise attribution}
 \label{sec:ablation}
 The main comparison changes several factors simultaneously, so we also report a
@@ -264,16 +275,6 @@ $(1.96,86.0\%)$ at $\beta=0.5$, whereas OPB remains at $98.1$--$98.6\%$ over the
 matched sweep. The corresponding estimator details and regression panels are
 documented in the appendices.
 
-\subsection{Adversarial robustness}
-\label{sec:robustness}
-We use the targeted MNIST PGD protocol of CEB with EOT-10 gradients and 10-sample
-stochastic predictions. At $\beta=25$, OPB with $a=6,12$ reaches $31.1\%/30.5\%$
-targeted success under $L_\infty$ (about 30 points below the deterministic baseline)
-while retaining clean accuracy; CEB's valid curve ends at $\beta=0.1$. The main text
-therefore reports the white-box targeted result (Fig.~\ref{fig:robustness-main});
-transfer attacks are reserved for
-the gradient-masking check in Appendix~\ref{app:robustness}.
-
 \subsection{Structural diagnostics}
 \label{sec:mechanism}
 At matched compression $(\beta,a,\rho)=(0.1,12,12)$, the OPB posterior class-center
@@ -322,7 +323,7 @@ quantity). Full definitions are in the stored evaluation report.}
 progression from construction to behavior: the baseline table establishes end-to-end
 utility across modalities; the factor interventions attribute the gain to the
 geometric prior; the controlled noise study matches the analytic ambiguity floor; and
-the compression, information-plane, robustness, geometry, and mismatch diagnostics
+the mismatch, robustness, compression, information-plane, and geometry diagnostics
 show how the declared prior is reflected in the learned posterior at different
 operating points. Constraining the conditional prior changes the geometry available
 to the KL, and the tied readout makes that geometry visible to prediction; the

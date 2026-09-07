@@ -124,7 +124,10 @@ def fig_panel_a(cls_data):
     ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
     ax.set_ylabel("nats", fontsize=PANEL_LABELSIZE)
     ax.tick_params(labelsize=PANEL_TICKSIZE)
-    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    # 图例锚定在 20pt 字号下 loc="best" 的实际位置（轴分数 bbox），
+    # 只缩字号、不随 loc="best" 重排位（否则会左移压到曲线）
+    ax.legend(fontsize=PANEL_LEGENDSIZE - 2, frameon=False,
+              bbox_to_anchor=(0.4338, 0.3138, 0.5413, 0.7670), loc="upper left")
     _panel_label(ax, "(a)")
     save_fig(fig, "fig_mismatch_a_imagenet100_d_beta.png")
 
