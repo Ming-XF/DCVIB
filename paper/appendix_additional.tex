@@ -76,9 +76,9 @@ The factor-wise ablation ladder switches geometry, anchor scale, readout, and th
 term separately. The complete means appear in Table~\ref{tab:ablation} of the main
 text; the paired bootstrap intervals are reported below.
 \input{ablation_result_ci}
-On ImageNet-100, the geometry contrast OPB-FS minus CEB-energy is $+2.67$ points,
-the IB contrast is $+1.89$, and the tied-readout contrast GPB minus GPB-L is $+0.82$;
-these interventions support factor-wise attribution but not a unique causal decomposition.
+Table~\ref{tab:ablation-ci} reports the paired bootstrap intervals for all
+contrasts; the factor ranking and the sign-flip and negative-result patterns are
+read in the main text (Section~\ref{sec:ablation}).
 
 \subsection{Regression compression curves}
 \label{app:compression}
@@ -100,13 +100,36 @@ compression, while the $\rho=1$ weak-compression points exhibit a large variance
 
 \subsection{Information-plane estimates}
 \label{app:info-plane}
-The information-plane quantities use the InfoNCE and cross-entropy estimators described
-in the former main-text analysis. They are estimator-level diagnostics, not information
-identities. On MNIST, CEB moves from $(I(X;Z),\mathrm{Acc})=(2.53,98.2\%)$ at
-$\beta=0.1$ to $(1.96,86.0\%)$ at $\beta=0.5$ and then collapses; OPB with $a=6,12$
-retains $98.1$--$98.6\%$ across the sweep. The MNIST panels appear in
-Fig.~\ref{fig:compression-main}(c,d) of the main text; the matched-compression table
-follows.
+Estimator protocol.\ $I(X;Z)$ is estimated by the InfoNCE lower bound
+\citep{oord2018representation} ($\log B-\mathcal{L}_{\mathrm{NCE}}$, $B=4096$; one
+critic per run, trained on the training split, the bound read off the test split with
+$z\sim q(z|x)$); $I(Y;Z)$ by the classification lower bound $H(Y)-\mathrm{CE}$; and
+the residual $I(X;Z|Y)$ is the difference of the two, a heuristic rather than a
+bound. The
+true residual is nonnegative by the data-processing inequality; negative plotted
+values mean the estimators, not the theory, gave way. Because negative residuals
+occur (OPB $a=1$; the collapsed CEB trajectory), the certificate-plane axis is drawn
+linear. The MNIST panels appear in Fig.~\ref{fig:compression-main}(c,d) of the main
+text.
+
+Matched-compression performance.
+Table~\ref{tab:info-plane-matched} pairs each CEB point with the OPB configuration of
+nearest estimated $I(X;Z)$. At $\approx2.0$ nat, CEB ($\beta=0.5$) retains $86.0\%$
+while OPB ($a=1$, $\beta=0.5$) retains $97.8\%$; at $\approx2.5$ nat ($\beta=0.1$) the
+two tie ($98.2\%$ vs.\ $98.1\%$). These are paired empirical comparisons at two
+estimated compression levels, not a causal attribution to geometry.
+
+Estimator caveat. OPB ($a=1$) at $\beta\ge5$ must be read with care. On the
+deterministic $\mu$ path the accuracy stays $97.6$--$97.8\%$, for which Fano's
+inequality requires $I(Y;Z)\ge H(Y)-h(0.023)-0.023\ln9\approx2.1$ nat, so the plotted
+$I(Y;Z)$ of $0.35$--$0.74$ nat is a bound failure on that path: overconfident errors
+inflate the cross-entropy, and near-duplicate positives saturate the InfoNCE
+objective. On the sampled posterior the degradation is partly real: at posterior
+variance $\tau^2=1$ the radius-$1$ anchors cannot separate classes, and the
+stochastic-path clean accuracy falls to $0.84$ at $\beta=5$ and $0.59$ at $\beta=25$,
+against which the CE-based estimate still sits below the Fano floor. The leftward
+spur therefore mixes a real sampled-path collapse with an estimator failure of the
+deterministic path; the $a=6,12$ readings above are unaffected.
 
 \begin{table}[t]
 \centering\small

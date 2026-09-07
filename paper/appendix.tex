@@ -504,23 +504,69 @@ over five seeds.}
 \subsection{Direct mismatch definitions and separation diagnostics}
 \label{app:direct-mismatch}
 
-This section gives the remaining regression panels behind
-Section~\ref{sec:direct-mismatch} (the classification and finite-bin definitions,
-bound, and diagnostics appear in the main text). All statistics are first computed
-within each seed and then aggregated across the five seeds; class or bin pairs are
-not treated as independent replicates. Every checkpoint in both requested grids is
-present, and no collapse or variance-explosion point is removed.
+This section collects the diagnostic panels deferred from
+Section~\ref{sec:direct-mismatch}: the decoupling scatter, the separation-bound and
+slack readings, and the regression diagnostics, together with the finite-bin
+definitions. All statistics are first computed within each seed and then aggregated
+across the five seeds; class or bin pairs are not treated as independent
+replicates. Every checkpoint in both requested grids is present, and no collapse or
+variance-explosion point is removed.
+
+The deferred classification panels complete the picture
+(Fig.~\ref{fig:direct-mismatch-deferred}). The decoupling scatter (a) shows MC-10
+accuracy staying within $82$--$86\%$ while $\widehat D$ spans three orders of
+magnitude: mechanism and task metric are decoupled. Panel (b) shows the raw bound
+rising toward the declared $\sqrt2a$ exactly where the mismatch corrections shrink,
+so the slack narrows where the bound is informative; CEB's mismatch is plotted
+descriptively, without a bound, since its reference has no declared $\Delta$. The
+slack percentiles (c) stay non-negative at every reported point: the bound is
+consistent but conservative.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_i_separation_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
+\caption{Direct mismatch diagnostics deferred from the main text. (a) MC-10
+accuracy against $\widehat D$ (color $=\beta$, marker $=a$). (b) Mean separation
+(solid) and raw lower bound (dashed) against $\beta$; gray dotted: CEB,
+descriptive. (c) Slack percentiles. (d) Cal.\ Housing bin-pair separation against
+the declared prior distance at $\rho=6$ (color $=\beta$; identity line: exact
+transfer). Means and standard deviations are over five seeds; no checkpoint is
+omitted.}
+\label{fig:direct-mismatch-deferred}
+\end{figure*}
 
 \paragraph{Regression.} We partition the standardized test labels into $20$
-equal-width bins and merge any bin containing fewer than $30$ examples; the bin
-notation $\bar y_b,\widehat m_b,\widehat D_b,h_b$ and the finite-bin lower bound
-Eq.~\eqref{eq:empirical-regression-separation-bound} are defined in the main text.
-Figure~\ref{fig:direct-mismatch-housing} shows the two regression sweep panels
-deferred from the main text: the mismatch--$\beta$ curves
-with their axial/off-axis decomposition (the dotted off-axis contribution stays below
-$0.01$ nats, so the posterior lies essentially on the declared axis), and the
-$R^2$-against-$\widehat D$ scatter whose band stays within $0.75$--$0.79$ while
-$\widehat D$ spans orders of magnitude.
+equal-width bins and merge any bin containing fewer than $30$ examples. Let
+$\bar y_b$ be the mean label of bin $B_b$, $\widehat m_b$ its posterior center,
+$\widehat D_b$ its average sample-to-own-anchor mismatch, and
+$h_b:=\operatorname{diam}(B_b)$. The finite-bin lower bound is
+\begin{equation}
+\widehat{\mathrm{LB}}_{bc}
+=\rho|\bar y_b-\bar y_c|
+-\sqrt{2\widehat\tau^2_{\max}\widehat D_b}
+-\sqrt{2\widehat\tau^2_{\max}\widehat D_c}
+-\rho(h_b+h_c),
+\label{eq:empirical-regression-separation-bound}
+\end{equation}
+where the last term is the quantization correction of
+Remark~\ref{rem:pgib-binning}. On Housing with $\rho=6$, mismatch falls from
+$0.264$ to $0.026$, the axial slope remains $0.73$--$0.77$, and the mismatch is
+almost entirely axial (about $0.2$ against $0.004$ off-axis), while $R^2$ changes
+only from $0.786$ to $0.767$ over the sweep: a tenfold mismatch reduction need not
+imply a comparable task-metric gain. Figure~\ref{fig:direct-mismatch-deferred}d
+plots the actual bin-center distances against the declared isometric distances at
+$\rho=6$: the cloud hugs a line of slope $0.73$--$0.77$ below the identity line at
+all four $\beta$ values, so the posterior follows the declared metric structure at
+about three quarters of its scale, and the scale-transfer ratio is essentially
+$\beta$-invariant. After the quantization correction, $43\%$ of bin pairs retain a
+positive bound. Figure~\ref{fig:direct-mismatch-housing} shows the two regression
+sweep panels: the mismatch--$\beta$ curves with their axial/off-axis decomposition
+(the dotted off-axis contribution stays below $0.01$ nats, so the posterior lies
+essentially on the declared axis), and the $R^2$-against-$\widehat D$ scatter whose
+band stays within $0.75$--$0.79$ while $\widehat D$ spans orders of magnitude.
 
 \begin{figure*}[t]
 \centering

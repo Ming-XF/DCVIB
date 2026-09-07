@@ -43,19 +43,16 @@ elsewhere.
 
 \subsection{Controlled label ambiguity}
 \label{sec:controlled-validation}
-This experiment isolates the comparator floor by making the label-ambiguity term of
-the alignment bound analytically known, and verifies three claims: the noise-free
-case realizes the zero floor exactly, the measured mismatch tracks the analytic
-floor at every noise level, and the fitted objective never leaves the explicit
-comparator's reachable set. The construction uses $K=10$, $X=e_C$, and symmetric
-label noise $r\in\{0,0.1,0.2,0.4\}$ with OPB $(a,\tau)=(6,1)$. The analytic
-ambiguity floor is
+To isolate the comparator floor, we use $K=10$, $X=e_C$, and symmetric label noise
+$r\in\{0,0.1,0.2,0.4\}$ with OPB $(a,\tau)=(6,1)$. The analytic ambiguity floor is
 \begin{equation}
 \delta_{\rm noise}(r)=\frac{a^2}{2\tau^2}
 \left[1-(1-r)^2-\frac{r^2}{K-1}\right],
 \label{eq:synthetic-noise-floor}
 \end{equation}
-which grows from $0$ to $11.2$ nats as $r$ runs over the noise grid. The explicit comparator takes
+which equals $0$, $3.4$, $6.4$, and $11.2$ nats. At $\beta=10$, the measured
+$\widehat D$ is $0.0000$, $3.4018$, $6.4067$, and $11.2172$, respectively; over the
+full sweep the excess remains below $0.032$ nats. The explicit comparator takes
 posterior mean $h_0(x)=a\sum_k\eta_k(x)q_k$ and covariance $\tau^2I$, where
 $\eta_k(x)=P(Y=k\mid X=x)$; its KL equals $\delta_{\rm noise}(r)$ exactly, and its
 anchor-energy risk is $C_{\rm comp}(r)$. The training protocol (population-weighted
@@ -74,26 +71,22 @@ Appendix~\ref{app:noisy-alignment-sensitivity}.
 
 \input{result5}
 
-Table~\ref{tab:controlled-noisy-alignment} reads the transition from the zero to the
-non-zero floor column by column. The zero-noise row reproduces the exact-realizability
-limit to the stored precision. For $r>0$ the measured mismatch tracks the analytic
-floor at both ends of the $\beta$ grid: at $\beta=10$ it matches the floor to within
-$0.02$ nats at every noise level, while at the smallest $\beta$ it sits above the
-floor by an excess that grows with the noise level (from $0.014$ to $0.032$ nats) and
-declines monotonically with compression, without implying an exact $1/\beta$ law. The
-last column closes the loop: the fitted objective satisfies
-$\widehat L\le L_{\mathrm{comp}}$ at every reported point, and the margin over the
-explicit comparator grows with the noise level (from $-0.005$ to $-0.191$), so the
-trained posterior moves farther inside the comparator's reachable set exactly where
-the floor is largest. Sampled-label, fixed-variance, and trainable-frame sensitivity
-controls are deferred to Appendix~\ref{app:noisy-alignment-sensitivity}.
+Table~\ref{tab:controlled-noisy-alignment} shows the transition from the zero to the
+non-zero floor. The zero-noise row reproduces the exact-realizability limit to the
+stored precision; for $r>0$ the measured mismatch tracks the analytic floor at both
+ends of the $\beta$ grid, and the largest mean excess over the entire nine-point
+sweep is $0.032$ nats. The excess is attained at the smallest $\beta$ and declines
+monotonically with compression, without implying an exact $1/\beta$ law. Every fitted
+population objective satisfies $\widehat L\le L_{\mathrm{comp}}$, so the explicit
+comparator gate holds at every reported point, and the fitted margin over the fixed
+comparator grows with the noise level (from $-0.005$ to $-0.191$). The corrupted-label
+and clean-class accuracies remain at their respective ceilings ($1-r$ and $1$) across
+the sweep. Sampled-label, fixed-variance, and trainable-frame sensitivity controls are
+deferred to Appendix~\ref{app:noisy-alignment-sensitivity}.
 
 \subsection{Direct mismatch analysis}
 \label{sec:direct-mismatch}
-This section pursues two checks on the learned posterior: how much of the declared
-anchor geometry it inherits, and whether the separation guarantee survives under the
-measured mismatch. For each checkpoint, the empirical variance bound
-$\widehat\tau^2_{\max}$ is the
+For each checkpoint, the empirical variance bound $\widehat\tau^2_{\max}$ is the
 largest conditional-reference variance realized over the class table
 (classification) or test labels (regression); all statistics are first computed
 within each seed and then aggregated across the five seeds, and class or bin pairs
@@ -120,32 +113,77 @@ classes, no Jensen or separation-slack violation exceeds $10^{-6}$. CEB's mismat
 shown descriptively, but its bound and slack entries are left empty because its
 reference has no declared $\Delta$.
 
-On ImageNet-100, the two panels read the condition and its certified consequence
-together (Fig.~\ref{fig:direct-mismatch}). Mismatch falls with compression: from
-$62.3$ nats at $\beta=5\cdot10^{-5}$ to $2.54$ at $\beta=25$ for $a=6$, with the
-total KL co-plotted, and the ordering across scales reverses over the same range. At
-weak compression the smallest frame is farthest from its anchors ($349.8$, against
-$82.1$ and $62.3$), while at $\beta=25$ the $a=12$ frame is tightest among the
-separated frames ($0.56$ against $2.54$): the anchor-energy readout's prediction
-optimum sits exactly at the anchors, so a larger declared scale pulls harder and the
-tied readout is self-enforcing. The positive-bound fraction rises exactly where the
-corrections shrink: $a=12$ climbs to $96.9\%$ at $\beta=25$, $a=6$ peaks at $89.5\%$
-near $\beta=1$ and settles at $62.3\%$, and $a=1$ never certifies, its corrections
-exceeding the declared margin at every $\beta$ as its centers collapse under strong
-compression. The bound and slack readings, the decoupling scatter, and the
-regression panels are collected in Appendix~\ref{app:direct-mismatch}.
+On ImageNet-100, OPB mismatch at
+$a=6$ falls from $62.3$ to $2.54$ as $\beta$ increases from $5\cdot10^{-5}$ to $25$,
+and at $\beta=25$ the separation lower bound is positive for $96.9\%$, $62.3\%$, and
+$0\%$ of class pairs at $a=12,6,1$: the raw bound rises toward the declared
+$\sqrt2a$ exactly where the mismatch corrections shrink, so the slack narrows where
+the bound is informative (Fig.~\ref{fig:direct-mismatch}c,d and Fig.~\ref{fig:direct-mismatch-tail}e). For $a=1$ the
+corrections exceed the declared margin at every $\beta$, so no pair is ever certified
+and its centers collapse under strong compression.
+
+The mismatch ordering across scales reverses: at $\beta=5\cdot10^{-5}$ it is largest
+for the smallest frame ($349.8$, against $82.1$ and $62.3$), while at $\beta=25$ the
+$a=12$ frame is tightest among the separated frames ($0.56$ against $2.54$)---the
+anchor-energy readout's prediction optimum sits exactly at the anchors, so a larger
+declared scale pulls harder and the tied readout is self-enforcing. MC-10 accuracy
+stays within $82$--$86\%$ while $\widehat D$ spans three orders of magnitude:
+mechanism and task metric are decoupled. On Housing with $\rho=6$, mismatch falls from
+$0.264$ to $0.026$, the axial slope remains $0.73$--$0.77$, and $43\%$ of finite-bin
+pairs have a positive bound. The mismatch is almost entirely axial (about $0.2$
+against $0.004$ off-axis), and $R^2$ changes only from $0.786$ to $0.767$ over the
+sweep: a tenfold mismatch reduction need not imply a comparable task-metric gain.
+For the finite-bin diagnostic (binning recipe in
+Appendix~\ref{app:direct-mismatch}), let $\bar y_b$ be the mean label of bin $B_b$,
+$\widehat m_b$ its posterior center, $\widehat D_b$ its average
+sample-to-own-anchor mismatch, and $h_b:=\operatorname{diam}(B_b)$. The finite-bin
+lower bound is
+\begin{equation}
+\widehat{\mathrm{LB}}_{bc}
+=\rho|\bar y_b-\bar y_c|
+-\sqrt{2\widehat\tau^2_{\max}\widehat D_b}
+-\sqrt{2\widehat\tau^2_{\max}\widehat D_c}
+-\rho(h_b+h_c),
+\label{eq:empirical-regression-separation-bound}
+\end{equation}
+where the last term is the quantization correction of
+Remark~\ref{rem:pgib-binning}. Figure~\ref{fig:direct-mismatch-tail}f plots the actual
+bin-center distances against the declared isometric distances at $\rho=6$: the cloud
+hugs a line of slope $0.73$--$0.77$ below the identity line at all four $\beta$
+values, so the posterior follows the declared metric structure at about three
+quarters of its scale, and the scale-transfer ratio is essentially
+$\beta$-invariant. After the quantization correction, $43\%$ of bin pairs retain a
+positive bound; all raw slacks remain non-negative to numerical tolerance---the
+bound is consistent but conservative. The remaining Housing panels are in
+Appendix~\ref{app:direct-mismatch}.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_a_imagenet100_d_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_i_separation_beta.png}\hfill
+\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_ii_positive_fraction.png}
+\caption{Direct mismatch diagnostics over the compression sweeps. (a)
+ImageNet-100 anchor mismatch $\widehat D$ and total KL against $\beta$, by anchor
+scale. (b) MC-10 accuracy against $\widehat D$ (color $=\beta$, marker $=a$). (c)
+Mean separation (solid) and raw lower bound (dashed) against $\beta$; gray dotted:
+CEB, descriptive. (d) Fraction of positive bounds. Means are
+over five seeds; no checkpoint is omitted.}
+\label{fig:direct-mismatch}
+\end{figure*}
 
 \begin{figure*}[t]
 \centering
 \begin{minipage}[t]{0.49\linewidth}
 \centering
-\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_a_imagenet100_d_beta.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_appendix_cls_ii_positive_fraction.png}
-\caption{Direct mismatch diagnostics over the ImageNet-100 compression sweep. (a)
-Anchor mismatch $\widehat D$ (solid) and total KL (dashed) against $\beta$, by
-anchor scale. (b) Fraction of class pairs with a positive separation lower bound.
-Means are over five seeds; no checkpoint is omitted.}
-\label{fig:direct-mismatch}
+\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
+\caption{Direct mismatch diagnostics over the compression sweeps (continued). (e)
+Slack percentiles. (f) Cal.\ Housing bin-pair separation against the declared prior
+distance at $\rho=6$ (color $=\beta$; identity line: exact transfer). Means and
+standard deviations are over five seeds; no checkpoint is omitted. The remaining
+Housing panels are in Appendix~\ref{app:direct-mismatch}.}
+\label{fig:direct-mismatch-tail}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \centering

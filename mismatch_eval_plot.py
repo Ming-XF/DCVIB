@@ -254,7 +254,7 @@ def fig_appendix_cls(cls_data):
     ax.set_ylim(-0.05, 1.05)
     ax.tick_params(labelsize=PANEL_TICKSIZE)
     ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
-    _panel_label(ax, "(d)")
+    _panel_label(ax, "(b)")
     save_fig(fig, "fig_mismatch_appendix_cls_ii_positive_fraction.png")
 
     # (iii) slack 分位带
