@@ -32,12 +32,14 @@ p_\theta(z|y)=\mathcal N(m_\theta(y),\Sigma_\theta(y)),\qquad
 \Sigma_\theta(y)\preceq\tau_{\max}^2I,
 \label{eq:pgib-covariance}
 \end{equation}
-whose means obey a declared two-sided separation for discrete labels,
+whose means obey a declared two-sided separation for every pair of distinct
+discrete labels $y\ne y'$,
 \begin{equation}
 \Delta\le\|m_\theta(y)-m_\theta(y')\|\le\bar\Delta,
 \label{eq:pgib-separation-condition}
 \end{equation}
-or a two-sided label metric condition
+or a two-sided label metric condition for $P_Y$-almost every label pair
+$(y,y')$, where $d_Y$ is a metric on the label space $\mathcal Y$:
 \begin{equation}
 \rho_{\min}d_Y(y,y')\le\|m_\theta(y)-m_\theta(y')\|
 \le\rho_{\max}d_Y(y,y'),
@@ -59,8 +61,8 @@ Q_\theta=U_\theta(U_\theta^\top U_\theta)^{-1/2},
 \label{eq:opb-qr}
 \end{equation}
 and we assume, monitoring rather than imposing it, that the monitored matrix has
-full column rank (Assumption~\ref{ass:fullrank} in the appendix).
-The anchors are
+full column rank (Assumption~\ref{ass:fullrank} in the appendix). Writing
+$q_{\theta,k}$ for the $k$-th column of the frame $Q_\theta$, the anchors are
 \begin{equation}
 p_\theta^{\rm OPB}(z|Y=k)=\mathcal N(aq_{\theta,k},\tau^2I),\qquad
 Q_\theta^\top Q_\theta=I_K,\qquad\|aq_i-aq_j\|=\sqrt2a.
@@ -97,7 +99,7 @@ p_\theta^{\rm EPB}(z|y)=\mathcal N(\rho\tilde y\,u,\tau^2I),\qquad
 \|\mu_p(y)-\mu_p(y')\|=\rho|\tilde y-\tilde y'|,
 \label{eq:epb-prior}
 \end{equation}
-so latent distances equal $\rho$ times standardized label distances exactly --- order
+so latent distances equal $\rho$ times standardized label distances exactly. Order
 and magnitude of label differences are encoded with equality, which qualifies the
 family (Eq.~\eqref{eq:pgib-lipschitz} with $\rho_{\min}=\rho_{\max}=\rho$). The
 prediction head is the tied projection $\hat{\tilde y}=u^\top z/\rho$, the regression
