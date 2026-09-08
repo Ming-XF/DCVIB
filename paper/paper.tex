@@ -89,35 +89,64 @@ forcing every class toward a common origin.
 
 The same flexibility creates a geometric gap. CEB matches each posterior to the
 reference associated with its own label, but the certificate contains no term that
-compares two distinct label conditionals. Consequently, class means, directions, and
-pairwise margins are determined by optimization dynamics and prediction-head freedom,
-rather than by the compression criterion. The deterministic-label corner phenomenon
-identified in prior work is one manifestation of this freedom; a complementary issue
-persists even when labels are noisy or the information-plane knob moves: the
+compares two distinct label conditionals. Neither the marginal-reference VIB nor its
+variants constrain that geometry either: noise-injection bottlenecks replace the
+bound \citep{kolchinsky2017nonlinear}, bound comparisons clarify reference choices
+\citep{geiger2020variational}, multivariate extensions add decoders
+\citep{abdelaleem2025deep}, and robustness deployments apply the same view at scale
+\citep{fischer2020robustness,lee2021compressive}. Consequently, class means,
+directions, and pairwise margins are determined by optimization dynamics and
+prediction-head freedom, rather than by the compression criterion. The
+deterministic-label corner phenomenon identified in prior work
+\citep{kolchinsky2019caveats} is one manifestation of this freedom; a complementary
+issue persists even when labels are noisy or the information-plane knob moves: the
 certificate can be tight while the inter-label arrangement remains arbitrary. On the
 $T_\alpha=B_\alpha\!\cdot\!Y$ family, for example, the conditional residual can stay
 zero while retained label information changes across the family
 (Proposition~\ref{prop:geom-blind}; the full construction is in Appendix~\ref{app:diagnosis}).
 This observation motivates a prior whose geometry is part of the model definition.
 
-We introduce the geometric prior bottleneck (GPB), which keeps CEB's stochastic
-posterior and single conditional KL while restricting the reference to a qualified,
-bounded, stateless family. For classification, the orthogonal prior bottleneck (OPB)
-maps the class table to an equal-radius orthogonal frame and uses the corresponding
-Gaussian anchor energies as the classifier. For regression, the equidistant prior
-bottleneck (EPB) maps standardized labels to an isometric axis and uses the same axis
-for prediction. Thus each prior mean has two simultaneous roles: it is a target in the
-KL and an anchor in the readout. The construction is computed from the current
-all-label prior table, with no EMA, prototype memory, or batch-dependent geometry.
+We introduce the geometric prior bottleneck (GPB), a framework for
+information-bottleneck compression in which the conditional reference is a declared
+geometric prior rather than an unconstrained one: a stateless conditional Gaussian
+with bounded covariance whose means obey a two-sided declared geometry, fixed before
+training. The framework, not any single instance, is the object of the theory in
+this paper: the gap identity holds for every stateless conditional prior, and the
+alignment and separation results hold for any qualified geometric prior. We
+instantiate the framework with two concrete constructions. The orthogonal prior
+bottleneck (OPB) declares the classification geometry as an equal-radius orthogonal
+frame and uses the corresponding Gaussian anchor energies as the classifier. The
+equidistant prior bottleneck (EPB) declares the regression geometry as an isometric
+axis and uses the same axis for prediction. Thus each prior mean has two
+simultaneous roles: it is a target in the KL and an anchor in the readout. Both
+constructions are computed from the current all-label prior table, with no EMA,
+prototype memory, or batch-dependent geometry, and other declared geometries
+instantiate the same framework.
 
-GPB reuses geometric primitives that appear in prototype, ETF, orthogonal-classifier,
-and fixed-frame methods, but changes the object to which they are attached. OPB does
-not introduce a new ETF or prototype objective: its frame is the mean map of a
-conditional Gaussian prior, and its anchor-energy rule is the Bayes readout induced by
-the shared covariance. EPB similarly uses distance preservation as a prior mean map,
-not as a separate contrastive loss. This object-level distinction, together with the
-relationship to existing geometric classifiers, is summarized in the boundary table
-of Appendix~\ref{sec:related}.
+GPB reuses geometric primitives from several lines of work but attaches them to a
+different object. Prototype and neural-collapse methods constrain features,
+prototypes, or classifier weights through a classification loss or a fixed readout
+\citep{deng2014equidistant,papyan2020prevalence,zhu2021geometric_nc,koromilas2026neural,wang2023ib_nc};
+orthogonal and ETF classifiers constrain the readout
+\citep{xu2022orthogonal,ji2023etf}; fixed frames constrain feature coordinates
+\citep{tong2023fixed_frame}. OPB introduces none of these objectives: its frame is
+the mean map of a label-conditional Gaussian prior, and its anchor-energy readout is
+the Bayes rule induced by the shared covariance, so the geometric class code and the
+conditional KL are coupled during training. Robustness-oriented bottlenecks modify
+the information criterion or add adversarial objectives
+\citep{wang2021hsic,zhai2022adversarial,zhang2022nl_ib,hua2022causal}; GPB keeps the
+ordinary CEB KL and instead transfers a declared prior geometry. Distance-preserving
+methods constrain deterministic feature maps \citep{pai2022isometric,luo2023doll},
+and regression compression objectives add bounds rather than geometry
+\citep{yu2024csd_ib,belucci2026adacap}; EPB places the label metric in the
+conditional prior, whose mean map is also the tied regression readout. Recent
+geometry-aware bottlenecks use the same phrase for other objects
+\citep{yan2024geometric_ib,katende2025vgib,doan2026geometric_ib,adilova2026geometric_compression}.
+The boundary is thus at the framework level rather than the instance level: existing
+geometric methods are fixed constructions, while GPB is the class of IB objectives
+whose conditional prior carries a declared geometry, and OPB and EPB are two
+instances of that class evaluated in this paper. The object-level distinction is
+summarized in the boundary table of Appendix~\ref{sec:related}.
 
 The construction leads to two complementary theoretical statements. First, the CEB
 gap identity continues to hold for every stateless conditional prior. Second, for a
@@ -128,9 +157,10 @@ near-optimal solution and any feasible comparator $w_0$,
 \end{equation*}
 so alignment is governed by a comparator's KL floor and prediction risk. The floor
 decomposes into irreducible label ambiguity, encoder mean approximation, and covariance
-mismatch (Appendix~\ref{app:deferred-theory}). Independently, the mismatch-conditioned
-separation proposition converts the realized distance to the declared prior anchors
-into a lower bound on posterior-center separation. Together these results connect the
+mismatch (Appendix~\ref{app:deferred-theory}). Independently, for any qualified
+geometric prior the mismatch-conditioned separation proposition converts the realized
+distance to the declared prior anchors into a lower bound on posterior-center
+separation. Together these results connect the
 constructed geometry to both optimization and the representation actually produced by
 the encoder.
 
