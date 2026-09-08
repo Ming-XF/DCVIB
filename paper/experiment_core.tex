@@ -1,11 +1,30 @@
-The evaluation has three tracks: predictive comparison, controlled theory
-illustration, and structural diagnostics. To keep the main paper readable, the main
-figures show one classification compression sweep, targeted white-box attacks, and
-the aggregate geometry/mismatch summaries. Regression compression curves, transfer
-attacks, pair-level mismatch plots, and full uncertainty tables are reported in
-Appendices~\ref{app:compression}, \ref{app:robustness},
-\ref{app:direct-mismatch}, and \ref{app:main-std}--\ref{app:main-ci}; the remaining
-ablations and estimator panels are collected in Appendix~\ref{app:additional}.
+The evaluation addresses five research questions, each answered by the sections
+noted below.
+
+\emph{(RQ1) End-to-end utility.} Does GPB improve the operating point across
+dataset--backbone settings, and which design factor carries the gain? The main
+predictive comparison (Sec.~\ref{sec:main-results}) reports the former, and the
+paired factor-wise attribution ladder (Sec.~\ref{sec:ablation}) isolates the latter.
+
+\emph{(RQ2) Comparator floor.} Does the trained posterior attain the theoretically
+predicted ambiguity floor and never leave the explicit comparator's reachable set?
+The controlled label-noise study varies a known floor from zero to $11.2$ nats and
+checks the comparator gate (Sec.~\ref{sec:controlled-validation}).
+
+\emph{(RQ3) Geometry transfer and certification.} How much of the declared prior
+geometry reaches the learned posterior, and does the separation guarantee survive
+the measured mismatch? The direct mismatch analysis measures the transfer, and the
+structural diagnostics verify the posterior-side structure (Secs.~\ref{sec:direct-mismatch}
+and \ref{sec:mechanism}).
+
+\emph{(RQ4) Compression behavior.} What do the methods compress and discard along
+the $\beta$ sweep, and how does the anchor scale trade accuracy against
+compression? The compression curves and the information-plane estimates read both
+(Secs.~\ref{sec:sweep} and \ref{sec:info-plane}).
+
+\emph{(RQ5) Robustness.} Does the compressed geometric operating point reduce
+targeted adversarial success without giving up clean accuracy? The white-box PGD
+study answers it (Sec.~\ref{sec:robustness}).
 
 \subsection{Experimental setup}
 \label{sec:setup}
@@ -17,7 +36,11 @@ stopping, and validation-based selection. The baselines are Base, VIB, SVIB, NIB
 CEB, supervised $\beta$-DVCCA, and the external NCBD/AdaCap comparisons; GPB is OPB
 on classification rows and EPB on regression rows, with GPB-L denoting the identical
 prior and a free head. Full data preprocessing, grids, seeds, and baseline definitions
-are in Appendix~\ref{app:construction}.
+are in Appendix~\ref{app:construction}. Regression compression curves, transfer
+attacks, pair-level mismatch plots, and full uncertainty tables are reported in
+Appendices~\ref{app:compression}, \ref{app:robustness}, \ref{app:direct-mismatch},
+and \ref{app:main-std}--\ref{app:main-ci}; the remaining ablations and estimator
+panels are collected in Appendix~\ref{app:additional}.
 
 \subsection{Main predictive comparison}
 \label{sec:main-results}

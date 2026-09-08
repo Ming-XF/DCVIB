@@ -22,7 +22,10 @@ class-wise matched optimum it equals
 \mathrm{ReX}=I(X;Z|Y),
 \label{eq:reix-residual}
 \end{equation}
-regardless of their inter-class means or directions.
+regardless of their inter-class means or directions. The certificate therefore
+measures the amount of residual compression but none of the arrangement of the
+class conditionals, so the compression criterion alone cannot prefer any inter-class
+geometry.
 \end{proposition}
 
 \paragraph{Qualified geometric prior.}
@@ -118,7 +121,9 @@ For every conditional prior $p_\theta(z|y)$ independent of $x$,
 \label{eq:opb-certificate}
 \end{equation}
 Thus restricting the prior family changes its geometry without changing the CEB
-certificate identity; batch-dependent references would not satisfy this statement.
+certificate identity or its lower-bound reading, so the geometry constraint is a
+free move for compression; batch-dependent references would not satisfy this
+statement.
 \end{proposition}
 
 \subsection{Alignment and separation guarantees}
@@ -151,6 +156,9 @@ Thus a comparator with total KL $\delta_{\rm app}$ and risk $C_{\rm app}$ gives
 \end{equation}
 The exact $O(1/\beta)$ rate is only the zero-floor, exactly realizable special case;
 the full ambiguity--approximation decomposition is in Appendix~\ref{app:deferred}.
+The bound thus certifies alignment to whatever comparator is prespecified: its KL is
+the irreducible floor, and the risk term controls how fast the fitted solution
+approaches that floor as $\beta$ grows.
 \end{theorem}
 
 For a target $d_\star$, the bound is informative only if
@@ -201,4 +209,8 @@ for almost every pair. The discrete bound is positive only when
 \end{equation}
 for OPB with equal mismatch $D$ this is $D<a^2/(4\tau_{\max}^2)$. The scale is a
 validation-selected design parameter and does not itself guarantee a positive bound.
+The declared margin thus survives up to the two measured correction terms, so the
+guarantee is informative exactly when the measured mismatch stays below the margin;
+small measured mismatch transfers the declared geometry to the posterior almost
+intact.
 \end{theorem}
