@@ -72,101 +72,77 @@ higher mean than CEB in all twelve.
 \section{Introduction}
 % =====================================================================
 
-The information bottleneck (IB) principle~\citep{tishby2000information} formulates
-representation learning as a balance between predictive sufficiency and compression:
-the representation $Z$ should retain information about a target $Y$ while discarding
-variation in the input $X$ that does not support prediction. The balance matters
-because compression acts as a principled regularizer: discarding label-irrelevant
-variation is expected to improve generalization and robustness to nuisances, and the
-compressed representation exposes the minimal structure sufficient for the task,
-which has motivated a sustained line of deep IB methods
-\citep{fischer2020robustness,lee2021compressive,zhai2022adversarial,wang2021hsic}.
-Variational IB (VIB)
-~\citep{alemi2017deep} makes this trade-off trainable with a stochastic encoder and
-a marginal reference distribution. The conditional entropy bottleneck (CEB)
-~\citep{fischer2020conditional} replaces that marginal reference with a
-label-conditional distribution and thereby targets the residual information
-$I(X;Z\mid Y)$. Its variational certificate,
-\begin{equation*}
-\E\KL(q(z|x)\|b(z|y))\ge I(X;Z\mid Y),
-\end{equation*}
-is attractive because the reference can adapt to the label structure rather than
-forcing every class toward a common origin.
+A useful representation must balance compression and structure: it should discard
+input variation irrelevant to the target while preserving target-relevant
+information in a geometry that supports reliable prediction.
 
-The same flexibility creates a geometric gap. CEB matches each posterior to the
-reference associated with its own label, but the certificate contains no term that
-compares two distinct label conditionals. Consequently, class means, directions, and
-pairwise margins are determined by optimization dynamics and prediction-head freedom,
-rather than by the compression criterion. The deterministic-label corner phenomenon
-identified in prior work \citep{kolchinsky2019caveats} is one manifestation of this
-freedom; a complementary
-issue persists even when labels are noisy or the information-plane knob moves: the
-certificate can be tight while the inter-label arrangement remains arbitrary. On the
-$T_\alpha=B_\alpha\!\cdot\!Y$ family, for example, the conditional residual can stay
-zero while retained label information changes across the family
-(Proposition~\ref{prop:geom-blind}; the full construction is in Appendix~\ref{app:diagnosis}).
-This observation motivates a prior whose geometry is part of the model definition.
+Geometric approaches focus on how target information is organized within a
+representation. Across classification and regression, neural-collapse-inspired
+frames, equidistant or orthogonal constructions, fixed classifiers, and isometric
+embeddings or readouts impose structure on features, prototypes, model weights, or
+prediction axes
+\citep{papyan2020prevalence,deng2014equidistant,xu2022orthogonal,tong2023fixed_frame,
+koromilas2026neural,pai2022isometric,luo2023doll,belucci2026adacap}. These methods
+make target geometry explicit, but their objectives primarily shape the structure
+needed for prediction. They do not generally include a separate criterion for
+controlling the target-irrelevant input variation retained in the representation,
+leaving compression implicit.
 
-We introduce the geometric prior bottleneck (GPB), a framework for
-information-bottleneck compression in which the conditional reference is a declared
-geometric prior rather than an unconstrained one: a stateless conditional Gaussian
-with bounded covariance whose means obey a two-sided declared geometry, fixed before
-training. The framework, not any single instance, is the object of the theory in
-this paper: the gap identity holds for every stateless conditional prior, and the
-alignment and separation results hold for any qualified geometric prior. We
-instantiate the framework with two concrete constructions. The orthogonal prior
-bottleneck (OPB) declares the classification geometry as an equal-radius orthogonal
-frame and uses the corresponding Gaussian anchor energies as the classifier. The
-equidistant prior bottleneck (EPB) declares the regression geometry as an isometric
-axis and uses the same axis for prediction. Thus each prior mean has two
-simultaneous roles: it is a target in the KL and an anchor in the readout. Both
-constructions are computed from the current all-label prior table, with no EMA,
-prototype memory, or batch-dependent geometry, and other declared geometries
-instantiate the same framework.
+Information-bottleneck methods such as VIB, NIB, and DVCCA make compression
+explicit by limiting the information a representation retains from the input
+through marginal-prior matching, prior-free estimation, or reconstruction-augmented
+objectives \citep{alemi2017deep,kolchinsky2017nonlinear,abdelaleem2025deep}.
+Despite their different formulations, their compression mechanisms are not
+conditioned on the target label and therefore do not isolate the input variation
+retained beyond it. CEB addresses this limitation by introducing a
+label-conditional reference and directly targeting the residual input information
+that remains after the label is known \citep{fischer2020conditional}.
 
-GPB reuses geometric primitives from several lines of work but attaches them to a
-different object. Geometric structure has been imposed before, on features,
-classifier weights, or prototypes
-\citep{deng2014equidistant,papyan2020prevalence,xu2022orthogonal,tong2023fixed_frame},
-but always outside the compression term: those methods couple geometry to a
-classification objective, while the bottleneck, when present, remains blind to it.
-GPB instead declares the geometry of the conditional prior itself, so the same
-declared structure enters the KL that compresses the representation and the readout
-that predicts from it. The detailed comparison with each line of work, together
-with the boundary table, is given in Appendix~\ref{sec:related}.
+Conditioning the reference on the label does not by itself determine the relations
+between different labels. The CEB certificate is a sum of within-label matching
+terms, with no term coupling two distinct label conditionals. At its per-label
+matched optimum, it therefore records neither the relative directions nor the
+pairwise distances of their means (Proposition~\ref{prop:geom-blind}). Consequently,
+the inter-label arrangement is determined by optimization dynamics and the freedom
+of the prediction head rather than by the compression criterion. This motivates
+making cross-label geometry part of the conditional prior itself.
 
-The construction leads to two complementary theoretical statements. First, the CEB
-gap identity continues to hold for every stateless conditional prior. Second, for a
-near-optimal solution and any feasible comparator $w_0$,
-\begin{equation*}
-\mathcal D(\widehat w)\le \mathcal K(w_0)+
-\frac{\mathcal R(w_0)+\varepsilon}{\beta},
-\end{equation*}
-so alignment is governed by a comparator's KL floor and prediction risk. The floor
-decomposes into irreducible label ambiguity, encoder mean approximation, and covariance
-mismatch (Appendix~\ref{app:deferred-theory}). Independently, for any qualified
-geometric prior the mismatch-conditioned separation proposition converts the realized
-distance to the declared prior anchors into a lower bound on posterior-center
-separation. Together these results connect the
-constructed geometry to both optimization and the representation actually produced by
-the encoder.
+We introduce the geometric prior bottleneck (GPB), which places a declared geometry
+directly in the label-conditional reference. A GPB prior is a conditional Gaussian
+with bounded covariance whose means satisfy a prescribed separation structure for
+discrete labels or a prescribed label metric for continuous targets. The form and
+scale of this geometry are chosen before training, while its overall orientation
+can remain learnable. We instantiate GPB in two forms. For classification, the
+orthogonal prior bottleneck (OPB) constructs an equal-radius orthogonal frame and
+predicts using the anchor energies induced by that frame. For regression, the
+equidistant prior bottleneck (EPB) maps labels onto an isometric axis and predicts
+through a projection tied to the same axis. In both cases, the same prior means
+serve as KL targets and prediction anchors, unifying information compression with
+explicit target geometry.
 
-We evaluate GPB through complementary evidence. The main table compares GPB with the
-complete IB and non-IB baseline set on twelve dataset--backbone settings. The controlled
-label-noise study follows the predicted zero-to-nonzero ambiguity floor; the direct
-mismatch study measures how much of the declared geometry reaches the posterior; and
-the compression, information-plane, robustness, and mechanism analyses examine the
-behavioral consequences of that transfer. Detailed uncertainty, regression curves,
-transfer attacks, pair-level diagnostics, and construction checks are provided in the
-corresponding appendices~\ref{app:construction}--\ref{app:main-ci}.
+Our analysis connects the declared prior geometry to the learned posterior.
+Theorem~\ref{prop:pgib-alignment} gives an upper bound on the average mismatch
+between posterior means and their corresponding anchors, providing an alignment
+guarantee. Theorem~\ref{thm:pgib-separation} gives a lower bound on the distance
+between the posterior centers of different classes, providing a separation
+guarantee. Together, these results characterize when the declared geometry is
+transferred to the learned representation.
+
+We evaluate GPB across twelve dataset--backbone settings spanning classification
+and regression. GPB is best or tied-best in seven settings and achieves a higher
+mean than CEB in all twelve. Geometric diagnostics show that stronger alignment
+transfers the declared prior structure to posterior class centers, while
+compression sweeps and targeted robustness experiments reveal favorable behavior
+in regimes where CEB degrades. Controlled studies and factor-wise ablations further
+distinguish the contribution of the geometric bottleneck from that of the readout.
 
 In summary, our contributions are: (i) identifying and formalizing the missing
-cross-label geometric constraint in CEB; (ii) introducing GPB with OPB and EPB, whose
-prior means serve simultaneously as KL targets and prediction anchors; (iii) deriving
-comparator-dependent alignment and mismatch-conditioned separation results with an
-explicit ambiguity--approximation decomposition; and (iv) providing controlled and
-benchmark evidence that separates geometric mechanism, compression behavior, and
-end-to-end utility.
+cross-label geometric constraint in CEB; (ii) introducing GPB, with OPB and EPB, to
+unify conditional compression with explicit target geometry; (iii) establishing an
+upper bound on average anchor mismatch and a lower bound on posterior class-center
+separation; and (iv) demonstrating the method across classification and regression
+through benchmark comparisons, geometric diagnostics, compression studies,
+robustness experiments, and factor-wise ablations.
 
 % =====================================================================
 % =====================================================================
