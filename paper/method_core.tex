@@ -9,27 +9,18 @@ label-conditional reference $r(z|y)$ and uses the certificate
 =I(X;Z|Y)+\E_Y\KL(q_\phi(z|Y)\|r(z|Y))\ge I(X;Z|Y).
 \label{eq:gap}
 \end{equation}
-The certificate is a sum of class-wise matching terms. At $r=q(z|y)$ it reduces to
-$I(X;Z|Y)$, independently of the pairwise arrangement of the class conditionals
-(Proposition~\ref{prop:geom-blind}); the $T_\alpha$ counterexample is deferred to
-Appendix~\ref{app:diagnosis}.
-
-\begin{proposition}[The certificate records nothing about inter-label geometry]
-\label{prop:geom-blind}
-The CEB compression term contains no term coupling two distinct class priors; at its
-class-wise matched optimum it equals
+At the class-wise matched optimum $r=q(z|y)$, the certificate reduces to
 \begin{equation}
 \mathrm{ReX}=I(X;Z|Y),
 \label{eq:reix-residual}
 \end{equation}
-regardless of their inter-class means or directions. The certificate therefore
-measures the amount of residual compression but none of the arrangement of the
-class conditionals, so the compression criterion alone cannot prefer any inter-class
-geometry.
-\end{proposition}
+and the certificate contains no term coupling two distinct label conditionals.
+Consequently, it records neither their relative directions nor their pairwise
+distances, so the compression criterion alone cannot prefer any cross-label geometry.
 
-\paragraph{Qualified geometric prior.}
-GPB restricts the reference to stateless conditional Gaussians
+\paragraph{The GPB framework.}
+GPB is not a single prior but a framework for declaring reference geometry: it
+restricts the reference to stateless conditional Gaussians
 \begin{equation}
 p_\theta(z|y)=\mathcal N(m_\theta(y),\Sigma_\theta(y)),\qquad
 \Sigma_\theta(y)\preceq\tau_{\max}^2I,
@@ -48,12 +39,27 @@ $(y,y')$, where $d_Y$ is a metric on the label space $\mathcal Y$:
 \le\rho_{\max}d_Y(y,y'),
 \label{eq:pgib-lipschitz}
 \end{equation}
-with constants fixed before training. The objective is
+with constants fixed before training. These conditions define the geometric prior
+family $\mathcal G$. Any method whose reference prior belongs to $\mathcal G$ and
+whose readout is tied to the same anchor means enters the framework and inherits the
+guarantees of Section~\ref{sec:guarantees}; OPB (classification) and EPB (regression),
+studied below, are two members, not the extent of the framework. The objective is
 \begin{equation}
 \mathcal L_{\rm GPB}=\E[\CE(c_\psi(z),Y)+\beta\KL(q_\phi(z|X)\|p_\theta(z|Y))],
 \qquad z\sim q_\phi(z|X).
 \label{eq:pgib-objective}
 \end{equation}
+The instances below realize this single objective: the anchor means enter the KL and
+are reused as prediction anchors through the tied readout (anchor-energy scores for
+classification, tied projection for regression), so the declared geometry is shared by
+compression and prediction and no instance-specific objective is stated. For
+continuous labels the prediction term is the regression loss on the tied projection.
+
+Because each GPB prior $p_\theta(z|y)$ depends only on $y$, the CEB certificate
+identity applies directly with $r=p_\theta$. Restricting the conditional reference
+to the geometric prior family therefore preserves the certificate and its
+lower-bound interpretation, while changing the cross-label geometry represented by
+the feasible prior family.
 
 \paragraph{Instances.}\label{sec:opb}
 For classification, OPB evaluates a prior encoder on all class labels and uses its
@@ -83,14 +89,7 @@ s_k(z)=-\frac{\|z-aq_{\theta,k}\|^2}{2\tau^2}+\log\pi_k,
 \label{eq:opb-energy}
 \end{equation}
 the Gaussian Bayes scores; with uniform priors this induces an orthogonal classifier
-whose scale is fixed by the prior (Appendix~\ref{app:construction}). For OPB, the
-general objective is equivalently
-\begin{equation}
-\mathcal L_{\rm OPB}=\E\left[\CE(c_\psi(Z),Y)+\beta\KL\bigl(q_\phi(z|X)\|p_\theta^{\rm OPB}(z|Y)\bigr)\right],
-\qquad Z\sim q_\phi(\cdot|X),
-\label{eq:opb-objective}
-\end{equation}
-so the same stateless anchors enter both the KL and the tied readout. Detailed polar
+whose scale is fixed by the prior (Appendix~\ref{app:construction}). Detailed polar
 construction, initialization, covariance relaxation, and the relation to
 prototype/ETF methods are given in Appendices~\ref{app:construction} and~\ref{sec:related}.
 
@@ -103,28 +102,14 @@ p_\theta^{\rm EPB}(z|y)=\mathcal N(\rho\tilde y\,u,\tau^2I),\qquad
 \label{eq:epb-prior}
 \end{equation}
 so latent distances equal $\rho$ times standardized label distances exactly. Order
-and magnitude of label differences are encoded with equality, which qualifies the
-family (Eq.~\eqref{eq:pgib-lipschitz} with $\rho_{\min}=\rho_{\max}=\rho$). The
+and magnitude of label differences are encoded with equality, which makes it a
+member of $\mathcal G$ (Eq.~\eqref{eq:pgib-lipschitz} with
+$\rho_{\min}=\rho_{\max}=\rho$). The
 prediction head is the tied projection $\hat{\tilde y}=u^\top z/\rho$, the regression
 analogue of the anchor-energy classifier: no free direction or scale can bypass the
 prior. The main variant uses the trainable normalized axis with no bias; the
 fixed-axis and unconstrained-scale ablations are in
 Appendix~\ref{app:construction}.
-
-\begin{proposition}[Stateless GPB priors preserve the CEB certificate]
-\label{prop:opb-certificate}
-For every conditional prior $p_\theta(z|y)$ independent of $x$,
-\begin{equation}
-\E\KL\bigl(q_\phi(z|X)\|p_\theta(z|Y)\bigr)
-=I(X;Z|Y)+\E_Y\KL\bigl(q_\phi(z|Y)\|p_\theta(z|Y)\bigr)
-\ge I(X;Z|Y).
-\label{eq:opb-certificate}
-\end{equation}
-Thus restricting the prior family changes its geometry without changing the CEB
-certificate identity or its lower-bound reading, so the geometry constraint is a
-free move for compression; batch-dependent references would not satisfy this
-statement.
-\end{proposition}
 
 \subsection{Alignment and separation guarantees}
 \label{sec:guarantees}

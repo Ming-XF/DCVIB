@@ -52,8 +52,8 @@
 The information bottleneck (IB) principle seeks representations that retain target
 information while discarding input variation. The conditional entropy bottleneck
 (CEB) uses a label-conditional reference, but its class-wise matching terms leave
-the geometry between different labels unspecified. We introduce a geometric prior
-bottleneck (GPB) that declares this geometry statelessly: OPB uses an orthogonal
+the geometry between different labels unspecified. We introduce the geometric prior
+bottleneck (GPB) framework, which declares this geometry statelessly: OPB uses an orthogonal
 class frame for classification and EPB an isometric label axis for regression. In
 both cases, the same geometric means are used as conditional-Gaussian KL targets
 and prediction anchors through a parameter-free energy or projection head.
@@ -102,12 +102,12 @@ Conditioning the reference on the label does not by itself determine the relatio
 between different labels. The CEB certificate is a sum of within-label matching
 terms, with no term coupling two distinct label conditionals. At its per-label
 matched optimum, it therefore records neither the relative directions nor the
-pairwise distances of their means (Proposition~\ref{prop:geom-blind}). Consequently,
-the inter-label arrangement is determined by optimization dynamics and the freedom
-of the prediction head rather than by the compression criterion. This motivates
-making cross-label geometry part of the conditional prior itself.
+pairwise distances of their means. Consequently, the inter-label arrangement is
+determined by optimization dynamics and the freedom of the prediction head rather
+than by the compression criterion. This motivates making cross-label geometry part
+of the conditional prior itself.
 
-We introduce the geometric prior bottleneck (GPB), which places a declared geometry
+We introduce the geometric prior bottleneck (GPB) framework, which places a declared geometry
 directly in the label-conditional reference. A GPB prior is a conditional Gaussian
 with bounded covariance whose means satisfy a prescribed separation structure for
 discrete labels or a prescribed label metric for continuous targets. The form and
@@ -137,7 +137,7 @@ in regimes where CEB degrades. Controlled studies and factor-wise ablations furt
 distinguish the contribution of the geometric bottleneck from that of the readout.
 
 In summary, our contributions are: (i) identifying and formalizing the missing
-cross-label geometric constraint in CEB; (ii) introducing GPB, with OPB and EPB, to
+cross-label geometric constraint in CEB; (ii) introducing the GPB framework, with OPB and EPB, to
 unify conditional compression with explicit target geometry; (iii) establishing an
 upper bound on average anchor mismatch and a lower bound on posterior class-center
 separation; and (iv) demonstrating the method across classification and regression

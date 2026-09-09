@@ -34,15 +34,6 @@ KL by construction (Proposition~\ref{prop:opb-sweep} below). We present this as 
 mechanism connection to the Caveats fix, not as a new solution of the deterministic
 degeneration.
 
-\begin{proof}[Proof of Proposition~\ref{prop:geom-blind}]
-For any matched pair ($b = q(z|y)$), the gap identity of Eq.~\eqref{eq:gap} gives
-Eq.~\eqref{eq:reix-residual}; the matching condition is stated per class and no term
-of the certificate couples two distinct class priors, so the certificate value carries
-no information about the pairwise geometry of $\{q(z|y)\}$. Note that
-$I(X;Z|Y)$ is generally non-zero; it vanishes only under the conditional independence
-$Z \perp X \mid Y$, a property of the encoder, not of the prior.
-\end{proof}
-
 \begin{proposition}[Retention blindness on $T_\alpha$]
 \label{prop:flat}
 On the manifold $T_\alpha = B_\alpha \cdot Y$ of \citet{kolchinsky2019caveats}
@@ -58,8 +49,8 @@ certificate records nothing about how much label information the code retains.
 
 \begin{proof}
 $T_\alpha$ is a function of $Y$ alone, hence $T_\alpha \perp X \mid Y$ and
-$I(X;T_\alpha|Y) = 0$. By Proposition~\ref{prop:geom-blind} with the true backward
-encoder the certificate is tight, $\mathrm{ReX} = I(X;T_\alpha|Y) = 0$, and the optimal
+$I(X;T_\alpha|Y) = 0$. By the certificate identity in Eq.~\eqref{eq:gap}, with the true
+backward encoder the certificate is tight, $\mathrm{ReX} = I(X;T_\alpha|Y) = 0$, and the optimal
 classifier attains $\langle \log c(y|z)\rangle = -H(Y|T_\alpha)$, i.e.\
 $\CE = H(Y|T_\alpha) = \delta_\alpha$.
 \end{proof}
@@ -87,11 +78,6 @@ known-noise experiment instead evaluates the ambiguity term where its population
 is analytic, including the deterministic distribution as its zero-floor special case.
 
 \subsection{Proofs of the alignment guarantees}
-
-\begin{proof}[Proof of Proposition~\ref{prop:opb-certificate}]
-For fixed $\theta$, apply the gap identity of Eq.~\eqref{eq:gap} to the conditional
-distribution $p_\theta(z|y)$ and the posterior $q_\phi$.
-\end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:pgib-separation}]
 For (a), Jensen gives $\|m_k - m_\theta(k)\| \le \sqrt{2\tau^2_{\max} D_k}$, and the
@@ -251,7 +237,7 @@ full column rank, with a stable polar-factor backward (the verified condition of
 Assumption~\ref{ass:fullrank}). The full-rank condition is \emph{verified, not
 imposed}: $\sigma_{\min}(U_\theta)$ is monitored along training and stays bounded
 away from zero in the reported runs, and no additional regularizer is added to the
-objective, which remains Eq.~\eqref{eq:opb-objective} exactly. Near rank deficiency
+objective, which remains Eq.~\eqref{eq:pgib-objective} exactly. Near rank deficiency
 the polar factor's gradient is delicate; should the monitor flag a near-deficient
 step, the recommended handling is a re-initialization of the prior encoder (the
 reported runs never triggered it).
@@ -261,8 +247,8 @@ reported runs never triggered it).
 exact Bayes-head equivalence and the controlled label-ambiguity experiment of
 Section~\ref{sec:controlled-validation}. The real-data benchmark protocol retains the
 common CEB parameterization of a learned label-conditional diagonal covariance, with
-log-variance clamped to a fixed interval. It is therefore a covariance-relaxed member
-of $\mathcal G$: the OPB/EPB mean geometry and readout scale remain fixed, while
+log-variance clamped to a fixed interval. It is therefore a covariance-relaxed member of the geometric prior family
+$\mathcal G$: the OPB/EPB mean geometry and readout scale remain fixed, while
 Eq.~\eqref{eq:pgib-covariance} holds with the clamp-induced $\tau^2_{\max}$.
 Proposition~\ref{prop:opb-energy} is an exact Gaussian Bayes equivalence only for the
 shared-covariance canonical instance; in the relaxed benchmark it remains a
@@ -352,7 +338,7 @@ posterior $q_y = \mathcal{N}(s\,q_{\theta,y}, \sigma^2 I)$ ($s \ge 0$, $\sigma^2
 anchor scale $a > 0$), and the classifier is the anchor-energy classifier of
 Proposition~\ref{prop:opb-energy} (weights $w_j = c\,q_{\theta,j}$ with scale
 $c = a/\tau^2$ fixed by construction). With the \emph{stochastic training code}
-$z \sim q_y$ (as in the actual objective, Eq.~\eqref{eq:opb-objective}), the
+$z \sim q_y$ (as in the actual objective, Eq.~\eqref{eq:pgib-objective}), the
 training cross-entropy is
 \begin{equation}
 g(s, \sigma^2) := \E_\eta\Bigl[
@@ -432,7 +418,7 @@ $\beta$-tunability of the full OPB objective, and in any case not a statement on
 information plane of the Caveats paper; the results of the main text
 establish a structured conditional prior, an exact KL geometry, and conditional
 separation guarantees, and they do \emph{not} establish a mutual information upper
-bound tighter than CEB's: Eq.~\eqref{eq:opb-certificate} is the usual CEB gap
+bound tighter than CEB's: Eq.~\eqref{eq:gap} is the usual CEB gap
 identity for a particular prior family. The orthogonal-frame construction fixes all pairwise anchor
 distances, so the framework should not claim to recover arbitrary semantic class
 similarities. All geometric statements are conditional on
@@ -442,7 +428,7 @@ along the reported runs (Section~\ref{sec:opb}); the construction is exactly
 equivariant under relabeling of the classes by Eq.~\eqref{eq:opb-equivariance}, so
 no class index plays a distinguished role. If the frame were computed from the
 current input batch rather than from the all-class prior matrix, the prior would
-become batch-dependent and Proposition~\ref{prop:opb-certificate} would no longer
+become batch-dependent and the certificate-preservation argument would no longer
 follow directly. Finally, the
 anchor-energy classifier of Proposition~\ref{prop:opb-energy} fixes the classifier
 scale to $a/\tau^2$ by construction, removing the independent classifier-margin
