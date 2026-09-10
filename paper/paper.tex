@@ -57,10 +57,10 @@ bottleneck (GPB) framework, which declares this geometry statelessly: OPB uses a
 class frame for classification and EPB an isometric label axis for regression. In
 both cases, the same geometric means are used as conditional-Gaussian KL targets
 and prediction anchors through a parameter-free energy or projection head.
-GPB preserves the CEB certificate and yields a comparator-dependent alignment
-inequality whose floor decomposes label ambiguity, encoder approximation, and
-covariance mismatch; a separate mismatch-conditioned result transfers prior
-separation to posterior centers. Controlled label-noise, direct mismatch,
+GPB preserves the CEB certificate and yields comparator-dependent alignment and
+separation guarantees whose combination gives an explicit $\beta$-dependent
+geometry-transfer bound with a comparator-specific floor. Controlled label-noise,
+direct mismatch,
 robustness, and posterior-geometry studies characterize these mechanisms, while
 the full benchmark comparison spans twelve dataset--backbone settings and complete
 IB and non-IB baselines. GPB is best or tied-best in seven settings and has a
@@ -125,24 +125,28 @@ Theorem~\ref{prop:pgib-alignment} gives an upper bound on the average mismatch
 between posterior means and their corresponding anchors, providing an alignment
 guarantee. Theorem~\ref{thm:pgib-separation} gives a lower bound on the distance
 between the posterior centers of different classes, providing a separation
-guarantee. Together, these results characterize when the declared geometry is
-transferred to the learned representation.
+guarantee. Combining them yields an explicit $\beta$-dependent geometry-transfer
+bound: with zero comparator KL floor, the certified deficit from the declared
+separation is $O(\beta^{-1/2})$, while a non-zero comparator KL imposes a
+comparator-specific floor.
 
 We evaluate GPB across twelve dataset--backbone settings spanning classification
 and regression. GPB is best or tied-best in seven settings and achieves a higher
-mean than CEB in all twelve. Geometric diagnostics show that stronger alignment
-transfers the declared prior structure to posterior class centers, while
-compression sweeps and targeted robustness experiments reveal favorable behavior
-in regimes where CEB degrades. Controlled studies and factor-wise ablations further
-distinguish the contribution of the geometric bottleneck from that of the readout.
+mean than CEB in all twelve. Controlled studies examine the comparator-dependent
+floor, while geometric diagnostics trace $\beta$-dependent mismatch and transfer of
+the declared structure to posterior class centers. Compression sweeps and
+targeted robustness experiments reveal favorable behavior in regimes where CEB
+degrades, and factor-wise ablations distinguish the contribution of the geometric
+bottleneck from that of the readout.
 
 In summary, our contributions are: (i) identifying and formalizing the missing
 cross-label geometric constraint in CEB; (ii) introducing the GPB framework, with OPB and EPB, to
 unify conditional compression with explicit target geometry; (iii) establishing an
 upper bound on average anchor mismatch and a lower bound on posterior class-center
-separation; and (iv) demonstrating the method across classification and regression
-through benchmark comparisons, geometric diagnostics, compression studies,
-robustness experiments, and factor-wise ablations.
+separation, together with an explicit $\beta$-dependent geometry-transfer rate; and
+(iv) demonstrating the method across classification and regression through
+benchmark comparisons, geometric diagnostics, compression studies, robustness
+experiments, and factor-wise ablations.
 
 % =====================================================================
 % =====================================================================

@@ -45,15 +45,16 @@ whose readout is tied to the same anchor means enters the framework and inherits
 guarantees of Section~\ref{sec:guarantees}; OPB (classification) and EPB (regression),
 studied below, are two members, not the extent of the framework. The objective is
 \begin{equation}
-\mathcal L_{\rm GPB}=\E[\CE(c_\psi(z),Y)+\beta\KL(q_\phi(z|X)\|p_\theta(z|Y))],
+\mathcal L_{\rm GPB}=\E[\ell(c_\psi(z),Y)+\beta\KL(q_\phi(z|X)\|p_\theta(z|Y))],
 \qquad z\sim q_\phi(z|X).
 \label{eq:pgib-objective}
 \end{equation}
 The instances below realize this single objective: the anchor means enter the KL and
 are reused as prediction anchors through the tied readout (anchor-energy scores for
 classification, tied projection for regression), so the declared geometry is shared by
-compression and prediction and no instance-specific objective is stated. For
-continuous labels the prediction term is the regression loss on the tied projection.
+compression and prediction and no instance-specific objective is stated. Here $\ell\ge0$
+is cross-entropy for classification and the chosen nonnegative regression loss for
+continuous labels.
 
 Because each GPB prior $p_\theta(z|y)$ depends only on $y$, the CEB certificate
 identity applies directly with $r=p_\theta$. Restricting the conditional reference
@@ -139,8 +140,6 @@ Thus a comparator with total KL $\delta_{\rm app}$ and risk $C_{\rm app}$ gives
  +\frac{C_{\rm app}+\varepsilon}{\beta}.
 \label{eq:pgib-approximate-alignment}
 \end{equation}
-The exact $O(1/\beta)$ rate is only the zero-floor, exactly realizable special case;
-the full ambiguity--approximation decomposition is in Appendix~\ref{app:deferred}.
 The bound thus certifies alignment to whatever comparator is prespecified: its KL is
 the irreducible floor, and the risk term controls how fast the fitted solution
 approaches that floor as $\beta$ grows.
@@ -165,17 +164,17 @@ which estimates a comparator-specific floor, not an intrinsic dataset floor.
 
 \begin{theorem}[Mismatch-conditioned posterior separation]
 \label{thm:pgib-separation}
-Let
+For discrete labels, let $m_k=\E[\mu_\phi(X)\mid Y=k]$ and
 \begin{equation}
 D_k=\frac{\E[\|\mu_\phi(X)-m_\theta(k)\|^2\mid Y=k]}{2\tau_{\max}^2}.
 \label{eq:pgib-class-rate}
 \end{equation}
-For discrete labels,
+Then
 \begin{equation}
 \|m_i-m_j\|\ge\Delta-\sqrt{2\tau_{\max}^2D_i}-\sqrt{2\tau_{\max}^2D_j}.
 \label{eq:pgib-separation}
 \end{equation}
-For continuous labels define
+For continuous labels, define $m(y)=\E[\mu_\phi(X)\mid Y=y]$ and
 \begin{equation}
 D(y)=\frac{\E[\|\mu_\phi(X)-m_\theta(y)\|^2\mid Y=y]}{2\tau_{\max}^2},
 \label{eq:pgib-class-rate-continuous}
@@ -199,3 +198,33 @@ guarantee is informative exactly when the measured mismatch stays below the marg
 small measured mismatch transfers the declared geometry to the posterior almost
 intact.
 \end{theorem}
+
+\begin{corollary}[Beta-dependent geometry transfer]
+\label{cor:pgib-beta-transfer}
+Fix the prior family, a feasible comparator $w_0$, and an $\varepsilon$-optimal
+solution $\widehat w_\beta$ for each $\beta$, with $\varepsilon$ uniformly bounded.
+Define
+\begin{equation}
+B_\beta:=\mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon}{\beta}.
+\label{eq:pgib-beta-budget}
+\end{equation}
+For discrete labels, suppose $\pi_k\ge\pi_{\min}>0$ for all considered classes. Then
+for every pair $i\ne j$,
+\begin{equation}
+\|m_i-m_j\|
+\ge \Delta-2\sqrt{\frac{2\tau_{\max}^2 B_\beta}{\pi_{\min}}}.
+\label{eq:pgib-beta-separation}
+\end{equation}
+For continuous labels, for any $\xi\in(0,1)$ and $B_\beta>0$, there is a set
+$S_{\beta,\xi}$ with $P_Y(S_{\beta,\xi})\ge 1-\xi$ such that, for almost every
+$y,y'\in S_{\beta,\xi}$,
+\begin{equation}
+\|m(y)-m(y')\|
+\ge \rho_{\min}d_Y(y,y')
+-2\sqrt{\frac{2\tau_{\max}^2 B_\beta}{\xi}}.
+\label{eq:pgib-beta-separation-continuous}
+\end{equation}
+If the comparator KL is zero and the remaining quantities are bounded while
+$\beta$ varies, the certified separation deficit is $O(\beta^{-1/2})$; with a
+non-zero comparator KL, the bound approaches a comparator-dependent floor.
+\end{corollary}
