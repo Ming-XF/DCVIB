@@ -3,37 +3,35 @@
 Let $Y-X-Z$ and let the encoder posterior be
 $q_\phi(z|x)=\mathcal N(\mu_\phi(x),\operatorname{diag}\sigma_\phi^2(x))$.
 CEB~\citep{fischer2020conditional} replaces the VIB marginal reference by a
-label-conditional reference $r(z|y)$. For any choice of this reference, the
-certificate
+label-conditional reference $r(z|y)$ and uses the certificate
 \begin{equation}
-I(X;Z|Y)\le\E\KL(q_\phi(z|X)\|r(z|Y)),
+\E\KL(q_\phi(z|X)\|r(z|Y))
+=I(X;Z|Y)+\E_Y\KL(q_\phi(z|Y)\|r(z|Y))\ge I(X;Z|Y).
 \label{eq:gap}
 \end{equation}
-upper-bounds the residual input information $I(X;Z|Y)$, which CEB minimizes as its
-compression criterion. The certificate is an average of within-sample terms, each
-involving only the reference of the sample's own label: no term couples two
-distinct label conditionals. Consequently, it records neither the relative
-directions nor the pairwise distances of the class-conditional means, so the
-compression criterion alone cannot prefer any cross-label geometry.
+At the class-wise matched optimum $r=q(z|y)$, the certificate reduces to
+\begin{equation}
+\mathrm{ReX}=I(X;Z|Y),
+\label{eq:reix-residual}
+\end{equation}
+and the certificate contains no term coupling two distinct label conditionals.
+Consequently, it records neither their relative directions nor their pairwise
+distances, so the compression criterion alone cannot prefer any cross-label geometry.
 
 \paragraph{The GPB framework.}
 GPB is not a single prior but a framework for declaring reference geometry: it
-restricts the reference to conditional Gaussians
+restricts the reference to stateless conditional Gaussians
 \begin{equation}
 p_\theta(z|y)=\mathcal N(m_\theta(y),\Sigma_\theta(y)),\qquad
 \Sigma_\theta(y)\preceq\tau_{\max}^2I,
 \label{eq:pgib-covariance}
 \end{equation}
-where $p_\theta$ is the label-conditional Gaussian reference, $m_\theta(y)$ its
-anchor mean, $\Sigma_\theta(y)$ its anchor covariance, and $\tau_{\max}^2$ a fixed
-bound on the anchor scale. Their means obey a declared two-sided separation for
-every pair of distinct discrete labels $y\ne y'$,
+whose means obey a declared two-sided separation for every pair of distinct
+discrete labels $y\ne y'$,
 \begin{equation}
 \Delta\le\|m_\theta(y)-m_\theta(y')\|\le\bar\Delta,
 \label{eq:pgib-separation-condition}
 \end{equation}
-where $\Delta$ and $\bar\Delta$ are the declared minimal and maximal anchor
-distances (the separation margin and its ceiling),
 or a two-sided label metric condition for $P_Y$-almost every label pair
 $(y,y')$, where $d_Y$ is a metric on the label space $\mathcal Y$:
 \begin{equation}
@@ -41,26 +39,28 @@ $(y,y')$, where $d_Y$ is a metric on the label space $\mathcal Y$:
 \le\rho_{\max}d_Y(y,y'),
 \label{eq:pgib-lipschitz}
 \end{equation}
-so the anchor map $y\mapsto m_\theta(y)$ is a bi-Lipschitz embedding of the label
-metric, with lower and upper constants $\rho_{\min}$ and $\rho_{\max}$. All
-constants are fixed before training. These conditions define the geometric prior
-family $\mathcal G$. The objective is
+with constants fixed before training. These conditions define the geometric prior
+family $\mathcal G$. Any method whose reference prior belongs to $\mathcal G$ and
+whose readout is tied to the same anchor means enters the framework and inherits the
+guarantees of Section~\ref{sec:guarantees}; OPB (classification) and EPB (regression),
+studied below, are two members, not the extent of the framework. The objective is
 \begin{equation}
 \mathcal L_{\rm GPB}=\E[\ell(c_\psi(z),Y)+\beta\KL(q_\phi(z|X)\|p_\theta(z|Y))],
 \qquad z\sim q_\phi(z|X).
 \label{eq:pgib-objective}
 \end{equation}
-The instances studied below, OPB (classification) and EPB (regression), are two
-members of this framework, both realizing the single objective above: the anchor means
-enter the KL and are reused as prediction anchors through the tied readout
-(anchor-energy scores for classification, tied projection for regression), so the
-declared geometry is shared by compression and prediction and no instance-specific
-objective is stated. Here $\ell\ge0$ is cross-entropy for classification and the chosen
-nonnegative regression loss for continuous labels. Moreover, since the geometric prior remains a label-conditional reference, the
-CEB certificate of Eq.~\eqref{eq:gap} carries over unchanged, unifying
-compression with the declared geometry in a single KL term, and any method whose
-reference prior belongs to $\mathcal G$ inherits the guarantees of
-Section~\ref{sec:guarantees}.
+The instances below realize this single objective: the anchor means enter the KL and
+are reused as prediction anchors through the tied readout (anchor-energy scores for
+classification, tied projection for regression), so the declared geometry is shared by
+compression and prediction and no instance-specific objective is stated. Here $\ell\ge0$
+is cross-entropy for classification and the chosen nonnegative regression loss for
+continuous labels.
+
+Because each GPB prior $p_\theta(z|y)$ depends only on $y$, the CEB certificate
+identity applies directly with $r=p_\theta$. Restricting the conditional reference
+to the geometric prior family therefore preserves the certificate and its
+lower-bound interpretation, while changing the cross-label geometry represented by
+the feasible prior family.
 
 \paragraph{Instances.}\label{sec:opb}
 For classification, OPB evaluates a prior encoder on all class labels and uses its
@@ -72,21 +72,25 @@ Q_\theta=U_\theta(U_\theta^\top U_\theta)^{-1/2},
 \end{equation}
 and we assume, monitoring rather than imposing it, that the monitored matrix has
 full column rank (Assumption~\ref{ass:fullrank} in the appendix). Writing
-$q_{\theta,k}$ for the $k$-th column of the frame $Q_\theta$, the anchors and their
-fixed geometry are
+$q_{\theta,k}$ for the $k$-th column of the frame $Q_\theta$, the anchors are
 \begin{equation}
-p_\theta^{\rm OPB}(z|Y=k)=\mathcal N(aq_{\theta,k},\tau^2I),\quad
-(aq_i)^\top(aq_j)=a^2\mathbf 1\{i=j\},
-\quad \|aq_i-aq_j\|=\sqrt2a\ (i\ne j).
+p_\theta^{\rm OPB}(z|Y=k)=\mathcal N(aq_{\theta,k},\tau^2I),\qquad
+Q_\theta^\top Q_\theta=I_K,\qquad\|aq_i-aq_j\|=\sqrt2a.
 \label{eq:opb-prior}
 \end{equation}
-The anchor-energy scores are the Gaussian Bayes scores
+The construction also gives the fixed geometry
+\begin{equation}
+(aq_i)^\top(aq_j)=a^2\mathbf 1\{i=j\},
+\qquad \|aq_i-aq_j\|=\sqrt2a\quad(i\ne j).
+\label{eq:opb-geometry}
+\end{equation}
+The anchor-energy scores are
 \begin{equation}
 s_k(z)=-\frac{\|z-aq_{\theta,k}\|^2}{2\tau^2}+\log\pi_k,
 \label{eq:opb-energy}
 \end{equation}
-With uniform priors, this induces an orthogonal classifier whose scale is fixed by
-the prior (Appendix~\ref{app:construction}). Detailed polar
+the Gaussian Bayes scores; with uniform priors this induces an orthogonal classifier
+whose scale is fixed by the prior (Appendix~\ref{app:construction}). Detailed polar
 construction, initialization, covariance relaxation, and the relation to
 prototype/ETF methods are given in Appendices~\ref{app:construction} and~\ref{sec:related}.
 
@@ -104,16 +108,13 @@ member of $\mathcal G$ (Eq.~\eqref{eq:pgib-lipschitz} with
 $\rho_{\min}=\rho_{\max}=\rho$). The
 prediction head is the tied projection $\hat{\tilde y}=u^\top z/\rho$, the regression
 analogue of the anchor-energy classifier: no free direction or scale can bypass the
-prior.
+prior. The main variant uses the trainable normalized axis with no bias; the
+fixed-axis and unconstrained-scale ablations are in
+Appendix~\ref{app:construction}.
 
 \subsection{Comparator bounds and posterior-center separation}
 \label{sec:guarantees}
-This subsection traces how the objective of Eq.~\eqref{eq:pgib-objective} shapes
-the learned posterior: Proposition~\ref{prop:pgib-alignment} upper-bounds the
-posterior's anchor mismatch, Theorem~\ref{thm:pgib-separation} lower-bounds the
-separation of posterior centers and introduces the condition under which the bound
-is informative, and Corollary~\ref{cor:pgib-beta-transfer} combines the two into
-the end-to-end $\beta$-dependent transfer guarantee. Define
+Define
 \begin{equation}
 \mathcal R(w)=\E[\ell(c_\psi(Z),Y)],\qquad
 \mathcal K(w)=\E\KL(q_\phi(z|X)\|p_\theta(z|Y)),
@@ -135,15 +136,43 @@ prediction-head parameterization),
 \mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon}{\beta}.
 \label{eq:pgib-comparator-bound}
 \end{equation}
+Specializing to a comparator with total KL $\delta_{\rm app}$ and risk
+$C_{\rm app}$ gives
+\begin{equation}
+\mathcal D(\widehat w)\le\delta_{\rm app}
+ +\frac{C_{\rm app}+\varepsilon}{\beta}.
+\label{eq:pgib-approximate-alignment}
+\end{equation}
+With a near-realizable comparator, namely small $\delta_{\rm app}$,
+Eq.~\eqref{eq:pgib-approximate-alignment} becomes an approximate-realizability
+statement.
 \end{proposition}
 
-The bound certifies alignment to whatever comparator is prespecified: its KL
-$\mathcal K(w_0)$ is the comparator-specific certificate floor, a property of
-the chosen comparator rather than an intrinsic dataset quantity, and the risk
-term controls how fast the right-hand certificate bound approaches that floor
-as $\beta$ grows. Equivalently, to certify a target mismatch level $d_\star$,
-one needs a comparator with $\mathcal K(w_0)<d_\star$ and
-$\beta\ge(\mathcal R(w_0)+\varepsilon)/(d_\star-\mathcal K(w_0))$.
+The bound certifies alignment to whatever comparator is prespecified: its KL is the
+comparator-specific certificate floor, and the risk term controls how fast the
+right-hand certificate bound approaches that floor as $\beta$ grows. It does not
+claim that the realized mismatch $\mathcal D(\widehat w_\beta)$ decreases
+monotonically in $\beta$, converges to, or attains that floor: with a fixed
+comparator and a fixed error bound, only the right-hand certificate approaches
+$\mathcal K(w_0)$, which is a property of the chosen comparator rather than an
+intrinsic dataset quantity.
+
+For a target $d_\star$, the bound is informative only if
+$\mathcal K(w_0)<d_\star$ and
+\begin{equation}
+\beta\ge\frac{\mathcal R(w_0)+\varepsilon}{d_\star-\mathcal K(w_0)}.
+\label{eq:comparator-informative-condition}
+\end{equation}
+A prespecified comparator's KL and risk can be estimated on an independent held-out
+set using
+\begin{equation}
+\widehat{\mathcal K}_S(w_0)=\frac1{|S|}\sum_{(x_i,y_i)\in S}
+\KL(q_{\phi_0}(z|x_i)\|p_{\theta_0}(z|y_i)),\quad
+\widehat{\mathcal R}_S(w_0)=\frac1{|S|}\sum_{(x_i,y_i)\in S}
+\E_{q_{\phi_0}}\ell(c_{\psi_0}(Z),y_i),
+\label{eq:heldout-comparator-estimates}
+\end{equation}
+which estimates a comparator-specific floor, not an intrinsic dataset floor.
 
 \begin{theorem}[Mismatch-conditioned posterior-center separation]
 \label{thm:pgib-separation}
@@ -186,7 +215,7 @@ Eq.~\eqref{eq:pgib-separation} is positive exactly when
 \end{equation}
 while the declared-margin level is positive exactly when $r_i+r_j<\Delta$. The two
 conditions coincide for OPB, whose anchor pair distance is the constant $\sqrt2a$ of
-Eq.~\eqref{eq:opb-prior}, so the declared margin satisfies $\Delta=\sqrt2a$; with
+Eq.~\eqref{eq:opb-geometry}, so the declared margin satisfies $\Delta=\sqrt2a$; with
 equal mismatch $D_i=D_j=D$ the common condition reduces to
 $D<a^2/(4\tau_{\max}^2)$. In the continuous case, the declared metric lower bound is
 positive exactly when

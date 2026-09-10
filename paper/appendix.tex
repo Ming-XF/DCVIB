@@ -39,7 +39,7 @@ degeneration.
 On the manifold $T_\alpha = B_\alpha \cdot Y$ of \citet{kolchinsky2019caveats}
 (their Eq.~6), a family that depends on $Y$ alone, $I(X;T_\alpha|Y) = 0$ for
 every $\alpha$, and with the optimal backward encoder and classifier,
-$\mathrm{ReX}(T_\alpha) = 0$ and
+$I(X;T_\alpha|Y) = 0$ and
 $\CE(T_\alpha) = H(Y) - I(Y;T_\alpha) =: \delta_\alpha$: the certificate reads $0$
 from the total collapse ($\alpha = 0$) to the full copy ($\alpha = 1$), while the
 retained label information $I(Y;T_\alpha)$ sweeps the whole axis. Tightness of the
@@ -49,22 +49,25 @@ certificate records nothing about how much label information the code retains.
 
 \begin{proof}
 $T_\alpha$ is a function of $Y$ alone, hence $T_\alpha \perp X \mid Y$ and
-$I(X;T_\alpha|Y) = 0$. By the certificate identity in Eq.~\eqref{eq:gap}, with the true
-backward encoder the certificate is tight, $\mathrm{ReX} = I(X;T_\alpha|Y) = 0$, and the optimal
+$I(X;T_\alpha|Y) = 0$. By the decomposition behind Eq.~\eqref{eq:gap},
+$\E\KL(q_\phi(z|X)\|r(z|Y))=I(X;Z|Y)+\E_Y\KL(q_\phi(z|Y)\|r(z|Y))$, with the true
+backward encoder the gap term vanishes and the certificate is tight,
+$I(X;T_\alpha|Y) = 0$, and the optimal
 classifier attains $\langle \log c(y|z)\rangle = -H(Y|T_\alpha)$, i.e.\
 $\CE = H(Y|T_\alpha) = \delta_\alpha$.
 \end{proof}
 
 \begin{remark}[The objective on $T_\alpha$ is $\beta$-independent and strictly prefers the full copy]
 \label{rem:flatness}
-On $T_\alpha$ the compression term contributes nothing ($\mathrm{ReX} \equiv 0$), so
-the objective reads $L = \CE + \beta\,\mathrm{ReX} = \delta_\alpha$, independent of
+On $T_\alpha$ the compression term contributes nothing
+($I(X;T_\alpha|Y) \equiv 0$), so
+the objective reads $L = \CE + \beta\,I(X;T_\alpha|Y) = \delta_\alpha$, independent of
 $\beta$ and strictly minimized at $\alpha = 1$ (the full copy). No certified residual
 is produced anywhere on the manifold; the blindness is that the certificate cannot
 tell the optimizer --- or the analyst --- where on the retention axis the code sits.
 \end{remark}
 
-\emph{Scope of the comparison argument.} Theorem~\ref{prop:pgib-alignment} applies to
+\emph{Scope of the comparison argument.} Proposition~\ref{prop:pgib-alignment} applies to
 arbitrary $P_{XY}$ and every feasible comparator in the fitted model class; it does not
 require $q(z|x)=p_\theta(z|y)$. Its usefulness depends on the comparator KL. Label
 ambiguity, limited encoder capacity, and covariance misspecification produce the
@@ -77,18 +80,45 @@ their structural diagnostics report realized mismatch and geometry. The controll
 known-noise experiment instead evaluates the ambiguity term where its population value
 is analytic, including the deterministic distribution as its zero-floor special case.
 
-\subsection{Proofs of the alignment guarantees}
+\subsection{Proofs of the comparator and separation guarantees}
+
+\begin{proof}[Proof of Proposition~\ref{prop:pgib-alignment}]
+Since $\Sigma_\theta(y)\preceq\tau^2_{\max}I_d$ is equivalent to
+$\Sigma_\theta^{-1}(y)\succeq\tau_{\max}^{-2}I_d$, the Gaussian KL contains a mean
+term
+$\frac12(\mu_\phi(x)-m_\theta(y))^\top\Sigma_\theta^{-1}(y)(\mu_\phi(x)-m_\theta(y))
+\ge\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2_{\max})$. Hence
+$\mathcal D(\widehat w)\le\mathcal K(\widehat w)$. For any feasible $w_0$ in the
+same family, $\varepsilon$-optimality of $\widehat w$, $\ell\ge0$, and $\beta>0$
+give
+\begin{equation*}
+\beta\mathcal K(\widehat w)
+\le \mathcal R(\widehat w)+\beta\mathcal K(\widehat w)
+\le \mathcal R(w_0)+\beta\mathcal K(w_0)+\varepsilon.
+\end{equation*}
+Division by $\beta$ proves Eq.~\eqref{eq:pgib-comparator-bound}.
+\end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:pgib-separation}]
-For (a), Jensen gives $\|m_k - m_\theta(k)\| \le \sqrt{2\tau^2_{\max} D_k}$, and the
-triangle inequality on
+For (a), Jensen's inequality gives
+$\|m_k - m_\theta(k)\| \le \sqrt{2\tau^2_{\max} D_k}=r_k$
+(the norm is convex, and $\E\|\mu_\phi(X)\|^2<\infty$ makes $m_k$ well defined), and
+the triangle inequality on
 $m_i - m_j = (m_i - m_\theta(i)) + (m_\theta(i) - m_\theta(j))
-+ (m_\theta(j) - m_j)$ gives Eq.~\eqref{eq:pgib-separation}. For (b), the same two
-inequalities hold pointwise for $P_Y$-a.e.\ $y$: Jensen on the regular conditional
-expectation gives
-$\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2_{\max} D(y)}$ (the norm is convex), and
-the triangle inequality gives Eq.~\eqref{eq:pgib-separation-continuous}; intersecting
-the two measure-one sets of valid $y$'s yields the almost-everywhere pair statement.
++ (m_\theta(j) - m_j)$ gives the two-level bound
+$\|m_i-m_j\|\ge\|m_\theta(i)-m_\theta(j)\|-r_i-r_j\ge\Delta-r_i-r_j$, the last step
+by Eq.~\eqref{eq:pgib-separation-condition}. The first level is positive exactly
+when $\Gamma_{ij}<1$ and the declared-margin level exactly when
+$r_i+r_j<\Delta$; for OPB the anchor pair distance is the constant $\sqrt2a$ of
+Eq.~\eqref{eq:opb-prior}, so the declared margin satisfies $\Delta=\sqrt2a$ and
+the two conditions coincide. With equal mismatch $D_i=D_j=D$, the common condition
+$\Gamma_{ij}=2\sqrt{2\tau^2_{\max}D}/(\sqrt2a)<1$ reduces to
+$D<a^2/(4\tau^2_{\max})$. For (b), the same two inequalities hold pointwise for
+$P_Y$-a.e.\ $y$: Jensen on the regular conditional expectation gives
+$\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2_{\max} D(y)}=r(y)$ (the norm is convex),
+and the triangle inequality with Eq.~\eqref{eq:pgib-lipschitz} gives
+Eq.~\eqref{eq:pgib-separation-continuous}; intersecting the two measure-one sets of
+valid $y$'s yields the $P_Y\otimes P_Y$-almost-everywhere pair statement.
 \end{proof}
 
 \begin{remark}[Finite-sample estimation of the continuous case]
@@ -102,21 +132,20 @@ the upper bound of Eq.~\eqref{eq:pgib-lipschitz}), which vanishes as the bins
 shrink. The separation statement itself is pointwise and needs no binning.
 \end{remark}
 
-\begin{proof}[Proof of Theorem~\ref{prop:pgib-alignment}]
-Since $\Sigma_\theta(y)\preceq\tau^2_{\max}I_d$, the Gaussian KL contains a mean
-term at least
-$\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2_{\max})$. Hence
-$\mathcal D(\widehat w)\le\mathcal K(\widehat w)$. For any feasible $w_0$,
-near-optimality and non-negativity of the prediction loss give
-\begin{equation*}
-\beta\mathcal K(\widehat w)
-\le \mathcal R(\widehat w)+\beta\mathcal K(\widehat w)
-\le \mathcal R(w_0)+\beta\mathcal K(w_0)+\varepsilon.
-\end{equation*}
-Division by $\beta$ proves Eq.~\eqref{eq:pgib-comparator-bound}; substituting
-$\mathcal K(w_0)\le\delta_{\mathrm{app}}$ and
-$\mathcal R(w_0)\le C_{\mathrm{app}}$ proves
-Eq.~\eqref{eq:pgib-approximate-alignment}.
+\begin{proof}[Proof of Corollary~\ref{cor:pgib-beta-transfer}]
+Proposition~\ref{prop:pgib-alignment} gives
+$\mathcal D(\widehat w_\beta)\le B_\beta$. For discrete labels, the tower property
+gives $\mathcal D(\widehat w_\beta)=\sum_k\pi_kD_k$, so
+$D_k\le B_\beta/\pi_k\le B_\beta/\pi_{\min}$. Substitution into
+Theorem~\ref{thm:pgib-separation}(a) gives Eq.~\eqref{eq:pgib-beta-separation}.
+For continuous labels, Markov's inequality on the nonnegative random variable
+$D(Y)$ gives $P_Y(D(Y)>B_\beta/\xi)\le\xi$; on
+$S_{\beta,\xi}=\{y:D(y)\le B_\beta/\xi\}$, Theorem~\ref{thm:pgib-separation}(b)
+gives Eq.~\eqref{eq:pgib-beta-separation-continuous}. The rate statement follows
+directly from the definition of $B_\beta$: with $\mathcal K(w_0)=0$ and
+$\sup_\beta\varepsilon_\beta<\infty$, $B_\beta=O(\beta^{-1})$ so the certified
+deficit is $O(\beta^{-1/2})$; with $\mathcal K(w_0)>0$,
+$B_\beta\to\mathcal K(w_0)$ as $\beta\to\infty$.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\ref{prop:pgib-ambiguity-decomposition}]
@@ -149,20 +178,8 @@ determinant factors cancel and its posterior is the anchor-energy rule. Applying
 Eq.~\eqref{eq:pgib-comparator-bound} gives Eq.~\eqref{eq:pgib-alignment}. For
 regression the aligned comparator again has zero KL. Under the tied head its error is
 $(\tau/\rho)\eta$, $\eta\sim\mathcal N(0,1)$, so its standardized squared risk is
-$\tau^2/\rho^2$; the same theorem gives
+$\tau^2/\rho^2$; the same proposition gives
 Eq.~\eqref{eq:pgib-alignment-regression}.
-\end{proof}
-
-\begin{proof}[Proof of Corollary~\ref{cor:pgib-beta-transfer}]
-Theorem~\ref{prop:pgib-alignment} gives $\mathcal D(\widehat w)\le B_\beta$.
-For discrete labels, $\mathcal D(\widehat w)=\sum_k\pi_kD_k$, so
-$D_k\le B_\beta/\pi_k\le B_\beta/\pi_{\min}$. Substitution into
-Theorem~\ref{thm:pgib-separation}(a) gives Eq.~\eqref{eq:pgib-beta-separation}.
-For continuous labels, Markov's inequality gives
-$P_Y(D(Y)>B_\beta/\xi)\le\xi$; on
-$S_{\beta,\xi}=\{y:D(y)\le B_\beta/\xi\}$, Theorem~\ref{thm:pgib-separation}(b)
-gives Eq.~\eqref{eq:pgib-beta-separation-continuous}. The rate statement follows
-directly from the definition of $B_\beta$.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\ref{prop:opb-collapse}]
@@ -213,15 +230,15 @@ plays a distinguished role.
 \begin{proposition}[Orthogonal class-prior geometry by construction]
 \label{prop:opb-frame}
 Under Eqs.~\eqref{eq:opb-qr}--\eqref{eq:opb-prior}, the class means
-$a_k = a\,q_{\theta,k}$ satisfy Eq.~\eqref{eq:opb-geometry}; equivalently, the
-class-mean Gram matrix is $a^2 I_K$: under Assumption~\ref{ass:fullrank}, the prior
+$a_k = a\,q_{\theta,k}$ have Gram matrix $a^2 I_K$: under
+Assumption~\ref{ass:fullrank}, the prior
 supplies a class-separated spherical code at every training step, whatever the
 optimizer does.
 \end{proposition}
 
 \begin{proof}
-Eq.~\eqref{eq:opb-geometry} follows from $Q_\theta^{\top}Q_\theta = I_K$ after scaling
-by $a$; in particular
+The geometry in Eq.~\eqref{eq:opb-prior} follows from
+$Q_\theta^{\top}Q_\theta = I_K$ after scaling by $a$; in particular
 $\|a_i - a_j\|^2 = \|a_i\|^2 + \|a_j\|^2 - 2a_i^{\top}a_j = 2a^2$.
 \end{proof}
 
@@ -421,8 +438,8 @@ $\beta$-tunability of the full OPB objective, and in any case not a statement on
 information plane of the Caveats paper; the results of the main text
 establish a structured conditional prior, an exact KL geometry, and conditional
 separation guarantees, and they do \emph{not} establish a mutual information upper
-bound tighter than CEB's: Eq.~\eqref{eq:gap} is the usual CEB gap
-identity for a particular prior family. The orthogonal-frame construction fixes all pairwise anchor
+bound tighter than CEB's: Eq.~\eqref{eq:gap} is the usual CEB bound, here
+for a particular prior family. The orthogonal-frame construction fixes all pairwise anchor
 distances, so the framework should not claim to recover arbitrary semantic class
 similarities. All geometric statements are conditional on
 Assumption~\ref{ass:fullrank}: orthonormality holds exactly by the polar construction
@@ -464,7 +481,7 @@ posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity} changes these
 choices one at a time. Fixing the posterior variance to
 $\sigma^2\equiv\tau^2$ leaves the measured mismatch on the analytic floors, confirming
 that the result is not produced by a covariance compensation channel. Replacing the
-fixed frame by the trainable stateless polar frame gives the same result, so the floor
+fixed frame by the trainable polar frame gives the same result, so the floor
 is invariant to the learned rigid frame rotation.
 
 The third panel replaces the exact population weights by sampled noisy labels. It
@@ -482,7 +499,7 @@ structural controls satisfy the gate at every point.
 \includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_ii_trainable.png}\hfill
 \includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_iii_sampled.png}
 \caption{Sensitivity analyses for the controlled label-ambiguity experiment.
-(a) Posterior variance fixed to the prior variance. (b) Trainable stateless polar
+(a) Posterior variance fixed to the prior variance. (b) Trainable polar
 frame. (c) Labels sampled rather than integrated with their exact population weights;
 failed comparator-gate configurations are marked. Dashed lines denote the analytic
 population ambiguity floors. Points are means and error bars are standard deviations
