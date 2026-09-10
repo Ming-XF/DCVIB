@@ -109,11 +109,16 @@ prior.
 \subsection{Comparator bounds and posterior-center separation}
 \label{sec:guarantees}
 This subsection traces how the objective of Eq.~\eqref{eq:pgib-objective} shapes
-the learned posterior: Proposition~\ref{prop:pgib-alignment} upper-bounds the
+the learned posterior: Theorem~\ref{prop:pgib-alignment} upper-bounds the
 posterior's anchor mismatch, Theorem~\ref{thm:pgib-separation} lower-bounds the
 separation of posterior centers and introduces the condition under which the bound
 is informative, and Corollary~\ref{cor:pgib-beta-transfer} combines the two into
-the end-to-end $\beta$-dependent transfer guarantee. Define
+the end-to-end $\beta$-dependent transfer guarantee. Throughout, $\Delta(y,y')$
+denotes the declared lower bound on the anchor pair distance:
+$\Delta(y,y')=\Delta$ for distinct discrete labels
+(Eq.~\eqref{eq:pgib-separation-condition}) and
+$\Delta(y,y')=\rho_{\min}d_Y(y,y')$ for continuous labels
+(Eq.~\eqref{eq:pgib-lipschitz}). Define
 \begin{equation}
 \mathcal R(w)=\E[\ell(c_\psi(Z),Y)],\qquad
 \mathcal K(w)=\E\KL(q_\phi(z|X)\|p_\theta(z|Y)),
@@ -124,7 +129,7 @@ and
 \mathcal D(w)=\frac{\E\|\mu_\phi(X)-m_\theta(Y)\|^2}{2\tau_{\max}^2}.
 \label{eq:expected-anchor-mismatch}
 \end{equation}
-\begin{proposition}[Comparator-dependent bound on anchor mismatch]
+\begin{theorem}[Comparator-dependent bound on anchor mismatch]
 \label{prop:pgib-alignment}
 Let $\beta>0$, $\varepsilon\ge0$, and $\ell\ge0$. If $\widehat w$ is
 $\varepsilon$-optimal for $\mathcal R+\beta\mathcal K$, then for every feasible
@@ -135,7 +140,7 @@ prediction-head parameterization),
 \mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon}{\beta}.
 \label{eq:pgib-comparator-bound}
 \end{equation}
-\end{proposition}
+\end{theorem}
 
 The bound certifies alignment to whatever comparator is prespecified: its KL
 $\mathcal K(w_0)$ is the comparator-specific certificate floor, a property of
@@ -147,62 +152,42 @@ $\beta\ge(\mathcal R(w_0)+\varepsilon)/(d_\star-\mathcal K(w_0))$.
 
 \begin{theorem}[Mismatch-conditioned posterior-center separation]
 \label{thm:pgib-separation}
-For discrete labels, suppose $\E\|\mu_\phi(X)\|^2<\infty$, let
-$m_k=\E[\mu_\phi(X)\mid Y=k]$ and
+Suppose $\E\|\mu_\phi(X)\|^2<\infty$ and, for a label value $y$, let
 \begin{equation}
-D_k=\frac{\E[\|\mu_\phi(X)-m_\theta(k)\|^2\mid Y=k]}{2\tau_{\max}^2},
-\qquad
-r_k=\sqrt{2\tau_{\max}^2D_k}.
+m(y)=\E[\mu_\phi(X)\mid Y=y],\qquad
+D(y)=\frac{\E[\|\mu_\phi(X)-m_\theta(y)\|^2\mid Y=y]}{2\tau_{\max}^2}.
 \label{eq:pgib-class-rate}
 \end{equation}
-Then
+Then, for every pair of distinct discrete labels and for $P_Y\otimes P_Y$-almost
+every continuous pair $(y,y')$,
 \begin{equation}
-\|m_i-m_j\|
-\ge\|m_\theta(i)-m_\theta(j)\|-r_i-r_j
-\ge\Delta-r_i-r_j.
+\begin{aligned}
+\|m(y)-m(y')\|
+&\ge\|m_\theta(y)-m_\theta(y')\|-\sqrt{2\tau_{\max}^2D(y)}-\sqrt{2\tau_{\max}^2D(y')}\\
+&\ge\Delta(y,y')-\sqrt{2\tau_{\max}^2D(y)}-\sqrt{2\tau_{\max}^2D(y')}.
+\end{aligned}
 \label{eq:pgib-separation}
 \end{equation}
-For continuous labels, suppose $\E\|\mu_\phi(X)\|^2<\infty$, define
-$m(y)=\E[\mu_\phi(X)\mid Y=y]$ and
+The first-level bound is positive exactly when
 \begin{equation}
-D(y)=\frac{\E[\|\mu_\phi(X)-m_\theta(y)\|^2\mid Y=y]}{2\tau_{\max}^2},
-\qquad
-r(y)=\sqrt{2\tau_{\max}^2D(y)},
-\label{eq:pgib-class-rate-continuous}
-\end{equation}
-and the analogous two-level lower bound is
-\begin{equation}
-\|m(y)-m(y')\|
-\ge\|m_\theta(y)-m_\theta(y')\|-r(y)-r(y')
-\ge\rho_{\min}d_Y(y,y')-r(y)-r(y'),
-\label{eq:pgib-separation-continuous}
-\end{equation}
-for $P_Y\otimes P_Y$-almost every pair $(y,y')$. The first-level bound in
-Eq.~\eqref{eq:pgib-separation} is positive exactly when
-\begin{equation}
-\Gamma_{ij}:=\frac{r_i+r_j}
-{\|m_\theta(i)-m_\theta(j)\|}<1,
+\Gamma_{yy'}:=\frac{\sqrt{2\tau_{\max}^2D(y)}+\sqrt{2\tau_{\max}^2D(y')}}
+{\|m_\theta(y)-m_\theta(y')\|}<1,
 \label{eq:separation-tightness-ratio}
 \end{equation}
-while the declared-margin level is positive exactly when $r_i+r_j<\Delta$. The two
-conditions coincide for OPB, whose anchor pair distance is the constant $\sqrt2a$ of
-Eq.~\eqref{eq:opb-prior}, so the declared margin satisfies $\Delta=\sqrt2a$; with
-equal mismatch $D_i=D_j=D$ the common condition reduces to
-$D<a^2/(4\tau_{\max}^2)$. In the continuous case, the declared metric lower bound is
-positive exactly when
-\begin{equation}
-r(y)+r(y')<\rho_{\min}d_Y(y,y'),
-\label{eq:separation-tightness-ratio-continuous}
-\end{equation}
-so nearby label pairs admit vacuous bounds more readily. The scale is a
-validation-selected design parameter and does not itself guarantee a positive bound.
-The declared margin thus survives up to the two measured correction terms, so the
-guarantee is informative exactly when the measured mismatch stays below the margin;
-small measured mismatch transfers the declared geometry to the posterior centers
-almost intact.
+while the declared-margin level is positive exactly when the measured correction
+terms stay below the declared bound,
+$\sqrt{2\tau_{\max}^2D(y)}+\sqrt{2\tau_{\max}^2D(y')}<\Delta(y,y')$, which in the
+continuous case fails most readily for nearby label pairs. For OPB the two
+conditions coincide, since the anchor pair distance is the constant $\sqrt2a$ of
+Eq.~\eqref{eq:opb-prior}: $\Delta(y,y')=\sqrt2a$ and, with equal mismatch $D$,
+positivity holds exactly for $D<a^2/(4\tau_{\max}^2)$. The anchor scale is a
+validation-selected design parameter and does not itself guarantee a positive
+bound: the guarantee is informative exactly when the measured mismatch stays below
+the declared margin, and small measured mismatch transfers the declared geometry
+to the posterior centers almost intact.
 \end{theorem}
 
-Combining the objective-to-mismatch proposition with the posterior-center
+Combining the objective-to-mismatch theorem with the posterior-center
 separation theorem gives the main end-to-end guarantee of this section.
 \begin{corollary}[Beta-dependent transfer of anchor separation]
 \label{cor:pgib-beta-transfer}
@@ -214,10 +199,10 @@ B_\beta:=\mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon_\beta}{\beta}.
 \label{eq:pgib-beta-budget}
 \end{equation}
 For discrete labels, suppose $\pi_k\ge\pi_{\min}>0$ for all considered classes. Then
-for every pair $i\ne j$,
+for every pair of distinct discrete labels $y\ne y'$,
 \begin{equation}
-\|m_i-m_j\|
-\ge \Delta-2\sqrt{\frac{2\tau_{\max}^2 B_\beta}{\pi_{\min}}}.
+\|m(y)-m(y')\|
+\ge \Delta(y,y')-2\sqrt{\frac{2\tau_{\max}^2 B_\beta}{\pi_{\min}}}.
 \label{eq:pgib-beta-separation}
 \end{equation}
 For continuous labels, for any $\xi\in(0,1)$ and $B_\beta>0$, there is a set
@@ -225,7 +210,7 @@ $S_{\beta,\xi}$ with $P_Y(S_{\beta,\xi})\ge 1-\xi$ such that, for
 $P_Y\otimes P_Y$-almost every $(y,y')\in S_{\beta,\xi}^2$,
 \begin{equation}
 \|m(y)-m(y')\|
-\ge \rho_{\min}d_Y(y,y')
+\ge \Delta(y,y')
 -2\sqrt{\frac{2\tau_{\max}^2 B_\beta}{\xi}}.
 \label{eq:pgib-beta-separation-continuous}
 \end{equation}

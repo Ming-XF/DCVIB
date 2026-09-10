@@ -67,7 +67,7 @@ is produced anywhere on the manifold; the blindness is that the certificate cann
 tell the optimizer --- or the analyst --- where on the retention axis the code sits.
 \end{remark}
 
-\emph{Scope of the comparison argument.} Proposition~\ref{prop:pgib-alignment} applies to
+\emph{Scope of the comparison argument.} Theorem~\ref{prop:pgib-alignment} applies to
 arbitrary $P_{XY}$ and every feasible comparator in the fitted model class; it does not
 require $q(z|x)=p_\theta(z|y)$. Its usefulness depends on the comparator KL. Label
 ambiguity, limited encoder capacity, and covariance misspecification produce the
@@ -82,7 +82,7 @@ is analytic, including the deterministic distribution as its zero-floor special 
 
 \subsection{Proofs of the comparator and separation guarantees}
 
-\begin{proof}[Proof of Proposition~\ref{prop:pgib-alignment}]
+\begin{proof}[Proof of Theorem~\ref{prop:pgib-alignment}]
 Since $\Sigma_\theta(y)\preceq\tau^2_{\max}I_d$ is equivalent to
 $\Sigma_\theta^{-1}(y)\succeq\tau_{\max}^{-2}I_d$, the Gaussian KL contains a mean
 term
@@ -100,30 +100,30 @@ Division by $\beta$ proves Eq.~\eqref{eq:pgib-comparator-bound}.
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:pgib-separation}]
-For (a), Jensen's inequality gives
-$\|m_k - m_\theta(k)\| \le \sqrt{2\tau^2_{\max} D_k}=r_k$
-(the norm is convex, and $\E\|\mu_\phi(X)\|^2<\infty$ makes $m_k$ well defined), and
-the triangle inequality on
-$m_i - m_j = (m_i - m_\theta(i)) + (m_\theta(i) - m_\theta(j))
-+ (m_\theta(j) - m_j)$ gives the two-level bound
-$\|m_i-m_j\|\ge\|m_\theta(i)-m_\theta(j)\|-r_i-r_j\ge\Delta-r_i-r_j$, the last step
-by Eq.~\eqref{eq:pgib-separation-condition}. The first level is positive exactly
-when $\Gamma_{ij}<1$ and the declared-margin level exactly when
-$r_i+r_j<\Delta$; for OPB the anchor pair distance is the constant $\sqrt2a$ of
-Eq.~\eqref{eq:opb-prior}, so the declared margin satisfies $\Delta=\sqrt2a$ and
-the two conditions coincide. With equal mismatch $D_i=D_j=D$, the common condition
-$\Gamma_{ij}=2\sqrt{2\tau^2_{\max}D}/(\sqrt2a)<1$ reduces to
-$D<a^2/(4\tau^2_{\max})$. For (b), the same two inequalities hold pointwise for
-$P_Y$-a.e.\ $y$: Jensen on the regular conditional expectation gives
-$\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2_{\max} D(y)}=r(y)$ (the norm is convex),
-and the triangle inequality with Eq.~\eqref{eq:pgib-lipschitz} gives
-Eq.~\eqref{eq:pgib-separation-continuous}; intersecting the two measure-one sets of
-valid $y$'s yields the $P_Y\otimes P_Y$-almost-everywhere pair statement.
+Jensen's inequality gives
+$\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2_{\max} D(y)}$
+(the norm is convex, and $\E\|\mu_\phi(X)\|^2<\infty$ makes $m(y)$ well defined),
+and the triangle inequality on
+$m(y) - m(y') = (m(y) - m_\theta(y)) + (m_\theta(y) - m_\theta(y'))
++ (m_\theta(y') - m(y'))$ gives the two-level bound of
+Eq.~\eqref{eq:pgib-separation}, the last step
+by the definition of $\Delta(y,y')$. The first level is positive exactly
+when $\Gamma_{yy'}<1$ and the declared-margin level exactly when
+$\sqrt{2\tau^2_{\max}D(y)}+\sqrt{2\tau^2_{\max}D(y')}<\Delta(y,y')$; for OPB the
+anchor pair distance is the constant $\sqrt2a$ of
+Eq.~\eqref{eq:opb-prior}, so the declared bound satisfies $\Delta(y,y')=\sqrt2a$ and
+the two conditions coincide. With equal mismatch $D$ the common condition
+$\Gamma_{yy'}=2\sqrt{2\tau^2_{\max}D}/(\sqrt2a)<1$ reduces to
+$D<a^2/(4\tau^2_{\max})$. For continuous labels the Jensen inequality holds
+pointwise for $P_Y$-a.e.\ $y$ (regular conditional expectation), and intersecting
+the two measure-one sets of valid $y$'s yields the $P_Y\otimes P_Y$-almost-everywhere
+pair statement.
 \end{proof}
 
 \begin{remark}[Finite-sample estimation of the continuous case]
 \label{rem:pgib-binning}
-On finite samples the regular conditional expectations of part (b) are estimated by
+On finite samples the regular conditional expectations of the continuous case are
+estimated by
 binning the label axis into intervals $B_i$ with representative labels $\bar y_i$
 and centers $m_i = \E[\mu_\phi(X) \mid Y \in B_i]$; the bin diameter adds a
 quantization error bounded by
@@ -133,14 +133,14 @@ shrink. The separation statement itself is pointwise and needs no binning.
 \end{remark}
 
 \begin{proof}[Proof of Corollary~\ref{cor:pgib-beta-transfer}]
-Proposition~\ref{prop:pgib-alignment} gives
+Theorem~\ref{prop:pgib-alignment} gives
 $\mathcal D(\widehat w_\beta)\le B_\beta$. For discrete labels, the tower property
-gives $\mathcal D(\widehat w_\beta)=\sum_k\pi_kD_k$, so
-$D_k\le B_\beta/\pi_k\le B_\beta/\pi_{\min}$. Substitution into
-Theorem~\ref{thm:pgib-separation}(a) gives Eq.~\eqref{eq:pgib-beta-separation}.
+gives $\mathcal D(\widehat w_\beta)=\sum_k\pi_kD(k)$, so
+$D(k)\le B_\beta/\pi_k\le B_\beta/\pi_{\min}$. Substitution into
+Theorem~\ref{thm:pgib-separation} gives Eq.~\eqref{eq:pgib-beta-separation}.
 For continuous labels, Markov's inequality on the nonnegative random variable
 $D(Y)$ gives $P_Y(D(Y)>B_\beta/\xi)\le\xi$; on
-$S_{\beta,\xi}=\{y:D(y)\le B_\beta/\xi\}$, Theorem~\ref{thm:pgib-separation}(b)
+$S_{\beta,\xi}=\{y:D(y)\le B_\beta/\xi\}$, Theorem~\ref{thm:pgib-separation}
 gives Eq.~\eqref{eq:pgib-beta-separation-continuous}. The rate statement follows
 directly from the definition of $B_\beta$: with $\mathcal K(w_0)=0$ and
 $\sup_\beta\varepsilon_\beta<\infty$, $B_\beta=O(\beta^{-1})$ so the certified
