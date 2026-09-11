@@ -31,8 +31,9 @@ study answers it (Sec.~\ref{sec:robustness}).
 We evaluate twelve dataset--backbone settings over nine public datasets: MNIST,
 ImageNet-100, Cora, IMDb, AG News, California Housing, STS-B, ZINC-12k, and AgeDB,
 covering MLP, CNN, GCN, and RNN backbones. All methods use the same splits, backbone,
-stochastic Gaussian posterior, bottleneck dimension $d=256$, Adam training, early
-stopping, and validation-based selection. The baselines are Base, VIB, SVIB, NIB,
+stochastic Gaussian posterior with learned diagonal variance, bottleneck dimension
+$d=256$, Adam training, early stopping, and validation-based selection; GPB's prior
+covariance is the fixed shared $\tau^2I$ ($\tau^2=1$). The baselines are Base, VIB, SVIB, NIB,
 CEB, supervised $\beta$-DVCCA, and the external NCBD/AdaCap comparisons; GPB is OPB
 on classification rows and EPB on regression rows, with GPB-L denoting the identical
 prior and a free head. Full data preprocessing, grids, seeds, and baseline definitions
@@ -115,12 +116,11 @@ controls are deferred to Appendix~\ref{app:noisy-alignment-sensitivity}.
 \label{sec:direct-mismatch}
 This section pursues two checks on the learned posterior: how much of the declared
 anchor geometry it inherits, and whether the separation guarantee survives under the
-measured mismatch. For each checkpoint, the empirical variance bound
-$\widehat\tau^2_{\max}$ is the
-largest conditional-reference variance realized over the class table
-(classification) or test labels (regression); all statistics are first computed
-within each seed and then aggregated across the five seeds, and class or bin pairs
-are not treated as independent replicates. For test examples of class $k$, define
+measured mismatch. The prior covariance is the fixed declared $\tau^2I$
+($\tau^2=1$), so the normalization $\widehat\tau^2_{\max}=\tau^2=1$ is constant
+across checkpoints; all statistics are first computed within each seed and then
+aggregated across the five seeds, and class or bin pairs are not treated as
+independent replicates. For test examples of class $k$, define
 \begin{equation}
 \widehat D_k:=\frac{1}{n_k}\sum_{n:y_n=k}
 \frac{\|\mu_\phi(x_n)-a q_{\theta,k}\|^2}{2\widehat\tau^2_{\max}},
@@ -209,8 +209,8 @@ check in Appendix~\ref{app:robustness}.
 \label{sec:ablation}
 The main comparison changes several factors simultaneously, so we also report a
 paired intervention ladder in a common operating environment: every variant is
-re-trained at its best shared configuration on the three settings of the mechanism
-analysis (Table~\ref{tab:ablation}), and all comparisons are paired by seed. On
+re-trained at its best validation-selected configuration on the three settings of the
+mechanism analysis (Table~\ref{tab:ablation}), and all comparisons are paired by seed. On
 ImageNet-100, GPB reaches $84.2$ points, within $0.1$ of the free-scale OPB-FS and
 well above CEB ($82.8$); on MNIST all variants tie within $0.4$ points, and on
 Housing every EPB variant ties within $0.01$ $R^2$, consistent with the flat

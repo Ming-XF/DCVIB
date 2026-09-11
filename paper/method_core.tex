@@ -21,13 +21,15 @@ GPB is not a single prior but a framework for declaring reference geometry: it
 restricts the reference to conditional Gaussians
 \begin{equation}
 p_\theta(z|y)=\mathcal N(m_\theta(y),\Sigma_\theta(y)),\qquad
-\Sigma_\theta(y)\preceq\tau_{\max}^2I,
+\Sigma_\theta(y)=\tau^2 I,\qquad \tau^2=1,
 \label{eq:pgib-covariance}
 \end{equation}
 where $p_\theta$ is the label-conditional Gaussian reference, $m_\theta(y)$ its
-anchor mean, $\Sigma_\theta(y)$ its anchor covariance, and $\tau_{\max}^2$ a fixed
-bound on the anchor scale. Their means obey a declared two-sided separation for
-every pair of distinct discrete labels $y\ne y'$,
+anchor mean, and the prior covariance is fixed and isotropic. The posterior
+covariance remains the learned diagonal $\operatorname{diag}\sigma_\phi^2(x)$.
+For the bounds below we identify $\tau_{\max}^2=\tau^2=1$. Their means obey a
+declared two-sided separation for every pair of distinct discrete labels
+$y\ne y'$,
 \begin{equation}
 \Delta\le\|m_\theta(y)-m_\theta(y')\|\le\bar\Delta,
 \label{eq:pgib-separation-condition}
@@ -87,7 +89,7 @@ s_k(z)=-\frac{\|z-aq_{\theta,k}\|^2}{2\tau^2}+\log\pi_k,
 \end{equation}
 With uniform priors, this induces an orthogonal classifier whose scale is fixed by
 the prior (Appendix~\ref{app:construction}). Detailed polar
-construction, initialization, covariance relaxation, and the relation to
+construction, initialization, the covariance specification, and the relation to
 prototype/ETF methods are given in Appendices~\ref{app:construction} and~\ref{sec:related}.
 
 For regression, EPB uses a one-dimensional continuous label, standardized once on

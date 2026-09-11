@@ -83,11 +83,10 @@ is analytic, including the deterministic distribution as its zero-floor special 
 \subsection{Proofs of the comparator and separation guarantees}
 
 \begin{proof}[Proof of Theorem~\ref{prop:pgib-alignment}]
-Since $\Sigma_\theta(y)\preceq\tau^2_{\max}I_d$ is equivalent to
-$\Sigma_\theta^{-1}(y)\succeq\tau_{\max}^{-2}I_d$, the Gaussian KL contains a mean
-term
+Since the GPB prior covariance is $\Sigma_\theta(y)=\tau^2I_d$ with
+$\tau^2=\tau_{\max}^2=1$, the Gaussian KL contains the mean term
 $\frac12(\mu_\phi(x)-m_\theta(y))^\top\Sigma_\theta^{-1}(y)(\mu_\phi(x)-m_\theta(y))
-\ge\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2_{\max})$. Hence
+=\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2_{\max})$. Hence
 $\mathcal D(\widehat w)\le\mathcal K(\widehat w)$. For any feasible $w_0$ in the
 same family, $\varepsilon$-optimality of $\widehat w$, $\ell\ge0$, and $\beta>0$
 give
@@ -198,11 +197,8 @@ to match ($q_{\theta,k} \to q'_k$), yielding $\KL = 0$, $I(X;Z|Y) = 0$, and
 $I(Y;Z) > 0$: a full-retention label code with a zero certificate. The framework
 therefore constrains the geometric \emph{form} of the label code (precisely what CEB
 left unspecified), and does not claim that the certificate meters retained label
-information. In the fixed-covariance canonical instance, the remaining freedom at
-certificate zero is the frame rotation. The covariance-relaxed real-data protocol has
-an additional but log-clamped matching channel; the comparison theorem applies with
-the resulting $\tau^2_{\max}$, and Section~\ref{sec:direct-mismatch} reports that
-channel rather than treating it as fixed.
+information. In the GPB instance used by the real-data protocol, the remaining
+freedom at certificate zero is the frame rotation only.
 \end{remark}
 
 \subsection{Construction details}
@@ -262,18 +258,15 @@ step, the recommended handling is a re-initialization of the prior encoder (the
 reported runs never triggered it).
 
 \paragraph{Covariance protocol.} Equations~\eqref{eq:opb-prior} and
-\eqref{eq:epb-prior} define the fixed-covariance canonical instances used for the
-exact Bayes-head equivalence and the controlled label-ambiguity experiment of
-Section~\ref{sec:controlled-validation}. The real-data benchmark protocol retains the
-common CEB parameterization of a learned label-conditional diagonal covariance, with
-log-variance clamped to a fixed interval. It is therefore a covariance-relaxed member of the geometric prior family
-$\mathcal G$: the OPB/EPB mean geometry and readout scale remain fixed, while
-Eq.~\eqref{eq:pgib-covariance} holds with the clamp-induced $\tau^2_{\max}$.
-Proposition~\ref{prop:opb-energy} is an exact Gaussian Bayes equivalence only for the
-shared-covariance canonical instance; in the relaxed benchmark it remains a
-zero-parameter readout of the same anchor means. The direct diagnostics in
-Section~\ref{sec:direct-mismatch} use each checkpoint's realized conditional
-covariance rather than silently substituting the canonical $\tau^2I$.
+\eqref{eq:epb-prior} define the OPB and EPB instances used throughout the paper.
+Their prior covariance is the fixed shared $\tau^2I$ with $\tau^2=1$ (matching the
+zero-initialized posterior at $\sigma^2=1$ so training starts at
+$\KL\approx a^2/(2\tau^2)$), with no learned prior-covariance parameters. The
+posterior retains its learned diagonal covariance $\sigma^2_\phi(x)$, as specified
+in Eq.~\eqref{eq:pgib-covariance}. Proposition~\ref{prop:opb-energy} therefore
+applies verbatim: the anchor-energy readout is the exact Gaussian Bayes head of the
+benchmark model. The direct diagnostics in Section~\ref{sec:direct-mismatch}
+normalize by the declared $\tau^2$.
 
 \paragraph{EPB axis choices.} Three variants of the direction: (A) \emph{fixed
 axis}, $u = [1, 0, \dots, 0]$, with no trainable prior direction: the
@@ -479,7 +472,7 @@ Section~\ref{sec:controlled-validation} uses a fixed frame and the standard trai
 posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity} changes these
 choices one at a time. Fixing the posterior variance to
 $\sigma^2\equiv\tau^2$ leaves the measured mismatch on the analytic floors, confirming
-that the result is not produced by a covariance compensation channel. Replacing the
+that the result is not an artifact of posterior-covariance flexibility. Replacing the
 fixed frame by the trainable polar frame gives the same result, so the floor
 is invariant to the learned rigid frame rotation.
 
@@ -585,16 +578,15 @@ seeds; no checkpoint is omitted.}
 \label{fig:direct-mismatch-housing}
 \end{figure*}
 
-\paragraph{Normalization and variance extremes.} The empirical mismatch uses one
-maximum conditional-reference variance per checkpoint, whereas the exact Gaussian KL
-uses every sample's and coordinate's own variance. They therefore need not coincide:
-averaged over the ImageNet-100 grid, $\widehat D=41.2$, the KL mean term is $46.5$,
-and the KL variance term is $51.4$. On Housing, a small number of weak-compression,
-large-$\rho$ variance explosions raise the across-grid mean KL variance term to
-$2.8\times10^6$. These checkpoints remain in all plots. Because their
-$\widehat\tau^2_{\max}$ is also large, the normalized $\widehat D$ can fall even as
-the KL variance term grows; the unnormalized axial/off-axis components and total KL
-are therefore reported alongside it.
+\paragraph{Normalization and variance extremes.} The empirical mismatch normalizes
+by the fixed declared prior variance $\widehat\tau^2_{\max}=\tau^2=1$, whereas the
+exact Gaussian KL uses every sample's and coordinate's own posterior variance
+$\sigma^2_\phi(x)$. They therefore need not coincide: averaged over the ImageNet-100
+grid, $\widehat D=41.2$, the KL mean term is $46.5$, and the KL variance term is
+$51.4$. On Housing, a small number of weak-compression, large-$\rho$ posterior
+variance explosions raise the across-grid mean KL variance term to $2.8\times10^6$;
+these checkpoints remain in all plots. The unnormalized axial/off-axis components and
+total KL are therefore reported alongside $\widehat D$.
 
 \subsection{Main results with standard deviations}
 \label{app:main-std}

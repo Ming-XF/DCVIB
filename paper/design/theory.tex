@@ -303,12 +303,12 @@ matching, and its rotation is not blocked (Remark~\ref{rem:G-channel}).
 
 \textbf{FGIB notation.}
 The main path is a CEB-style stochastic bottleneck: the encoder computes
-$h = f_{\mathrm{enc}}(X)$; the mean head and the logvar head parameterize the diagonal
-posterior $q(z|x) = \mathcal{N}(\mu(x), \Sigma(x))$; the code $z$ is sampled from
+$h = f_{\mathrm{enc}}(X)$; the mean head and the logvar head parameterize the learned
+diagonal posterior $q(z|x) = \mathcal{N}(\mu(x), \operatorname{diag}\sigma^2(x))$; the code $z$ is sampled from
 $q(z|x)$ at training and set to $z = \mu(x)$ at evaluation; the classifier consumes
 $z$. The label-conditional prior is the \emph{QR-anchored} Gaussian
-$r(z|y) = \mathcal{N}(a\,v_y, \tau^2 I)$ with \emph{anchor variance} $\tau^2 > 0$
-(default $1.0$): the frame $V = [v_1, \dots, v_K]$ is the orthonormal factor of a
+$r(z|y) = \mathcal{N}(a\,v_y, \tau^2 I)$ with fixed \emph{anchor variance}
+$\tau^2=1$: the frame $V = [v_1, \dots, v_K]$ is the orthonormal factor of a
 \emph{trainable} matrix $G \in \mathbb{R}^{z \times K}$ ($K \le z$), recomputed by
 QR at every forward pass ($G = QR$, $V := Q$), and scaled by the anchor scale $a$
 (default $4.0$). Gradients flow through the QR factor back to $G$; orthonormality
@@ -322,8 +322,8 @@ $\omega \sim \mathcal{N}(0, 2^2)$, $b \sim U[0, 2\pi)$ replace the per-class tab
 ($\|\mu_p(y)\| \approx a$). The loss is
 $L_{\mathrm{FGIB}} = \mathbb{E}[\mathrm{CE}(c(z), y)]
 + \beta\,\mathbb{E}[\operatorname{KL}(q(z|x)\,\|\,r(z|y))]$; the zero-initialized
-logvar head fixes $\sigma^2 = 1$ at initialization, which equals $\tau^2$ in the
-default configuration $\tau^2 = 1$, so training starts at
+logvar head fixes $\sigma^2 = 1$ at initialization, which equals the fixed prior
+variance $\tau^2 = 1$, so training starts at
 $\operatorname{KL} \approx \tfrac{1}{2\tau^2} a^2$. At the KL's own variance optimum
 the posterior variance matches the anchor variance, $\sigma^{2*} = \tau^2$; we write
 $\sigma_p^2$ for this common variance where the distinction does not matter (under the
@@ -820,7 +820,7 @@ $\mu$.
 FGIB's anchor frame $V = [v_1, \dots, v_K]$ is the orthonormal factor of the trainable
 matrix $G \in \mathbb{R}^{z \times K}$, recomputed by QR at every forward
 ($G = QR$, $V := Q$, $V^{\top}V = I_K$), and the anchor covariance is
-$\tau^2 I$ with $\tau^2 > 0$.
+$\tau^2 I$ with the fixed $\tau^2=1$.
 Then, for every anchor scale $a \ge 0$ and throughout training:
 \begin{enumerate}
 \item[(i)] the \emph{reference} of the matching --- the \emph{unscaled} mean frame $V$
@@ -1003,7 +1003,8 @@ p_{\theta}^{\mathrm{OPB}}(z|y=k)
 \qquad q_{\theta,k}:=Q_\theta[:,k],
 \label{eq:opb-prior}
 \end{equation}
-where $a \ge 0$ is the anchor scale and $\tau^2>0$ is the shared prior variance.
+where $a \ge 0$ is the anchor scale and the shared prior variance is fixed at
+$\tau^2=1$.
 The QR factor is recomputed from the current prior encoder at every training step;
 there is no EMA prototype and no additional persistent anchor variable. For a fixed
 $\theta$, however, $Q_\theta$ depends only on the class set and not on the current
