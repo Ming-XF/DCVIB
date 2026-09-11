@@ -180,15 +180,15 @@ $\sqrt{2\tau_{\max}^2D(y)}+\sqrt{2\tau_{\max}^2D(y')}<\Delta(y,y')$, which in th
 continuous case fails most readily for nearby label pairs. For OPB the two
 conditions coincide, since the anchor pair distance is the constant $\sqrt2a$ of
 Eq.~\eqref{eq:opb-prior}: $\Delta(y,y')=\sqrt2a$ and, with equal mismatch $D$,
-positivity holds exactly for $D<a^2/(4\tau_{\max}^2)$. The anchor scale is a
+positivity holds exactly for $D<a^2/(4\tau_{\max}^2)$. 
+
+The anchor scale is a
 validation-selected design parameter and does not itself guarantee a positive
 bound: the guarantee is informative exactly when the measured mismatch stays below
 the declared margin, and small measured mismatch transfers the declared geometry
 to the posterior centers almost intact.
 \end{theorem}
 
-Combining the objective-to-mismatch theorem with the posterior-center
-separation theorem gives the main end-to-end guarantee of this section.
 \begin{corollary}[Beta-dependent transfer of anchor separation]
 \label{cor:pgib-beta-transfer}
 Fix the prior family, a feasible comparator $w_0$, and an
@@ -198,22 +198,24 @@ $\sup_\beta\varepsilon_\beta<\infty$. Define
 B_\beta:=\mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon_\beta}{\beta}.
 \label{eq:pgib-beta-budget}
 \end{equation}
-For discrete labels, suppose $\pi_k\ge\pi_{\min}>0$ for all considered classes. Then
-for every pair of distinct discrete labels $y\ne y'$,
+For any label set $S$ and level $\bar D_\beta$ with $D(y)\le\bar D_\beta$ for every
+$y\in S$,
 \begin{equation}
 \|m(y)-m(y')\|
-\ge \Delta(y,y')-2\sqrt{\frac{2\tau_{\max}^2 B_\beta}{\pi_{\min}}}.
+\ge \Delta(y,y')-2\sqrt{2\tau_{\max}^2\bar D_\beta}
+\qquad\text{for distinct } (y,y')\in S^2.
 \label{eq:pgib-beta-separation}
 \end{equation}
-For continuous labels, for any $\xi\in(0,1)$ and $B_\beta>0$, there is a set
-$S_{\beta,\xi}$ with $P_Y(S_{\beta,\xi})\ge 1-\xi$ such that, for
-$P_Y\otimes P_Y$-almost every $(y,y')\in S_{\beta,\xi}^2$,
-\begin{equation}
-\|m(y)-m(y')\|
-\ge \Delta(y,y')
--2\sqrt{\frac{2\tau_{\max}^2 B_\beta}{\xi}}.
-\label{eq:pgib-beta-separation-continuous}
-\end{equation}
+For discrete labels, suppose $\pi_k\ge\pi_{\min}>0$ for all considered classes;
+then $\bar D_\beta=B_\beta/\pi_{\min}$ covers every class
+(Theorem~\ref{prop:pgib-alignment} with the tower property), so
+Eq.~\eqref{eq:pgib-beta-separation} holds for every pair of distinct classes. For
+continuous labels, for any $\xi\in(0,1)$, $\bar D_\beta=B_\beta/\xi$ covers a set
+$S_{\beta,\xi}$ of label mass at least $1-\xi$ (Markov's inequality), so
+Eq.~\eqref{eq:pgib-beta-separation} holds for $P_Y\otimes P_Y$-almost every pair
+in $S_{\beta,\xi}^2$.
+
+
 With a fixed comparator satisfying $\mathcal K(w_0)=0$ and the remaining quantities
 bounded while $\beta$ varies, the certified separation deficit is
 $O(\beta^{-1/2})$; with $\mathcal K(w_0)>0$, the certificate approaches the
