@@ -190,7 +190,7 @@ paired intervention ladder that switches four design factors independently, name
 the prior geometry, the anchor scale, the readout, and the IB term itself, plus two
 auxiliary contrasts on the prototype readout itself. Every
 variant is trained on the three mechanism settings (MNIST, ImageNet-100, and
-Cal.~Housing, all with MLP backbones; Table~\ref{tab:ablation-ci}) at its best
+Cal.~Housing, all with MLP backbones) at its best
 validation-selected configuration, and all comparisons are paired by seed. Each row
 of Table~\ref{tab:ablation-ci} pairs two variants that differ in the factor named in
 its first column; the variant definitions and the complete means are in
@@ -198,23 +198,20 @@ Appendix~\ref{app:ablation}.
 
 \input{ablation_result_ci}
 
-On ImageNet-100, GPB reaches $84.2$ points, within $0.1$ of the free-scale OPB-FS
-and well above CEB ($82.8$); on MNIST all variants tie within $0.4$ points, and on
-Housing every EPB variant ties within $0.01$ $R^2$, consistent with the flat
-strong-compression plateaus of Section~\ref{sec:sweep} (means in
-Table~\ref{tab:ablation}, Appendix~\ref{app:ablation}). The paired contrasts
-(Table~\ref{tab:ablation-ci}; accuracy points on ImageNet-100) rank
-the factors: geometry is the largest ($+2.67$,
+The paired contrasts
+(Table~\ref{tab:ablation-ci}; accuracy-point differences) rank
+the factors on ImageNet-100: geometry is the largest ($+2.67$,
 OPB-FS over CEB-energy), followed by the IB term ($+1.89$, GPB over NCM-ortho, which
 additionally contains frame trainability) and the tied readout ($+0.82$, GPB over
 GPB-L), while fixing the anchor scale costs essentially nothing ($-0.04$, GPB over
 OPB-FS). Two patterns matter as much as the ranking. First, the readout contrast
 flips sign with the accompanying geometry: on the free-geometry side the energy
 readout costs $1.19$ points (CEB-energy below CEB), so restricting the readout helps
-only when the geometry it ties to is the constructed one. Second, the prototype
-readout alone does not work: NCM-learn trails the plain backbone by $0.96$ points,
-so the energy form is not the source of the gain either. On MNIST all contrasts
-shrink to within $0.35$ points, and on Housing to within $0.01$ $R^2$, so the ladder
+only when the geometry it ties to is the constructed one. Second, the prototype machinery contributes nothing on its own: NCM-learn trails
+the plain backbone by $0.96$ points, and fixing its prototypes to the orthogonal
+frame without the IB term is a null ($+0.16$, CI spanning zero), so neither the
+energy form nor the frozen geometry is the source of the gain. On MNIST all contrasts
+shrink to within $0.35$ points, so the ladder
 resolves factors only where the task margin is large enough. These interventions
 change the fitted training problem and therefore support factor-wise attribution,
 not a unique causal decomposition.

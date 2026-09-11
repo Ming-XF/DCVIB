@@ -67,9 +67,11 @@ For OPB, $\tau_{\max}=\tau=1$ and $\Delta(y,y')=\sqrt2a$, so
 \label{app:ablation}
 The factor-wise ablation ladder switches geometry, anchor scale, readout, and the IB
 term separately; each variant is evaluated at its best validation-selected
-configuration (Table~\ref{tab:ablation}). The complete means are reported below; the
-paired bootstrap intervals are in the main text (Table~\ref{tab:ablation-ci}), where
-the factor ranking and the sign-flip and negative-result patterns are read
+configuration (Table~\ref{tab:ablation}). The complete means are reported in
+Table~\ref{tab:ablation}. The paired bootstrap intervals are in the main text
+(Table~\ref{tab:ablation-ci}) for the classification contrasts and in
+Table~\ref{tab:ablation-ci-epb} for the regression mirrors; the factor ranking and
+the sign-flip and negative-result patterns are read in the main text
 (Section~\ref{sec:ablation}).
 
 \emph{NCM-learn} removes the bottleneck entirely: the encoder output is used
@@ -85,6 +87,25 @@ and GPB on Housing, keeping the isometric-axis prior with a free head (resp.\ th
 tied projection).
 
 \input{ablation_result}
+
+\begin{table}[t]
+\centering
+\tiny
+\begin{tabular}{l l c}
+\hline
+factor & comparison & Housing \\
+\hline
+readout (EPB) & EPB $-$ EPB-L & $-0.00$ [$_{-0.01}$, $_{-0.00}$] \\
+geometry (EPB) & EPB-FS $-$ CEB-tied & $+0.01$ [$_{-0.00}$, $_{0.01}$] \\
+fixed scale (EPB) & EPB $-$ EPB-FS & $+0.00$ [$_{-0.01}$, $_{0.01}$] \\
+\hline
+\end{tabular}
+\caption{Regression mirrors of the factor-wise paired differences ($R^2$ on
+Housing; $95\%$ bootstrap percentile CIs, $B = 10{,}000$, fixed seed, paired
+across the shared five seeds at each variant's best validation-selected
+configuration; positive values favor the first term).}
+\label{tab:ablation-ci-epb}
+\end{table}
 
 \subsection{Regression compression curves}
 \label{app:compression}
