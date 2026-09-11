@@ -99,13 +99,20 @@ retained beyond it. CEB addresses this limitation by introducing a
 label-conditional reference and directly targeting the residual input information
 that remains after the label is known \citep{fischer2020conditional}.
 
-Conditioning the reference on the label does not by itself determine the relations
-between different labels. The CEB certificate is a sum of within-label matching
-terms, with no term coupling two distinct label conditionals: it records neither
-the relative directions nor the pairwise distances of their means. Consequently,
-the inter-label arrangement is determined by optimization dynamics and the freedom
-of the prediction head rather than by the compression criterion. This motivates
-making cross-label geometry part of the conditional prior itself.
+Through the certificate-plane diagnostic (Fig.~\ref{fig:compression-main}d), we find
+a limitation of CEB under strong compression. Along most of the reported compression
+trajectory, CEB retains a substantial level of estimated task information while the
+estimated residual information decreases. However, as the residual approaches the
+zero-residual boundary, the task information drops sharply toward zero over the
+remaining operating points. This behavior should not be interpreted as evidence
+that residual compression itself inherently destroys task information; rather, it
+shows that CEB does not by itself select a stable, task-preserving path for residual
+compression. We trace this behavior to the freedom of its label-conditional
+reference to adapt to the posterior. The conditional KL is computed label by label
+and imposes no explicit constraint on the pairwise relations among different label
+conditionals, so the reference can shrink or reorganize its label conditionals while
+absorbing the compression pressure and thereby lose the cross-label geometry that
+could have served as a stable target.
 
 We introduce the geometric prior bottleneck (GPB) framework, which places a declared geometry
 directly in the label-conditional reference. A GPB prior is a conditional Gaussian
