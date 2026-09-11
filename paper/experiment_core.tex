@@ -56,10 +56,9 @@ resolve them: on ImageNet-100 (CNN) GPB leads CEB by $3.11$ points and on Cora b
 $1.85$, while the saturated settings are flat (MNIST CNN and AG News, where all
 methods sit within $0.6$ points of the best) and the small-data regressions are
 essentially tied with the best baselines (Housing within $0.002$ $R^2$ of VIB; on
-STS-B the plain backbone remains best). The tied head costs nothing anywhere except
-where it helps: it is within $0.4$ points of GPB-L in $11/12$ settings, and on
-ImageNet-100 (CNN) it is $1.20$ points better, the setting where the free head has
-the most capacity to overfit. Among the external non-IB baselines, AdaCap is
+STS-B the plain backbone remains best). The tied head never hurts: GPB is within
+$0.4$ points of the free-head variant GPB-L in $11/12$ settings, and $1.20$ points
+better on ImageNet-100 (CNN). Among the external non-IB baselines, AdaCap is
 competitive on regression (best on ZINC), while NCBD's mean rank ($6.43$) places it
 behind the plain backbone on classification. Across modalities, the same construction
 improves the operating point where improvement is available and costs nothing
@@ -67,33 +66,28 @@ elsewhere.
 
 \subsection{Controlled label ambiguity}
 \label{sec:controlled-validation}
-This experiment isolates the comparator floor by making the label-ambiguity term of
-the mismatch bound analytically known, and verifies three claims: the noise-free
-case realizes the zero floor exactly, the measured mismatch tracks the analytic
-floor at every noise level, and the fitted objective never leaves the explicit
-comparator's reachable set. The construction uses $K=10$, $X=e_C$, and symmetric
+Theorem~\ref{prop:pgib-alignment}'s certificate assumes $\varepsilon$-optimality of
+the fitted solution, which non-convex training does not guarantee; the controlled
+experiment checks this premise and the certificate's tightness where the comparator
+floor is analytically known. It isolates the comparator floor by making the
+label-ambiguity term of the mismatch bound analytically known, and verifies three
+claims: the noise-free case realizes the zero floor exactly, the measured mismatch
+tracks the analytic floor at every noise level, and the fitted objective never
+leaves the explicit comparator's reachable set. The construction uses $K=10$,
+$X=e_C$, and symmetric
 label noise $r\in\{0,0.1,0.2,0.4\}$ with OPB $(a,\tau)=(6,1)$. The analytic
-ambiguity floor is
-\begin{equation}
-\delta_{\rm noise}(r)=\frac{a^2}{2\tau^2}
-\left[1-(1-r)^2-\frac{r^2}{K-1}\right],
-\label{eq:synthetic-noise-floor}
-\end{equation}
-which grows from $0$ to $11.2$ nats as $r$ runs over the noise grid. The explicit comparator takes
+ambiguity floor (Appendix~\ref{app:noisy-alignment-sensitivity}) grows from $0$ to
+$11.2$ nats as $r$ runs over the noise grid. The explicit comparator takes
 posterior mean $h_0(x)=a\sum_k\eta_k(x)q_k$ and covariance $\tau^2I$, where
 $\eta_k(x)=P(Y=k\mid X=x)$; its KL equals $\delta_{\rm noise}(r)$ exactly, and its
 anchor-energy risk is $C_{\rm comp}(r)$. The training protocol (population-weighted
 objective, warm start, Monte Carlo risk estimation) is in
 Appendix~\ref{app:noisy-alignment-sensitivity}. Whenever the
 fitted objective satisfies $\widehat L\le L_{\rm comp}=C_{\rm comp}+\beta\delta_{\rm noise}$,
-non-negativity of the fitted risk gives the directly checkable comparison
-\begin{equation}
-\widehat D\;\le\;\widehat{\mathcal K}
-\;\le\;\delta_{\rm noise}+\frac{C_{\rm comp}}{\beta}.
-\label{eq:synthetic-comparator-check}
-\end{equation}
-Thus the known-noise experiment tracks the predicted floor, while the sampled-label
-sensitivity and comparator-gate checks are deferred to
+Theorem~\ref{prop:pgib-alignment} certifies
+$\widehat D\le\delta_{\rm noise}+C_{\rm comp}/\beta$ directly. Thus the known-noise
+experiment tracks the predicted floor; the sensitivity controls and their
+comparator-gate checks are deferred to
 Appendix~\ref{app:noisy-alignment-sensitivity}.
 
 \input{result5}
@@ -109,39 +103,26 @@ last column closes the loop: the fitted objective satisfies
 $\widehat L\le L_{\mathrm{comp}}$ at every reported point, and the margin over the
 explicit comparator grows with the noise level (from $-0.005$ to $-0.191$), so the
 trained posterior moves farther inside the comparator's reachable set exactly where
-the floor is largest. Sampled-label, fixed-variance, and trainable-frame sensitivity
-controls are deferred to Appendix~\ref{app:noisy-alignment-sensitivity}.
+the floor is largest.
 
 \subsection{Direct mismatch analysis}
 \label{sec:direct-mismatch}
 This section pursues two checks on the learned posterior: how much of the declared
 anchor geometry it inherits, and whether the separation guarantee survives under the
-measured mismatch. The prior covariance is the fixed declared $\tau^2I$
-($\tau^2=1$), so the normalization $\widehat\tau^2_{\max}=\tau^2=1$ is constant
-across checkpoints; all statistics are first computed within each seed and then
+measured mismatch. All statistics are first computed within each seed and then
 aggregated across the five seeds, and class or bin pairs are not treated as
-independent replicates. For test examples of class $k$, define
+independent replicates. For test examples of class $k$, let
+$\widehat D_k=\frac1{n_k}\sum_{n:y_n=k}\|\mu_\phi(x_n)-a q_{\theta,k}\|^2/(2\tau^2)$
+and $\widehat m_k=\frac1{n_k}\sum_{n:y_n=k}\mu_\phi(x_n)$, the sample counterparts
+of $D(y)$ and $m(y)$ in Theorem~\ref{thm:pgib-separation}
+($\tau_{\max}=\tau=1$). Its two steps read, at sample level, as the per-class
+Jensen check $\|\widehat m_k-aq_{\theta,k}\|\le\sqrt{2\tau^2\widehat D_k}$ and the
+per-pair separation bound
 \begin{equation}
-\widehat D_k:=\frac{1}{n_k}\sum_{n:y_n=k}
-\frac{\|\mu_\phi(x_n)-a q_{\theta,k}\|^2}{2\widehat\tau^2_{\max}},
-\qquad
-\widehat m_k:=\frac{1}{n_k}\sum_{n:y_n=k}\mu_\phi(x_n).
-\label{eq:empirical-class-mismatch}
-\end{equation}
-Jensen gives the per-class check
-$\|\widehat m_k-aq_{\theta,k}\|
-\le\sqrt{2\widehat\tau^2_{\max}\widehat D_k}$, and the triangle inequality gives the
-empirical separation bound
-\begin{equation}
-\widehat{\mathrm{LB}}_{ij}=\sqrt{2}a
--\sqrt{2\widehat\tau^2_{\max}\widehat D_i}
--\sqrt{2\widehat\tau^2_{\max}\widehat D_j},
+\widehat{\mathrm{LB}}_{ij}=\sqrt{2}a-\sqrt{2\tau^2\widehat D_i}-\sqrt{2\tau^2\widehat D_j},
 \label{eq:empirical-class-separation-bound}
 \end{equation}
-evaluated without clipping. Across all OPB scales, $\beta$ values, seeds, and
-classes, no Jensen or separation-slack violation exceeds $10^{-6}$. CEB's mismatch is
-shown descriptively, but its bound and slack entries are left empty because its
-reference has no declared $\Delta$.
+evaluated without clipping.
 
 On ImageNet-100, the two panels read the condition and its certified consequence
 together (Fig.~\ref{fig:direct-mismatch}). Mismatch falls with compression: from
@@ -149,9 +130,7 @@ $62.3$ nats at $\beta=5\cdot10^{-5}$ to $2.54$ at $\beta=25$ for $a=6$, with the
 total KL co-plotted, and the ordering across scales reverses over the same range. At
 weak compression the smallest frame is farthest from its anchors ($349.8$, against
 $82.1$ and $62.3$), while at $\beta=25$ the $a=12$ frame is tightest among the
-separated frames ($0.56$ against $2.54$): the anchor-energy readout's prediction
-optimum sits exactly at the anchors, so a larger declared scale pulls harder and the
-tied readout is self-enforcing. The positive-bound fraction rises exactly where the
+separated frames ($0.56$ against $2.54$). The positive-bound fraction rises exactly where the
 corrections shrink: $a=12$ climbs to $96.9\%$ at $\beta=25$, $a=6$ peaks at $89.5\%$
 near $\beta=1$ and settles at $62.3\%$, and $a=1$ never certifies, its corrections
 exceeding the declared margin at every $\beta$ as its centers collapse under strong
@@ -193,44 +172,39 @@ declines by roughly a third to a half by the end of its valid range. The models
 differ in how far that range extends. CEB's curve ends at $\beta=0.1$, where its
 success ($37.4\%$/$38.1\%$) is matched by OPB $a=12$ ($37.4\%$/$41.0\%$); beyond it
 CEB collapses toward chance accuracy, where near-zero success is trivial rather than
-a robustness gain, so no later point is plotted. OPB $a=6,12$ stay valid over the
+a robustness gain, so no later point is plotted. OPB $a=1$'s curve ends at
+$\beta=1$, where its clean sampled-path accuracy drops below the $90\%$ validity
+threshold. OPB $a=6,12$ stay valid over the
 whole grid and continue to fall, reaching $31.1\%$/$30.5\%$ under $L_\infty$ and
 $35.7\%$/$36.8\%$ under $L_2$ at $\beta=25$, roughly 30 points below the
 deterministic baseline under $L_\infty$ and about 27 under $L_2$, with clean accuracy
 still $\approx98\%$; the curves plateau from $\beta\ge5$ onward, so the gain sits in
-the compressed operating point rather than in $\beta$ alone. OPB $a=1$ stops at
-$\beta=1$, where its sampled-path accuracy drops below $90\%$ as the posterior
-variance relaxes to the prior level (the same effect as in
-Section~\ref{sec:info-plane}). Transfer attacks are reserved for the gradient-masking
+the compressed operating point rather than in $\beta$ alone. Transfer attacks are reserved for the gradient-masking
 check in Appendix~\ref{app:robustness}.
 
 
 \subsection{Factor-wise attribution}
 \label{sec:ablation}
 The main comparison changes several factors simultaneously, so we also report a
-paired intervention ladder in a common operating environment: every variant is
-re-trained at its best validation-selected configuration on the three settings of the
-mechanism analysis (Table~\ref{tab:ablation}), and all comparisons are paired by seed. On
-ImageNet-100, GPB reaches $84.2$ points, within $0.1$ of the free-scale OPB-FS and
-well above CEB ($82.8$); on MNIST all variants tie within $0.4$ points, and on
+paired intervention ladder that switches four design factors independently, namely
+the prior geometry, the anchor scale, the readout, and the IB term itself, plus two
+auxiliary contrasts on the prototype readout itself. Every
+variant is trained on the three mechanism settings (MNIST, ImageNet-100, and
+Cal.~Housing, all with MLP backbones; Table~\ref{tab:ablation-ci}) at its best
+validation-selected configuration, and all comparisons are paired by seed. Each row
+of Table~\ref{tab:ablation-ci} pairs two variants that differ in the factor named in
+its first column; the variant definitions and the complete means are in
+Appendix~\ref{app:ablation}.
+
+\input{ablation_result_ci}
+
+On ImageNet-100, GPB reaches $84.2$ points, within $0.1$ of the free-scale OPB-FS
+and well above CEB ($82.8$); on MNIST all variants tie within $0.4$ points, and on
 Housing every EPB variant ties within $0.01$ $R^2$, consistent with the flat
-strong-compression plateaus of Section~\ref{sec:sweep}.
-
-The ladder switches each factor independently. \emph{NCM-learn} removes the
-bottleneck entirely: deterministic $z=\mu_\phi(x)$, energy readout on trainable
-prototypes, no posterior and no KL. \emph{NCM-ortho} fixes the prototypes to the
-orthogonal frame $a\,e_k$: fixed geometry, still no IB. \emph{CEB-energy} and
-\emph{CEB-tied} mount the same energy readout (resp.\ tied projection) on CEB's
-trainable free reference. \emph{OPB-FS} and \emph{EPB-FS} keep the orthogonal frame
-and the energy (resp.\ tied) readout but make the anchor radius learnable, so only
-the fixed scale is switched off. Together with Base, CEB, GPB-L and GPB this
-isolates geometry (CEB-energy vs.\ OPB-FS), scale (OPB-FS vs.\ GPB), readout
-(GPB-L vs.\ GPB; CEB vs.\ CEB-energy), and the IB term itself (NCM-ortho vs.\ GPB).
-
-\input{ablation_result}
-
-The paired contrasts (accuracy points on ImageNet-100, $95\%$ CIs in
-Appendix~\ref{app:ablation}) rank the factors: geometry is the largest ($+2.67$,
+strong-compression plateaus of Section~\ref{sec:sweep} (means in
+Table~\ref{tab:ablation}, Appendix~\ref{app:ablation}). The paired contrasts
+(Table~\ref{tab:ablation-ci}; accuracy points on ImageNet-100) rank
+the factors: geometry is the largest ($+2.67$,
 OPB-FS over CEB-energy), followed by the IB term ($+1.89$, GPB over NCM-ortho, which
 additionally contains frame trainability) and the tied readout ($+0.82$, GPB over
 GPB-L), while fixing the anchor scale costs essentially nothing ($-0.04$, GPB over

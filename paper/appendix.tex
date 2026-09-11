@@ -464,6 +464,19 @@ ablation isolates it).
 \subsection{Controlled label-ambiguity sensitivity analyses}
 \label{app:noisy-alignment-sensitivity}
 
+The analytic ambiguity floor is
+\begin{equation}
+\delta_{\rm noise}(r)=\frac{a^2}{2\tau^2}
+\left[1-(1-r)^2-\frac{r^2}{K-1}\right],
+\label{eq:synthetic-noise-floor}
+\end{equation}
+which follows from Proposition~\ref{prop:pgib-ambiguity-decomposition} with the
+explicit comparator of Section~\ref{sec:controlled-validation}: its posterior mean
+$h_0(x)=a\sum_k\eta_k(x)q_k$ annihilates the bias term, its covariance $\tau^2I$
+annihilates $V_0$, and $\eta_k(x)$ equals $1-r$ on the true class and $r/(K-1)$
+otherwise, so $1-\|\eta\|_2^2=1-(1-r)^2-r^2/(K-1)$. It grows from $0$ to $11.2$
+nats as $r$ runs over the noise grid.
+
 Training evaluates the population objective by weighting all $K^2$
 clean/observed-label pairs by the noise model, with a descending-$\beta$ warm start
 to remove avoidable optimization error at the small-$\beta$ end; the comparator risk
@@ -507,7 +520,9 @@ Section~\ref{sec:direct-mismatch}: the decoupling scatter, the separation-bound 
 slack readings, and the regression diagnostics, together with the finite-bin
 definitions. All statistics are first computed within each seed and then aggregated
 across the five seeds; class or bin pairs are not treated as independent
-replicates. Every checkpoint in both requested grids is present, and no collapse or
+replicates. The per-class Jensen check and the per-pair separation bound are
+verified numerically on every scale, $\beta$, seed, and class (no violation exceeds
+$10^{-6}$). Every checkpoint in both requested grids is present, and no collapse or
 variance-explosion point is removed.
 
 The deferred classification panels complete the picture
@@ -516,7 +531,8 @@ accuracy staying within $82$--$86\%$ while $\widehat D$ spans three orders of
 magnitude: mechanism and task metric are decoupled. Panel (b) shows the raw bound
 rising toward the declared $\sqrt2a$ exactly where the mismatch corrections shrink,
 so the slack narrows where the bound is informative; CEB's mismatch is plotted
-descriptively, without a bound, since its reference has no declared $\Delta$. The
+descriptively, without a bound or slack entries, since its reference has no declared
+$\Delta$. The
 slack percentiles (c) stay non-negative at every reported point: the bound is
 consistent but conservative.
 
@@ -544,8 +560,8 @@ $h_b:=\operatorname{diam}(B_b)$. The finite-bin lower bound is
 \begin{equation}
 \widehat{\mathrm{LB}}_{bc}
 =\rho|\bar y_b-\bar y_c|
--\sqrt{2\widehat\tau^2_{\max}\widehat D_b}
--\sqrt{2\widehat\tau^2_{\max}\widehat D_c}
+-\sqrt{2\tau^2\widehat D_b}
+-\sqrt{2\tau^2\widehat D_c}
 -\rho(h_b+h_c),
 \label{eq:empirical-regression-separation-bound}
 \end{equation}
@@ -579,7 +595,7 @@ seeds; no checkpoint is omitted.}
 \end{figure*}
 
 \paragraph{Normalization and variance extremes.} The empirical mismatch normalizes
-by the fixed declared prior variance $\widehat\tau^2_{\max}=\tau^2=1$, whereas the
+by the declared prior variance $\tau^2=1$, whereas the
 exact Gaussian KL uses every sample's and coordinate's own posterior variance
 $\sigma^2_\phi(x)$. They therefore need not coincide: averaged over the ImageNet-100
 grid, $\widehat D=41.2$, the KL mean term is $46.5$, and the KL variance term is

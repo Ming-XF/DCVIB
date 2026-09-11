@@ -67,13 +67,24 @@ For OPB, $\tau_{\max}=\tau=1$ and $\Delta(y,y')=\sqrt2a$, so
 \label{app:ablation}
 The factor-wise ablation ladder switches geometry, anchor scale, readout, and the IB
 term separately; each variant is evaluated at its best validation-selected
-configuration (Table~\ref{tab:ablation}). The complete means appear in
-Table~\ref{tab:ablation} of the main text; the paired bootstrap intervals are
-reported below.
-\input{ablation_result_ci}
-Table~\ref{tab:ablation-ci} reports the paired bootstrap intervals for all
-contrasts; the factor ranking and the sign-flip and negative-result patterns are
-read in the main text (Section~\ref{sec:ablation}).
+configuration (Table~\ref{tab:ablation}). The complete means are reported below; the
+paired bootstrap intervals are in the main text (Table~\ref{tab:ablation-ci}), where
+the factor ranking and the sign-flip and negative-result patterns are read
+(Section~\ref{sec:ablation}).
+
+\emph{NCM-learn} removes the bottleneck entirely: the encoder output is used
+deterministically ($z=\mu_\phi(x)$, no posterior and no KL) and classified by an
+energy readout on trainable prototypes. \emph{NCM-ortho} is the same, except that
+the prototypes are fixed to the orthogonal frame $a\,e_k$ (fixed geometry, still no
+IB). \emph{CEB-energy} and \emph{CEB-tied} keep CEB's trainable free reference and
+KL but replace its free head by the energy readout (resp.\ the tied projection).
+\emph{OPB-FS} and \emph{EPB-FS} keep the orthogonal frame and the energy (resp.\
+tied) readout but make the anchor radius learnable, so only the fixed scale is
+switched off. \emph{EPB-L} and \emph{EPB} are the regression counterparts of GPB-L
+and GPB on Housing, keeping the isometric-axis prior with a free head (resp.\ the
+tied projection).
+
+\input{ablation_result}
 
 \subsection{Regression compression curves}
 \label{app:compression}
