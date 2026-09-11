@@ -218,12 +218,10 @@ not a unique causal decomposition.
 
 \subsection{Compression diagnostics}
 \label{sec:sweep}
-For compactness, the main text shows the classification sweep on ImageNet-100 (MLP);
-the companion California Housing regression sweep is in Appendix~\ref{app:compression}.
-The larger OPB anchors remain on a high-accuracy plateau farther into strong
-compression, while CEB and $a=1$ can collapse; larger anchors also incur a
-weak-compression cost. The curves make the anchor-scale/compression trade-off
-visible across the useful operating range.
+This subsection shows the classification sweep on ImageNet-100 (MLP):
+test accuracy and realized conditional KL against $\beta$, for CEB and OPB at anchor
+scales $a\in\{1,6,12\}$ (Fig.~\ref{fig:compression-main}a,b); the California Housing
+regression companion is in Appendix~\ref{app:compression}.
 
 \begin{figure*}[t]
 \centering
@@ -233,7 +231,7 @@ visible across the useful operating range.
 \includegraphics[width=0.24\linewidth]{figures/fig_certificate_plane_mnist.png}
 \caption{Compression diagnostics across two views and two tasks. (a)--(b)
 ImageNet-100 classification sweep (MLP): test accuracy and realized conditional KL
-against $\beta$; CEB and the smallest anchor collapse at strong compression, whereas
+against $\beta$; CEB and the smallest anchor scale collapse at strong compression, whereas
 $a=12$ retains the plateau. The Housing regression counterpart is provided in
 Appendix~\ref{app:compression}. (c)--(d) MNIST information-plane and
 certificate-plane estimates (estimator-level diagnostics rather than
@@ -241,14 +239,18 @@ mutual-information identities; Appendix~\ref{app:info-plane}).}
 \label{fig:compression-main}
 \end{figure*}
 
-At $\beta=25$, OPB with $a=12$ remains at $79.4\%$ accuracy while CEB has already
-left its valid high-accuracy range; at weak compression the fixed-scale head pays a
-one-to-three point cost. The realized KL panel shows where the two objectives spend
-their penalty: CEB's KL collapses as its learned reference shrinks to absorb the term
-($3.6$ at $\beta=0.1$ to $\sim10^{-5}$ at $\beta=0.5$), whereas OPB's KL stays
-anchored at the geometric scale of its fixed prior ($a=12$: $48$ at $\beta=0.1$,
-$21$ at $\beta=1$) and is dominated by the mean-mismatch term, so the anchor
-structure is retained rather than absorbed.
+Larger anchor scales retain the high-accuracy plateau farther into strong
+compression: $a=12$ keeps $79.4\%$ accuracy at $\beta=25$, where CEB has already
+left its valid high-accuracy range and $a=1$ collapses, while at weak compression
+larger scales pay a one-to-three point cost. The trade-off reverses under stronger
+compression, where the $a=12$ scale is the most accurate configuration on the grid
+($\beta\ge1$). The KL panel shows where the two
+objectives spend the penalty: CEB's KL falls from $3.6$ at $\beta=0.1$ to
+$\sim10^{-5}$ at $\beta=0.5$ because its learned reference shrinks to absorb the
+term, whereas OPB's KL stays anchored at the geometric scale of its fixed prior
+($48$ at $\beta=0.1$, $21$ at $\beta=1$) and is dominated by anchor alignment, so
+the structure is retained rather than absorbed. Together the curves make the
+anchor-scale/compression trade-off visible across the useful operating range.
 
 \subsection{Information-plane diagnostic}
 \label{sec:info-plane}
