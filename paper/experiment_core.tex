@@ -255,8 +255,8 @@ anchor-scale/compression trade-off visible across the useful operating range.
 \subsection{Information-plane diagnostic}
 \label{sec:info-plane}
 The MNIST information-plane estimates provide a second view of the compression
-behavior (Fig.~\ref{fig:compression-main}c,d). They are estimator-level diagnostics
-rather than mutual-information identities; the matched table and estimator details
+behavior (Fig.~\ref{fig:compression-main}c,d). They are estimator-level diagnostics;
+the matched table and estimator details
 are in Appendix~\ref{app:info-plane}, with the Housing companion in
 Appendix~\ref{app:info-plane-extra}.
 
@@ -266,29 +266,29 @@ the classic corner: compression and task information fall together, from
 $I(X;Z)=2.53$ nat at $\beta=0.1$ to $1.96$ nat at $\beta=0.5$, and by $\beta=1$
 both are near zero. OPB with $a=6,12$ compresses from $\approx7.9$ to $\approx2.2$
 nat but never below it, with $I(Y;Z)$ flat at the $H(Y)=\ln10\approx2.30$ ceiling,
-so compression stops at the task-information level. $a=1$ tracks $a=6,12$ until
+so compression stops at the task-information level. OPB with $a=1$ tracks $a=6,12$ until
 $\beta=0.5$ and then collapses toward CEB's corner, with $I(Y;Z)$ falling to
-$0.35$--$0.74$ nat (Appendix~\ref{app:info-plane}). The certificate plane
+$0.35$--$0.74$ nat. The certificate plane
 (Fig.~\ref{fig:compression-main}d) reads the same contrast as where each trajectory
-ends: CEB crosses the zero-residual line and $I(Y;Z)$ collapses with it, whereas
-$a=6,12$ terminate on it within $\pm0.2$ nat of zero residual at full task height.
+ends: CEB and OPB with $a=1$ cross the zero-residual line and $I(Y;Z)$ collapses
+with it, whereas $a=6,12$ terminate on it within $\pm0.2$ nat of zero residual at
+full task height.
 Negative residuals are estimation error rather than information.
 
 \subsection{Structural diagnostics}
 \label{sec:mechanism}
 At matched compression $(\beta,a,\rho)=(0.1,12,12)$, the posterior geometry is read
-directly off the class-center cosine Gram matrices (Fig.~\ref{fig:mechanism-main}a,b):
-OPB's Gram is visually an identity matrix, with off-diagonal mean $0.0203$, whereas
-CEB's shows visible off-diagonal structure ($0.1205$) with no clean pattern. The
-posterior thus inherits the constructed orthogonal frame, which is exactly what the
-zero-parameter tied readout relies on; CEB's free reference leaves its posterior
-entangled, and its free head must re-absorb that geometry. The tied heads attain
-$98.44\%$ on MNIST against CEB's $98.16\%$, and $R^2=0.778$ on Housing against
-$0.491$. On Housing (Fig.~\ref{fig:mechanism-main}c,d), the axial scatter shows the
-same contrast: EPB's points hug its prior line (off-axis fraction $0.0002$), whereas
-CEB's cloud deviates from its prior line's direction ($0.0233$) and its learned axis
-scale is $2.65\pm0.59$ across runs, so its geometry is not a stable structure for a
-tied readout to exploit.
+directly off the class-center cosine Gram matrices (Fig.~\ref{fig:mechanism-main}a,b;
+Table~\ref{tab:mechanism-main}): OPB's Gram is visually an identity matrix, whereas
+CEB's shows visible off-diagonal structure with no clean pattern. The posterior thus
+inherits the constructed orthogonal frame, which is exactly what the zero-parameter
+tied readout relies on. On Housing (Fig.~\ref{fig:mechanism-main}c,d), the axial
+scatter shows the same contrast: EPB's points hug its prior line, whereas CEB's cloud
+deviates from its prior line's direction and its learned axis scale swings across
+runs: its geometry is neither aligned with its reference nor stable across runs. The
+tied-metric column of Table~\ref{tab:mechanism-main} shows the payoff: the tied heads
+attain $98.44\%$ on MNIST against CEB's $98.16\%$, and $R^2=0.778$ on Housing against
+$0.491$.
 
 \begin{figure*}[t]
 \centering
