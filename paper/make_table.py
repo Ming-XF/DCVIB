@@ -814,9 +814,8 @@ def _gen_table(grid, fmt_fn, with_std):
         "\\centering",
         "\\caption{Test accuracy (\\%) on classification tasks and test $R^2$ on regression "
         + ("tasks (mean over runs" if not with_std else "tasks (mean $\\pm$ std. over runs")
-        + "); the best entry per dataset is bolded. "
-        "NCBD (classification settings only) and AdaCap (regression settings only) are "
-        "external non-IB baselines; dashes mark the settings where a method does not apply.}",
+        + "); the best entry per dataset is bolded and the second-best underlined. "
+        "Dashes mark the settings where a method does not apply.}",
         "\\label{tab:main_result_std}" if with_std else "\\label{tab:main_result}",
         "\\small",
         "{",  # 花括号限定 tabcolsep 只在本表生效，不泄漏到论文其他表格
@@ -1003,7 +1002,8 @@ def gen_result5():
         "\\hline",
         "\\end{tabular}",
         "\\caption{Controlled label-noise floor (mean $\\pm$ std over five seeds); "
-        "the last column is the fitted objective minus the explicit comparator "
+        "max excess is $\\max_\\beta(\\widehat D-\\delta_{\\rm noise})$, and the "
+        "last column is the fitted objective minus the explicit comparator "
         "objective at $\\beta=10$.}",
         "\\label{tab:controlled-noisy-alignment}",
         "\\end{table}",

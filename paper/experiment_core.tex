@@ -34,9 +34,9 @@ covering MLP, CNN, GCN, and RNN backbones. All methods use the same splits, back
 stochastic Gaussian posterior with learned diagonal variance, bottleneck dimension
 $d=256$, Adam training, early stopping, and validation-based selection; GPB's prior
 covariance is the fixed shared $\tau^2I$ ($\tau^2=1$). The baselines are Base, VIB, SVIB, NIB,
-CEB, supervised $\beta$-DVCCA, and the external NCBD/AdaCap comparisons; GPB is OPB
-on classification rows and EPB on regression rows, with GPB-L denoting the identical
-prior and a free head. Full data preprocessing, grids, seeds, and baseline definitions
+CEB, supervised $\beta$-DVCCA, and the external non-IB baselines NCBD (classification
+only) and AdaCap (regression only); GPB is OPB on classification rows and EPB on
+regression rows, with GPB-L denoting the identical prior and a free head. Full data preprocessing, grids, seeds, and baseline definitions
 are in Appendix~\ref{app:construction}. Regression compression curves, transfer
 attacks, pair-level mismatch plots, and full uncertainty tables are reported in
 Appendices~\ref{app:compression}, \ref{app:robustness}, \ref{app:direct-mismatch},
@@ -145,17 +145,16 @@ regression panels are collected in Appendix~\ref{app:direct-mismatch}.
 \includegraphics[width=0.48\linewidth]{figures/fig_mismatch_appendix_cls_ii_positive_fraction.png}
 \caption{Alignment and separation diagnostics over the ImageNet-100 compression sweep. (a)
 Anchor mismatch $\widehat D$ (solid) and total KL (dashed) against $\beta$, by
-anchor scale. (b) Fraction of class pairs with a positive separation lower bound.
-Means are over five seeds; no checkpoint is omitted.}
+anchor scale. (b) Fraction of class pairs with a positive separation lower bound.}
 \label{fig:direct-mismatch}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \centering
 \includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_linf_mnist.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_adv_targeted_l2_mnist.png}
-\caption{Targeted white-box PGD on MNIST (MLP). (a) $L_\infty$, $\varepsilon=0.3$;
-(b) $L_2$, $\varepsilon=6$. Curves use the stochastic path and are shown only
-where clean accuracy exceeds $90\%$. Transfer curves are in Appendix~\ref{app:robustness}.}
+\caption{Targeted white-box PGD on MNIST (MLP): targeted success rate against $\beta$ under
+(a) $L_\infty$, $\varepsilon=0.3$ and (b) $L_2$, $\varepsilon=6$. Curves are shown
+only where stochastic clean accuracy exceeds $90\%$.}
 \label{fig:robustness-main}
 \end{minipage}
 \end{figure*}
@@ -231,11 +230,8 @@ regression companion is in Appendix~\ref{app:compression}.
 \includegraphics[width=0.24\linewidth]{figures/fig_certificate_plane_mnist.png}
 \caption{Compression behavior across two views and two tasks. (a)--(b)
 ImageNet-100 classification sweep (MLP): test accuracy and realized conditional KL
-against $\beta$; CEB and the smallest anchor scale collapse at strong compression, whereas
-$a=12$ retains the plateau. The Housing regression counterpart is provided in
-Appendix~\ref{app:compression}. (c)--(d) MNIST information-plane and
-certificate-plane estimates (estimator-level diagnostics rather than
-mutual-information identities; Appendix~\ref{app:info-plane}).}
+against $\beta$. (c)--(d) MNIST information-plane and
+certificate-plane estimates.}
 \label{fig:compression-main}
 \end{figure*}
 
@@ -296,7 +292,7 @@ $0.491$.
 \includegraphics[width=0.24\linewidth]{figures/fig_mechanism_gram_opb.png}\hfill
 \includegraphics[width=0.24\linewidth]{figures/fig_mechanism_axis_ceb.png}\hfill
 \includegraphics[width=0.24\linewidth]{figures/fig_mechanism_axis_epb.png}
-\caption{Posterior geometry at the matched operating point: class-center Gram
+\caption{Posterior geometry: class-center Gram
 matrices for (a) CEB and (b) OPB, and axial coordinates for (c) CEB and (d) EPB.}
 \label{fig:mechanism-main}
 \end{figure*}
@@ -314,9 +310,11 @@ CEB (Housing) & $0.0233$ & $2.65\pm0.59$ & $R^2=0.491$ & $0.593$ \\
 EPB (Housing) & $0.0002$ & $9.22\pm0.15$ & $R^2=0.778$ & $0.155$ \\
 \hline
 \end{tabular}
-\caption{Compact mechanism snapshot at matched compression (cross-seed stability is
-the standard deviation over the five runs of the geometric concentration
-quantity). Full definitions are in the stored evaluation report.}
+\caption{Posterior-geometry statistics: geometry concentration (mean absolute
+off-diagonal cosine of the class-center Gram; off-axis fraction for Housing), scale
+following (posterior center norm against the declared anchor scale; slope against
+$\rho$ for Housing), tied metric (accuracy or $R^2$ under the tied head), and
+cross-seed stability (standard deviation of the concentration across runs).}
 \label{tab:mechanism-main}
 \end{table}
 

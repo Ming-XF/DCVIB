@@ -1,0 +1,22 @@
+% 几何机制表：由 paper/make_table.py 从 output/pri-pos 的机制验证 JSON 自动生成，请勿手改。
+% 行 = 机制对照配置；列 = 几何集中度 / 尺度跟随 / 跨 seed 稳定（跨 5 run 均值±std），
+% 列头括号注明分类（MNIST）与回归（Housing）各自使用的指标；解释性文字见 paper.tex 正文。
+\begin{table}[t]
+\centering
+\caption{Mechanism validation: the constructed geometry pulls the posterior into the orthogonal frame (classification) and onto the isometric axis (regression). Geometric concentration: mean off-diagonal cosine of the posterior class-center Gram matrix (classification) / off-axis residual fraction (regression). Scale following: class-center radius $\lVert\bar c\rVert$ against the anchor scale $a$ (classification) / axial slope against $\rho$ (regression). Cross-seed stability: std. over runs. Means $\pm$ std. over five runs.}
+\label{tab:mechanism}
+\small
+{
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l l c c c}
+\hline
+Model (task) & Task & Geometric concentration & Scale following & Cross-seed stability \\
+\hline
+CEB (MNIST) & Classif. & 0.1205$\pm$0.0026 & 5.14 & 0.0201 \\
+OPB (MNIST) & Classif. & 0.0203$\pm$0.0021 & 11.00 ($a=12$) & 0.0082 \\
+CEB (Housing) & Regress. & 0.0233 & 2.65$\pm$0.59 & 0.593 \\
+EPB (Housing) & Regress. & 0.0002 & 9.22$\pm$0.15 ($\rho=12$) & 0.155 \\
+\hline
+\end{tabular}
+}
+\end{table}
