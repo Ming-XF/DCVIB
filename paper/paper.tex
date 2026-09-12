@@ -50,22 +50,23 @@
 \maketitle
 
 \begin{abstract}
-The information bottleneck (IB) principle seeks representations that retain target
-information while discarding input variation. The conditional entropy bottleneck
-(CEB) uses a label-conditional reference, but its class-wise matching terms leave
-the geometry between different labels unspecified. We introduce the geometric prior
-bottleneck (GPB) framework, which declares this geometry: OPB uses an orthogonal
-class frame for classification and EPB an isometric label axis for regression. In
-both cases, the same geometric means are used as conditional-Gaussian KL targets
-and prediction anchors through a parameter-free energy or projection head.
-GPB preserves the CEB certificate and yields comparator-dependent alignment and
-separation guarantees whose combination gives an explicit $\beta$-dependent
-geometry-transfer bound with a comparator-specific floor. Controlled label-noise,
-direct mismatch,
-robustness, and posterior-geometry studies characterize these mechanisms, while
-the full benchmark comparison spans twelve dataset--backbone settings and complete
-IB and non-IB baselines. GPB is best or tied-best in seven settings and has a
-higher mean than CEB in all twelve.
+Representations that generalize must discard target-irrelevant input variation
+while preserving target-relevant information in a predictive geometry. Geometric approaches make target geometry explicit but leave compression implicit;
+information-bottleneck (IB) methods make this compression explicit but do not
+condition it on the target, a gap the conditional entropy bottleneck (CEB) closes
+with a label-conditional reference. Yet a further limitation remains: its
+per-label KL imposes no cross-label constraint, and task information collapses as
+the residual approaches zero, so CEB cannot by itself select a stable,
+task-preserving path. To address this, we introduce the geometric prior bottleneck (GPB) framework,
+which places a declared geometry directly in the label-conditional reference: OPB
+predicts classification from an equal-radius orthogonal frame through anchor
+energies, and EPB predicts regression from an isometric label axis through a
+projection tied to the same axis. GPB preserves the CEB certificate and yields comparator-dependent alignment and
+separation guarantees that combine into an explicit $\beta$-dependent
+geometry-transfer bound with a comparator-specific floor. Across twelve dataset--backbone settings with complete IB and non-IB baselines,
+plus controlled, geometric, compression, robustness, and ablation studies, GPB is
+best or tied-best in seven settings and achieves a higher mean than CEB in all
+twelve.
 \end{abstract}
 
 
@@ -73,9 +74,10 @@ higher mean than CEB in all twelve.
 \section{Introduction}
 % =====================================================================
 
-A useful representation must balance compression and structure: it should discard
-input variation irrelevant to the target while preserving target-relevant
-information in a geometry that supports reliable prediction.
+Generalization requires a balance between compression and structure: a
+representation should discard input variation irrelevant to the target while
+preserving target-relevant information in a geometry that supports reliable
+prediction.
 
 Geometric approaches focus on how target information is organized within a
 representation. Across classification and regression, neural-collapse-inspired
