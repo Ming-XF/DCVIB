@@ -99,23 +99,20 @@ retained beyond it. CEB addresses this limitation by introducing a
 label-conditional reference and directly targeting the residual input information
 that remains after the label is known \citep{fischer2020conditional}.
 
-Through the certificate-plane diagnostic (Fig.~\ref{fig:compression-main}d), we find
-a limitation of CEB under strong compression. Along most of the reported compression
-trajectory, CEB retains a substantial level of estimated task information while the
-estimated residual information decreases. However, as the residual approaches the
-zero-residual boundary, the task information drops sharply toward zero over the
-remaining operating points. This behavior should not be interpreted as evidence
-that residual compression itself inherently destroys task information; rather, it
-shows that CEB does not by itself select a stable, task-preserving path for residual
-compression. We trace this behavior to the freedom of its label-conditional
-reference to adapt to the posterior. The conditional KL is computed label by label
-and imposes no explicit constraint on the pairwise relations among different label
-conditionals, so the reference can shrink or reorganize its label conditionals while
-absorbing the compression pressure and thereby lose the cross-label geometry that
+A certificate-plane diagnostic (Fig.~\ref{fig:compression-main}d) exposes a further
+limitation of CEB under strong compression: task information, retained along most of
+the trajectory, collapses sharply as the estimated residual information approaches
+zero. This is not evidence that residual compression itself destroys task
+information; CEB does not by itself select a stable, task-preserving compression
+path. The cause is the freedom of its label-conditional reference to adapt to the
+posterior: the KL is computed label by label, with no constraint on the pairwise
+relations among label conditionals, so the reference absorbs the compression pressure
+by shrinking or reorganizing its conditionals and loses the cross-label geometry that
 could have served as a stable target.
 
-We introduce the geometric prior bottleneck (GPB) framework, which places a declared geometry
-directly in the label-conditional reference. A GPB prior is a conditional Gaussian
+To address this, we introduce the geometric prior bottleneck (GPB) framework, which
+places a declared geometry directly in the label-conditional reference. A GPB prior
+is a conditional Gaussian
 with fixed unit isotropic covariance whose means satisfy a prescribed separation
 structure for discrete labels or a prescribed label metric for continuous targets.
 The form and scale of this geometry are chosen before training, while its overall
