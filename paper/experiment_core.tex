@@ -3,7 +3,7 @@ noted below.
 
 \emph{(RQ1) End-to-end utility.} Does GPB improve the operating point across
 dataset--backbone settings, and which design factor carries the gain? The main
-predictive comparison (Sec.~\ref{sec:main-results}) reports the former, and the
+results (Sec.~\ref{sec:main-results}) report the former, and the
 paired factor-wise attribution ladder (Sec.~\ref{sec:ablation}) isolates the latter.
 
 \emph{(RQ2) Comparator floor.} Does the trained posterior attain the theoretically
@@ -13,8 +13,8 @@ checks the comparator gate (Sec.~\ref{sec:controlled-validation}).
 
 \emph{(RQ3) Geometry transfer and certification.} How much of the declared prior
 geometry reaches the learned posterior, and does the separation guarantee survive
-the measured mismatch? The direct mismatch analysis measures the transfer, and the
-structural diagnostics verify the posterior-side structure (Secs.~\ref{sec:direct-mismatch}
+the measured mismatch? The posterior alignment and separation study measures the transfer, and the
+geometry-transfer study verifies the posterior-side structure (Secs.~\ref{sec:direct-mismatch}
 and \ref{sec:mechanism}).
 
 \emph{(RQ4) Compression behavior.} What do the methods compress and discard along
@@ -43,7 +43,7 @@ Appendices~\ref{app:compression}, \ref{app:robustness}, \ref{app:direct-mismatch
 and \ref{app:main-std}--\ref{app:main-ci}; the remaining ablations and estimator
 panels are collected in Appendix~\ref{app:additional}.
 
-\subsection{Main predictive comparison}
+\subsection{Main results}
 \label{sec:main-results}
 \input{main_result}
 Table~\ref{tab:main_result} reports the best validation-selected configuration of
@@ -64,7 +64,7 @@ behind the plain backbone on classification. Across modalities, the same constru
 improves the operating point where improvement is available and costs nothing
 elsewhere.
 
-\subsection{Controlled label ambiguity}
+\subsection{Controlled label noise}
 \label{sec:controlled-validation}
 Theorem~\ref{prop:pgib-alignment}'s certificate assumes $\varepsilon$-optimality of
 the fitted solution, which non-convex training does not guarantee; the controlled
@@ -105,7 +105,7 @@ explicit comparator grows with the noise level (from $-0.005$ to $-0.191$), so t
 trained posterior moves farther inside the comparator's reachable set exactly where
 the floor is largest.
 
-\subsection{Direct mismatch analysis}
+\subsection{Posterior alignment and separation}
 \label{sec:direct-mismatch}
 This section pursues two checks on the learned posterior: how much of the declared
 anchor geometry it inherits, and whether the separation guarantee survives under the
@@ -143,7 +143,7 @@ regression panels are collected in Appendix~\ref{app:direct-mismatch}.
 \centering
 \includegraphics[width=0.48\linewidth]{figures/fig_mismatch_a_imagenet100_d_beta.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_mismatch_appendix_cls_ii_positive_fraction.png}
-\caption{Direct mismatch diagnostics over the ImageNet-100 compression sweep. (a)
+\caption{Alignment and separation diagnostics over the ImageNet-100 compression sweep. (a)
 Anchor mismatch $\widehat D$ (solid) and total KL (dashed) against $\beta$, by
 anchor scale. (b) Fraction of class pairs with a positive separation lower bound.
 Means are over five seeds; no checkpoint is omitted.}
@@ -183,7 +183,7 @@ the compressed operating point rather than in $\beta$ alone. Transfer attacks ar
 check in Appendix~\ref{app:robustness}.
 
 
-\subsection{Factor-wise attribution}
+\subsection{Factor-wise ablations}
 \label{sec:ablation}
 The main comparison changes several factors simultaneously, so we also report a
 paired intervention ladder that switches four design factors independently, namely
@@ -216,7 +216,7 @@ resolves factors only where the task margin is large enough. These interventions
 change the fitted training problem and therefore support factor-wise attribution,
 not a unique causal decomposition.
 
-\subsection{Compression diagnostics}
+\subsection{Compression sweeps}
 \label{sec:sweep}
 This subsection shows the classification sweep on ImageNet-100 (MLP):
 test accuracy and realized conditional KL against $\beta$, for CEB and OPB at anchor
@@ -229,7 +229,7 @@ regression companion is in Appendix~\ref{app:compression}.
 \includegraphics[width=0.24\linewidth]{figures/fig_beta_kl_imagenet100.png}\hfill
 \includegraphics[width=0.24\linewidth]{figures/fig_info_plane_mnist.png}\hfill
 \includegraphics[width=0.24\linewidth]{figures/fig_certificate_plane_mnist.png}
-\caption{Compression diagnostics across two views and two tasks. (a)--(b)
+\caption{Compression behavior across two views and two tasks. (a)--(b)
 ImageNet-100 classification sweep (MLP): test accuracy and realized conditional KL
 against $\beta$; CEB and the smallest anchor scale collapse at strong compression, whereas
 $a=12$ retains the plateau. The Housing regression counterpart is provided in
@@ -275,7 +275,7 @@ with it, whereas $a=6,12$ terminate on it within $\pm0.2$ nat of zero residual a
 full task height.
 Negative residuals are estimation error rather than information.
 
-\subsection{Structural diagnostics}
+\subsection{Geometry transfer}
 \label{sec:mechanism}
 At matched compression $(\beta,a,\rho)=(0.1,12,12)$, the posterior geometry is read
 directly off the class-center cosine Gram matrices (Fig.~\ref{fig:mechanism-main}a,b;
