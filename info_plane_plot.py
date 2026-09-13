@@ -3,11 +3,12 @@
 （a/ρ = 1/6/12），按 β 升序连线。另打印匹配压缩表
 （CEB 崩溃点附近与其 I(X;Z) 最接近的 GPB 配置三量对比）。
 
-数据来自 info_plane_eval.py 的 info_plane.csv（每 run 一行，跨 run 取均值）。
-注意：I(X;Z) 为 InfoNCE 下界、分类 I(Y;Z) 为 H(Y)−CE 下界、回归 I(Y;Z) 为
-高斯近似；I(X;Z|Y) 是两个下界之差，是启发式估计而非严格界（图与论文叙述
-均如实标注）。I(X;Z|Y) 若出现负值（两下界偏差方向不同所致），证书平面
-x 轴退化为线性刻度。
+数据来自 info_plane_eval.py 的 info_plane_{task}.csv（每 run 一行，跨 run 取均值）。
+注意：I(X;Z) 为 InfoNCE 下界；I(Y;Z) 为随机路径 MC 估计（分类 ln K − CE_MC
+下界、回归高斯近似）；分类 I(X;Z|Y) 为类条件高斯混合的精确 MC 估计
+（logsumexp 对已知分量混合密度精确；mean-log 参考值 I_XZ_given_Y_upper
+在 σ→0 时发散、不参与绘图）；回归 I(X;Z|Y) 仍为随机路径两估计之差
+（非严格界，如实标注）。x 轴数值非正时退化为线性刻度。
 
 输出（白底、英文标签、无总标题）：
     paper/figures/fig_info_plane_{task}.png
@@ -17,6 +18,7 @@ x 轴退化为线性刻度。
     python info_plane_plot.py
 """
 
+import argparse
 import csv
 import math
 from collections import defaultdict
@@ -47,7 +49,7 @@ TASK_DISPLAY = {"mnist": "MNIST", "imagenet100": "ImageNet-100", "housing": "Cal
 
 
 def load(task):
-    """读 csv → {(model, anchor): {beta: {I_XZ: mean, I_YZ: mean, ...}}}。"""
+    """读 csv → {(model, anchor): {beta: {i_xz: [..], i_yz: [..], cert: [..]}}}。"""
     data = defaultdict(lambda: defaultdict(dict))
     accs = defaultdict(list)
     with open(CSV_PATHS[task], newline="", encoding="utf-8") as f:
@@ -59,12 +61,14 @@ def load(task):
             d = data[key][b]
             d["i_xz"] = d.get("i_xz", []) + [float(r["I_XZ"])]
             d["i_yz"] = d.get("i_yz", []) + [float(r["I_YZ"])]
+            d["cert"] = d.get("cert", []) + [float(r["I_XZ_given_Y"])]
             accs[key].append(float(r["Acc"]) if r["Acc"] else float(r["R2"]))
     return data, accs
 
 
 def series_points(data, is_cls):
-    """→ [(label, [(beta, I_XZ, I_YZ, I_XZ_given_Y), ...])]，β 升序；
+    """→ [(label, [(beta, I_XZ, I_YZ, cert), ...])]，β 升序；cert 为
+    I(X;Z|Y) 点估计（分类 = logsumexp 精确 MC 估计、回归 = 随机路径差值）。
     分类标 OPB、回归（housing）标 EPB，与论文实例名一致。"""
     out = []
     for model, anchors in (("ceb", [""]), ("opb", ["1", "6", "12"])):
@@ -77,7 +81,8 @@ def series_points(data, is_cls):
                 d = m[b]
                 i_xz = sum(d["i_xz"]) / len(d["i_xz"])
                 i_yz = sum(d["i_yz"]) / len(d["i_yz"])
-                pts.append((b, i_xz, i_yz, i_xz - i_yz))
+                cert = sum(d["cert"]) / len(d["cert"])
+                pts.append((b, i_xz, i_yz, cert))
             if not pts:
                 continue
             if model == "ceb":
@@ -134,12 +139,14 @@ def plot_task(task, data):
           "$I(Y;Z)$ (nats)" if task != "housing" else "$I(Y;Z)$ (nats, Gaussian approx.)",
           xlog=True, paper_style=paper_style,
           letter="(c)" if paper_style else None)
-    # 证书平面：x = I(X;Z|Y)，y = I(Y;Z)；负值退化为线性刻度
+    # 证书平面：x = I(X;Z|Y)（分类为直接估计两界中点、回归为随机路径差值），
+    # y = I(Y;Z)；x 轴数值非正时退化为线性刻度
     cert_min = min(p[3] for _, pts in series for p in pts)
+    cert_label = ("$I(X;Z|Y)$ (nats, direct est.)" if task != "housing"
+                  else "$I(X;Z|Y)$ (nats, stochastic-path difference)")
     _draw(series, lambda p: p[3], lambda p: p[2],
           FIG_DIR / f"fig_certificate_plane_{task}.png",
-          "$I(X;Z|Y)$ (nats, heuristic)" if paper_style
-          else "$I(X;Z|Y)$ (nats, heuristic estimate)",
+          cert_label,
           "$I(Y;Z)$ (nats)" if task != "housing" else "$I(Y;Z)$ (nats, Gaussian approx.)",
           xlog=cert_min > 0, paper_style=paper_style,
           letter="(d)" if paper_style else None)
@@ -153,6 +160,7 @@ def matched_compression_table(data):
             continue
         i_xz_ceb = sum(ceb[beta_ceb]["i_xz"]) / len(ceb[beta_ceb]["i_xz"])
         i_yz_ceb = sum(ceb[beta_ceb]["i_yz"]) / len(ceb[beta_ceb]["i_yz"])
+        cert_ceb = sum(ceb[beta_ceb]["cert"]) / len(ceb[beta_ceb]["cert"])
         best = None
         for (model, a), m in data.items():
             if model != "opb":
@@ -161,16 +169,23 @@ def matched_compression_table(data):
                 i_xz = sum(d["i_xz"]) / len(d["i_xz"])
                 if best is None or abs(i_xz - i_xz_ceb) < abs(best[1] - i_xz_ceb):
                     best = (f"GPB β={b:g} a={a}", i_xz,
-                            sum(d["i_yz"]) / len(d["i_yz"]))
+                            sum(d["i_yz"]) / len(d["i_yz"]),
+                            sum(d["cert"]) / len(d["cert"]))
         print(f"CEB β={beta_ceb:g}: I(X;Z)={i_xz_ceb:.3f} I(Y;Z)={i_yz_ceb:.3f} "
-              f"I(X;Z|Y)={i_xz_ceb - i_yz_ceb:.3f}")
+              f"I(X;Z|Y)={cert_ceb:.3f}")
         print(f"  最接近 {best[0]}: I(X;Z)={best[1]:.3f} I(Y;Z)={best[2]:.3f} "
-              f"I(X;Z|Y)={best[1] - best[2]:.3f}")
+              f"I(X;Z|Y)={best[3]:.3f}")
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--tasks", nargs="*", default=["mnist", "imagenet100", "housing"],
+        help="任务列表（默认全部三个；只重跑部分数据时指定对应任务）",
+    )
+    args = parser.parse_args()
     _setup_rc()
-    for task in ("mnist", "imagenet100", "housing"):
+    for task in args.tasks:
         data, _ = load(task)
         if not data:
             print(f"[跳过] {task}：无数据（先运行 info_plane_eval.py）")
