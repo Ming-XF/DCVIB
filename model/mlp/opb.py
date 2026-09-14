@@ -58,6 +58,10 @@ class OPB(nn.Module):
     合成对齐试验（synthetic_align.py，codex_output.txt 方案）用——fixed_frame
     冻结 prior_net 均值块（恒等帧，锚点恒为 a·e_k）；fixed_prior_var 冻结方差
     块（置零，τ²=1 固定）。两者都冻结时 prior_net 整体 requires_grad_(False)。
+
+    固定轴（fixed_axis，仅回归，默认 False）：消融试验 EPB-FA 用——初始化后
+    冻结 prior_direction（u 恒为 e_1），其余（随机后验、KL、tied 投影、可学习
+    先验 logvar）与 EPB 完全一致，只关掉"轴可训练性"一个因素。
     """
 
     def __init__(
@@ -73,6 +77,7 @@ class OPB(nn.Module):
         tied_head: bool = False,
         fixed_frame: bool = False,
         fixed_prior_var: bool = False,
+        fixed_axis: bool = False,
     ):
         super().__init__()
         assert num_classes <= z_dim, "OPB 正交先验要求类别数不超过 z 维度"
@@ -124,6 +129,9 @@ class OPB(nn.Module):
                 self.prior_direction.weight[0, 0] = 1.0
                 self.prior_logvar_net.weight.zero_()
                 self.prior_logvar_net.bias.zero_()
+            # EPB-FA 消融：轴冻结为 e_1（prior_direction 不再训练）
+            if fixed_axis:
+                self.prior_direction.requires_grad_(False)
         else:
             # 先验编码器：均值块恒等初始化（起点 Q_p = [e_1..e_K] 满列秩、
             # QR 反向稳定，训练起点 KL ≈ 0.5 * anchor_scale^2），方差块置零
@@ -136,20 +144,22 @@ class OPB(nn.Module):
             # 合成对齐试验等需要固定先验的用法（仅分类分支）：
             # fixed_frame 冻结均值块（恒等帧 → 锚点恒为 a·e_k，隔离优化误差）；
             # fixed_prior_var 冻结方差块（置零 → τ²=1 固定）。冻结用梯度钩子
-            # 按行清零（权重行 [:K] 为均值块、[K:] 为方差块），state_dict 键不变。
+            # 按行清零（权重行 [:z_dim] 为均值块、[z_dim:] 为方差块——注意均值块
+            # 是前 z_dim 行而非前 K 行，之前误用 [:K] 会漏掉行 [K:z_dim]，帧仍可
+            # 经下半块旋转、并非真正固定），state_dict 键不变。
             if fixed_frame and fixed_prior_var:
                 self.prior_net.requires_grad_(False)
             elif fixed_frame:
                 def _zero_mean_grad(g):
                     g = g.clone()
-                    g[:num_classes] = 0.0
+                    g[:z_dim] = 0.0
                     return g
                 self.prior_net.weight.register_hook(_zero_mean_grad)
                 self.prior_net.bias.register_hook(_zero_mean_grad)
             elif fixed_prior_var:
                 def _zero_var_grad(g):
                     g = g.clone()
-                    g[num_classes:] = 0.0
+                    g[z_dim:] = 0.0
                     return g
                 self.prior_net.weight.register_hook(_zero_var_grad)
                 self.prior_net.bias.register_hook(_zero_var_grad)

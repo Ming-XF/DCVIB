@@ -8,8 +8,10 @@
    - 读出：GPB − GPB-L（分类）、EPB − EPB-L（回归）、CEB-energy − CEB；
    - 几何：OPB-FS − CEB-energy（分类）、EPB-FS − CEB-tied（回归）；
    - 尺度：GPB − OPB-FS（分类）、EPB − EPB-FS（回归）；
+   - 帧可训练性（审稿人关键消融）：GPB − OPB-FF（分类，固定帧 [e_1..e_K]）、
+     EPB − EPB-FA（回归，固定轴 e_1）；
    - IB 增量：GPB − NCM-ortho（分类，注明 NCM-ortho 帧固定、OPB 帧可训练，
-     该对照附帧可训练性混杂）；
+     该对照附帧可训练性混杂），固定帧纯 IB 增量 OPB-FF − NCM-ortho；
    - 原型结构：NCM-ortho − NCM-learn、NCM-learn − Base。
 
 输出：output/ablation/ablation_table.csv（长表）+ 打印 LaTeX 两表。
@@ -36,8 +38,9 @@ REG_LINE = re.compile(
     r"Run (\d+)/\d+ \| Test \(best model @ Epoch \d+\) \| "
     r"Loss ([\d.eE+-]+) MAE ([\d.eE+-]+) R2 ([\d.eE+-]+)"
 )
+# ds/bb 用 [^_]+（\w 含下划线，贪婪组会吞掉 _mlp_/_gnn_ 分隔符导致误解析）
 DIR_RE = re.compile(
-    r"^(?P<ds>\w+)_mlp_(?P<model>\S+?)(?:_beta_(?P<beta>[\d.eE+-]+))?"
+    r"^(?P<ds>[^_]+)_(?P<bb>[^_]+)_(?P<model>\S+?)(?:_beta_(?P<beta>[\d.eE+-]+))?"
     r"(?:_anchor_(?P<anchor>[\d.eE+-]+))?(?:_eg|_th)?$"
 )
 
@@ -62,6 +65,16 @@ def display(ds, model, eg, th):
         return prefix + "-L"
     if model == "opb-free-scale":
         return "EPB-FS" if ds == "california" else "OPB-FS"
+    if model == "opb-fixed-frame":
+        return "OPB-FF"
+    if model == "opb-fixed-frame-var":
+        return "OPB-FV"
+    if model == "opb-fixed-frame-randvar":
+        return "OPB-RV"
+    if model == "opb-fixed-axis":
+        return "EPB-FA"
+    if model == "opb-rand-var":
+        return "EPB-RV"
     return model
 
 
@@ -152,17 +165,19 @@ def paired_row(runs, best, ds, a, b_name):
 def main():
     runs = load_runs()
     best = best_config(runs)
-    settings = [("mnist", "MNIST"), ("imagenet100", "ImageNet-100"), ("california", "Housing")]
-    is_reg = {"mnist": False, "imagenet100": False, "california": True}
+    settings = [("mnist", "MNIST"), ("imagenet100", "ImageNet-100"),
+                ("cora", "Cora"), ("california", "Housing")]
+    is_reg = {"mnist": False, "imagenet100": False, "cora": False, "california": True}
 
     # 1. 主表
     print("% === 消融主表（最优配置，mean±std over 5 seeds）===")
-    print(r"\begin{tabular}{l c c c}")
+    print(r"\begin{tabular}{l c c c c}")
     print(r"\hline")
-    print(r"variant & MNIST (Acc \%) & ImageNet-100 (Acc \%) & Housing ($R^2$) \\")
+    print(r"variant & MNIST (Acc \%) & ImageNet-100 (Acc \%) & Cora (Acc \%) & Housing ($R^2$) \\")
     print(r"\hline")
     variants = ["Base", "NCM-learn", "NCM-ortho", "CEB", "CEB-energy", "GPB-L",
-                "GPB", "OPB-FS", "CEB-tied", "EPB-L", "EPB", "EPB-FS"]
+                "GPB", "OPB-FF", "OPB-FV", "OPB-RV", "OPB-FS", "CEB-tied",
+                "EPB-L", "EPB", "EPB-FA", "EPB-RV", "EPB-FS"]
     for name in variants:
         cells = []
         for ds, _ in settings:
@@ -188,9 +203,9 @@ def main():
 
     # 2. 配对 CI 表
     print("\n% === 因素归因配对 CI（GPB − 对照，95% bootstrap，正值为 GPB 占优）===")
-    print(r"\begin{tabular}{l l c c c}")
+    print(r"\begin{tabular}{l l c c c c}")
     print(r"\hline")
-    print(r"factor & comparison & MNIST & ImageNet-100 & Housing \\")
+    print(r"factor & comparison & MNIST & ImageNet-100 & Cora & Housing \\")
     print(r"\hline")
     rows_ci = [
         ("readout (IB 变体)", "GPB − GPB-L", "mnist", "GPB", "GPB-L"),
@@ -204,8 +219,23 @@ def main():
         ("fixed scale", "GPB − OPB-FS", "mnist", "GPB", "OPB-FS"),
         ("fixed scale", "GPB − OPB-FS", "imagenet100", "GPB", "OPB-FS"),
         ("fixed scale (EPB)", "EPB − EPB-FS", "california", "EPB", "EPB-FS"),
+        ("frame trainability", "GPB − OPB-FF", "mnist", "GPB", "OPB-FF"),
+        ("frame trainability", "GPB − OPB-FF", "imagenet100", "GPB", "OPB-FF"),
+        ("frame trainability", "GPB − OPB-FF", "cora", "GPB", "OPB-FF"),
+        ("frame trainability (方差可学习)", "GPB − OPB-FV", "cora", "GPB", "OPB-FV"),
+        ("prior variance (帧固定)", "OPB-FV − OPB-FF", "cora", "OPB-FV", "OPB-FF"),
+        ("prior variance (随机冻结)", "GPB − OPB-RV", "mnist", "GPB", "OPB-RV"),
+        ("prior variance (随机冻结)", "GPB − OPB-RV", "imagenet100", "GPB", "OPB-RV"),
+        ("prior variance (随机冻结)", "GPB − OPB-RV", "cora", "GPB", "OPB-RV"),
+        ("prior variance (取值)", "OPB-RV − OPB-FF", "cora", "OPB-RV", "OPB-FF"),
+        ("prior variance (可学习 vs 随机)", "OPB-FV − OPB-RV", "cora", "OPB-FV", "OPB-RV"),
+        ("frame trainability (EPB)", "EPB − EPB-FA", "california", "EPB", "EPB-FA"),
+        ("prior variance (随机冻结)", "EPB − EPB-RV", "california", "EPB", "EPB-RV"),
+        ("prior variance (取值)", "EPB-RV − EPB-FA", "california", "EPB-RV", "EPB-FA"),
         ("IB 增量*", "GPB − NCM-ortho", "mnist", "GPB", "NCM-ortho"),
         ("IB 增量*", "GPB − NCM-ortho", "imagenet100", "GPB", "NCM-ortho"),
+        ("IB 增量（固定帧）", "OPB-FF − NCM-ortho", "mnist", "OPB-FF", "NCM-ortho"),
+        ("IB 增量（固定帧）", "OPB-FF − NCM-ortho", "imagenet100", "OPB-FF", "NCM-ortho"),
         ("原型结构", "NCM-ortho − NCM-learn", "mnist", "NCM-ortho", "NCM-learn"),
         ("原型结构", "NCM-ortho − NCM-learn", "imagenet100", "NCM-ortho", "NCM-learn"),
         ("原型读出价值", "NCM-learn − Base", "mnist", "NCM-learn", "Base"),
@@ -227,7 +257,8 @@ def main():
         print(row)
     print(r"\hline")
     print(r"\end{tabular}")
-    print(r"\multicolumn{4}{l}{* NCM-ortho 的原型固定为 $a\,e_k$、GPB 的帧可训练，该对照附带帧可训练性混杂。}")
+    print(r"\multicolumn{4}{l}{* NCM-ortho 的原型固定为 $a\,e_k$、GPB 的帧可训练，该对照附带帧可训练性混杂；")
+    print(r"固定帧下的纯 IB 增量见 OPB-FF $-$ NCM-ortho 行（两侧帧均固定）。}")
 
     # 3. 长表 CSV
     csv_rows = []

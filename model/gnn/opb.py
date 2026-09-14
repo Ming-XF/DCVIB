@@ -32,6 +32,10 @@ class OPB(nn.Module):
     锚点能量分类器 logit_k = −‖z − a·Q_p[:,k]‖²/(2τ²)；tied_head=True
     （仅回归）把回归头改为 tied 投影头 y_hat_tilde = uᵀz/rho。两种消融下
     self.classifier 均保留为死参数。
+
+    固定帧（fixed_frame，仅分类，默认 False）：cora 固定帧消融用——冻结
+    prior_net 均值块（恒等帧，锚点恒为 a·e_k），方差块仍可学习，只关掉
+    "帧可训练性"一个因素（与 MLP 版同构的梯度钩子实现）。
     """
 
     def __init__(
@@ -46,6 +50,7 @@ class OPB(nn.Module):
         pooling: str = "mean",
         energy_classifier: bool = False,
         tied_head: bool = False,
+        fixed_frame: bool = False,
     ):
         super().__init__()
         assert num_classes <= z_dim, "OPB 正交先验要求类别数不超过 z 维度"
@@ -95,6 +100,16 @@ class OPB(nn.Module):
                 self.prior_net.weight.zero_()
                 self.prior_net.weight[:num_classes, :num_classes] = torch.eye(num_classes)
                 self.prior_net.bias.zero_()
+            # 固定帧消融（cora）：梯度钩子清零整个均值块（[:z_dim] 行——均值块是
+            # 前 z_dim 行而非前 K 行，漏掉 [K:z_dim] 行则帧仍可经下半块旋转、
+            # 并非真正固定），方差块仍可学习
+            if fixed_frame:
+                def _zero_mean_grad(g):
+                    g = g.clone()
+                    g[:z_dim] = 0.0
+                    return g
+                self.prior_net.weight.register_hook(_zero_mean_grad)
+                self.prior_net.bias.register_hook(_zero_mean_grad)
 
     def _prior_table(self):
         """分类分支的全类别先验表：QR 正交锚点表 (K, d) + 逐类 logvar 表 (K, d)。

@@ -1,5 +1,6 @@
 """GNN 模型包：GCN / VIB / SVIB / CEB / FGIB / OPB / NIB / DVCCA 及 GCN 编码器工具。"""
 
+from .ablation import OPBFixedFrame, OPBFixedFrameVar, OPBRandVar
 from .adacap import AdaCap
 from .ceb import CEB
 from .dvcca import DVCCA

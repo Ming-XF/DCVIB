@@ -349,9 +349,10 @@ theoretically cleanest ablation, at the price of prespecifying a latent coordina
 at every step, our main variant, which keeps the scale $\rho$ exact while allowing
 the model to choose the axis; (C) \emph{unconstrained linear axis},
 $\mu_p(y) = W \tilde y$: the simplest ablation, still isometric by linearity but
-with a free scale that can shrink and weaken the geometry. We recommend (B), use (A)
-to test whether the trainable rotation carries the benefit, and keep (C) as a
-diagnostic. The main variant uses no bias: an affine offset cancels in pairwise
+with a free scale that can shrink and weaken the geometry. We recommend (B); the
+frozen-prior variant EPB-RV (Appendix~\ref{app:ablation},
+Table~\ref{tab:ablation-ci-epb}) shows the trainable rotation carries no benefit
+on Housing, and we keep (C) as a diagnostic. The main variant uses no bias: an affine offset cancels in pairwise
 distances but is a free extra degree of matching, and $\tilde y$ is already centered.
 
 \paragraph{EPB isometry notes.} The isometry is exact and global: any nonzero linear
@@ -530,9 +531,9 @@ The trainable frame and axis constitute a rotation channel that this paper does 
 address: the certificate's zero set contains the full-retention orthogonal label codes
 at any frame rotation (the reference can rotate to meet them), and the framework pins
 the \emph{geometry of the code}; it does not claim that the certificate reads off
-the retained label information. Quantifying how much of the anchor gap is absorbed by
-frame rotation rather than by posterior motion is left to future work (a frozen-frame
-ablation isolates it).
+the retained label information. The trainability of the frame and axis is examined
+empirically in the frozen-prior ablation of Appendix~\ref{app:ablation}
+(Tables~\ref{tab:ablation-ci} and~\ref{tab:ablation-ci-epb}).
 \end{remark}
 
 \subsection{Controlled label-ambiguity sensitivity analyses}
