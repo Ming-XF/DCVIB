@@ -37,12 +37,17 @@ validation-based selection, and ten seeds per configuration. The baselines are B
 SVIB, NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB
 baselines NCBD and AdaCap; GPB is OPB on classification rows and EPB on
 regression rows, with GPB-L denoting the identical prior and a free
-head. The main comparison is single-dimensional in tuned
-hyperparameters: the plain backbone has no method-specific
-hyperparameters, every $\beta$-weighted method is swept over the same
-six-point $\beta$ grid, NCBD and AdaCap use six-value grids of their
-own, and GPB's anchor scale $a$ (resp.\ isometric scale $\rho$) is fixed
-at $12$ throughout the main comparison. For each method and setting,
+head. The main comparison equalizes the tuning budget across
+methods: GPB and its free-head variant GPB-L are swept over a
+two-dimensional $\beta\times$scale grid, the six-point $\beta$ grid
+times a six-point anchor-scale grid ($a$ for classification, $\rho$ for
+regression); every other $\beta$-weighted method, VIB, SVIB, NIB, CEB,
+and DVCCA, is swept over the same six-point $\beta$ grid times a
+six-point learning-rate grid; NCBD and AdaCap are swept over their own
+six-value grids, the temperature $\tau$ and the Tikhonov $\lambda$,
+times the same learning-rate grid. Every method with a
+method-specific hyperparameter thus evaluates the same number of
+configurations; the plain backbone has none. For each method and setting,
 the configuration with the best mean validation metric is selected
 (accuracy on classification settings, $R^2$ on regression settings). The
 reported results are means with standard deviations over seeds, and
