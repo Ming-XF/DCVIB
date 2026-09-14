@@ -36,17 +36,14 @@ most datasets), backbone, Adam training, early stopping,
 validation-based selection, and ten seeds per configuration. The baselines are Base, VIB,
 SVIB, NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB
 baselines NCBD and AdaCap; GPB is OPB on classification rows and EPB on
-regression rows. The main comparison equalizes the tuning budget across
-methods: GPB is swept over a
-two-dimensional $\beta\times$scale grid, the six-point $\beta$ grid
-times a six-point anchor-scale grid ($a$ for classification, $\rho$ for
-regression); every other $\beta$-weighted method, VIB, SVIB, NIB, CEB,
-and DVCCA, is swept over the same six-point $\beta$ grid times a
-six-point learning-rate grid; NCBD and AdaCap are swept over their own
-six-value grids, the temperature $\tau$ and the Tikhonov $\lambda$,
-times the same learning-rate grid. Every method with a
-method-specific hyperparameter thus evaluates the same number of
-configurations; the plain backbone has none. For each method and setting,
+regression rows. The main comparison is single-dimensional in tuned
+hyperparameters: the plain backbone has no method-specific
+hyperparameters, every $\beta$-weighted method is swept over the same
+six-point $\beta$ grid, and NCBD and AdaCap use six-value grids of their
+own. GPB's anchor scale $a$ (resp.\ isometric scale $\rho$) is a
+trainable model parameter, shared across classes and clipped to
+$[1,20]$ during training, so GPB receives no
+larger tuning budget than the others. For each method and setting,
 the configuration with the best mean validation metric is selected
 (accuracy on classification settings, $R^2$ on regression settings). The
 reported results are means with standard deviations over seeds, and

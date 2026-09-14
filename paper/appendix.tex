@@ -212,13 +212,10 @@ with a fixed seed for most datasets, official splits kept where provided
 variance, bottleneck $d=256$, Adam training, early stopping, and
 validation-based selection; GPB's prior covariance is the
 fixed shared $\tau^2I$ ($\tau^2=1$). The shared training defaults are
-hidden sizes $512$--$256$, dropout $0.2$, batch
+hidden sizes $512$--$256$, dropout $0.2$, learning rate $10^{-3}$, batch
 size $128$, and a $100$-epoch budget with early stopping (patience
-$10$); the learning rate is tuned on the shared six-point grid
-$\{6\times10^{-4},8\times10^{-4},10^{-3},2\times10^{-3},4\times10^{-3},6\times10^{-3}\}$,
-identical for every method and dataset; dataset-specific defaults are
-likewise shared by every method on
-that dataset: Cora uses batch size $512$,
+$10$); dataset-specific defaults are likewise shared by every method on
+that dataset: Cora uses learning rate $10^{-2}$, batch size $512$,
 $200$ epochs, and patience $20$; STS-B uses a single-layer LSTM with
 hidden size $256$ and frozen GloVe embeddings; AG News uses
 $50$-dimensional PCA-reduced BERT features; ImageNet-100 uses $4\times4$
@@ -230,21 +227,20 @@ both are fitted on the training split only, and reported MAE is
 rescaled to the original units. The baselines are Base, VIB, SVIB,
 NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB baselines
 NCBD and AdaCap; GPB is OPB on classification rows and EPB on regression rows. The main
-comparison equalizes the tuning budget across methods: GPB is
-swept over a two-dimensional $\beta\times$scale grid, the six-point
-$\beta$ grid times a six-point anchor-scale grid ($a$ for
-classification, $\rho$ for regression); every other $\beta$-weighted
-method, VIB, SVIB, NIB, CEB, and DVCCA, is swept over the same six-point
-$\beta$ grid times a six-point learning-rate grid; NCBD and AdaCap are
-swept over their own six-value grids, the temperature $\tau$ and the
-Tikhonov $\lambda$, times the same learning-rate grid. Every method with
-a method-specific hyperparameter thus evaluates the same number of
-configurations ($36$), so no method receives a larger search budget
-than the others; the plain backbone has none. For each method and setting, the
+comparison is single-dimensional in tuned hyperparameters: the plain
+backbone has no method-specific hyperparameters (one configuration),
+every $\beta$-weighted method, VIB, SVIB, NIB, CEB, DVCCA, and GPB, is
+swept over the same six-point $\beta$ grid and selected by the same
+rule, so no method receives a larger search budget than the others;
+NCBD and AdaCap are swept over their own six-value grids. GPB's anchor
+scale $a$ (resp.\ isometric scale $\rho$) is a trainable model parameter
+shared across classes and clipped to
+$[1,20]$ during training. The guarantees of Section 2.2 are stated for
+any fixed scale value and apply verbatim to the trained model with its
+learned scale held fixed. For each method and setting, the
 configuration with the best mean validation metric is selected (accuracy
 on classification settings, $R^2$ on regression settings), under the
-same selection rule for every method and every ablation variant, which
-share the same two-dimensional grids
+same selection rule for every method and every ablation variant
 (Appendix~\ref{app:ablation}). The per-method grids are summarized in
 Table~\ref{tab:search-protocol}.
 
@@ -256,22 +252,19 @@ Table~\ref{tab:search-protocol}.
 Method & Method-specific hyperparameters & Configs. \\
 \hline
 Base & --- & $1$ \\
-VIB, SVIB, NIB, CEB, DVCCA & $\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ $\times$ the lr grid & $36$ \\
-NCBD & temperature $\tau\in\{0.05,0.1,0.2,0.3,0.5,1\}$ $\times$ the lr grid & $36$ \\
-AdaCap & Tikhonov $\lambda\in\{10^{-2},10^{-1},1,10,10^{2},10^{3}\}$ $\times$ the lr grid & $36$ \\
-GPB (OPB / EPB) & the same $\beta$ grid $\times$ $a=\rho\in\{1,2,4,6,8,12\}$ & $36$ \\
+VIB, SVIB, NIB, CEB, DVCCA & $\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ & $6$ \\
+NCBD & temperature $\tau\in\{0.05,0.1,0.2,0.3,0.5,1\}$ & $6$ \\
+AdaCap & Tikhonov $\lambda\in\{10^{-2},10^{-1},1,10,10^{2},10^{3}\}$ & $6$ \\
+GPB (OPB / EPB) & the same $\beta$ grid; $a=\rho$ trainable & $6$ \\
 \hline
 \end{tabular}
 \caption{Per-method hyperparameter grids of the main comparison
 (Table~\ref{tab:main_result}). Each configuration is trained on the same
 ten seeds under the shared training budget; the configuration with the
-best mean validation metric is selected per method and setting. The lr
-grid is the shared six-point learning-rate grid given above, identical
-for every method and dataset. GPB sweeps the anchor scale $a$ (resp.\
-isometric scale $\rho$) jointly with $\beta$, and every other method
-with a method-specific hyperparameter sweeps the learning rate jointly
-with it, so that every such method evaluates the same number of
-configurations ($36$).}
+best mean validation metric is selected per method and setting. GPB's
+anchor scale $a$ (resp.\ isometric scale $\rho$) is trained as a shared
+model parameter, clipped to $[1,20]$ during training, so every method
+evaluates the same number of configurations (six).}
 \label{tab:search-protocol}
 \end{table}
 
