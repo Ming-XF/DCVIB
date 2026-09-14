@@ -201,6 +201,70 @@ information. In the GPB instance used by the real-data protocol, the remaining
 freedom at certificate zero is the frame rotation only.
 \end{remark}
 
+\subsection{Complete experimental setup}
+\label{app:setup-details}
+We evaluate twelve dataset--backbone settings over nine public datasets:
+MNIST, ImageNet-100, Cora, IMDb, AG News, California Housing, STS-B,
+ZINC-12k, and AgeDB, covering MLP, CNN, GCN, and RNN backbones. All
+methods use the same data splits --- $60/20/20$ train/validation/test
+with a fixed seed for most datasets, official splits kept where provided
+(Cora, ZINC-12k) --- , backbone, Gaussian posterior with learned diagonal
+variance, bottleneck $d=256$, Adam training, early stopping, and
+validation-based selection; GPB's prior covariance is the
+fixed shared $\tau^2I$ ($\tau^2=1$). The shared training defaults are
+hidden sizes $512$--$256$, dropout $0.2$, learning rate $10^{-3}$, batch
+size $128$, and a $100$-epoch budget with early stopping (patience
+$10$); dataset-specific defaults are likewise shared by every method on
+that dataset: Cora uses learning rate $10^{-2}$, batch size $512$,
+$200$ epochs, and patience $20$; STS-B uses a single-layer LSTM with
+hidden size $256$ and frozen GloVe embeddings; AG News uses
+$50$-dimensional PCA-reduced BERT features; ImageNet-100 uses $4\times4$
+spatial pool-4 ResNet-50 features; the remaining dataset-specific
+preprocessing is given in the release. Every configuration is trained
+on the same ten seeds ($0$--$9$). Input features are standardized per
+dataset, and regression targets are min--max normalized to $[0,1]$;
+both are fitted on the training split only, and reported MAE is
+rescaled to the original units. The baselines are Base, VIB, SVIB,
+NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB baselines
+NCBD and AdaCap; GPB is OPB on classification rows and EPB on regression rows,
+with GPB-L denoting the identical prior and a free head. The main
+comparison is single-dimensional in tuned hyperparameters: the plain
+backbone has no method-specific hyperparameters (one configuration),
+every $\beta$-weighted method --- VIB, SVIB, NIB, CEB, DVCCA, and GPB
+--- is swept over the same $\beta$ grid (six configurations) and
+selected by the same rule, so no method receives a larger search budget
+than the others; GPB's anchor scale $a$ (resp.\ isometric scale $\rho$)
+is fixed at $12$ throughout the main comparison; NCBD and AdaCap are
+swept over their own six-value grids. For each method and setting, the
+configuration with the best mean validation metric is selected (accuracy
+on classification settings, $R^2$ on regression settings), under the
+same selection rule for every method and every ablation variant
+(Appendix~\ref{app:ablation}). The per-method grids are summarized in
+Table~\ref{tab:search-protocol}.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{l l c}
+\hline
+Method & Method-specific hyperparameters & Configs. \\
+\hline
+Base & --- & $1$ \\
+VIB, SVIB, NIB, CEB, DVCCA & $\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ & $6$ \\
+NCBD & temperature $\tau\in\{0.05,0.1,0.2,0.3,0.5,1\}$ & $6$ \\
+AdaCap & Tikhonov $\lambda\in\{10^{-2},10^{-1},1,10,10^{2},10^{3}\}$ & $6$ \\
+GPB (OPB / EPB) & $\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$; $a=\rho=12$ fixed & $6$ \\
+\hline
+\end{tabular}
+\caption{Per-method hyperparameter grids of the main comparison
+(Table~\ref{tab:main_result}). Each configuration is trained on the same
+ten seeds under the shared training budget; the configuration with the
+best mean validation metric is selected per method and setting. GPB's anchor
+scale is fixed at $a=\rho=12$; scale variation is reported as
+sensitivity, not selected.}
+\label{tab:search-protocol}
+\end{table}
+
 \subsection{Construction details}
 \label{app:construction}
 
@@ -508,7 +572,7 @@ structural controls satisfy the gate at every point.
 frame. (c) Labels sampled rather than integrated with their exact population weights;
 failed comparator-gate configurations are marked. Dashed lines denote the analytic
 population ambiguity floors. Points are means and error bars are standard deviations
-over five seeds.}
+over seeds.}
 \label{fig:noisy-alignment-sensitivity}
 \end{figure*}
 
@@ -519,7 +583,7 @@ This section collects the diagnostic panels deferred from
 Section~\ref{sec:direct-mismatch}: the decoupling scatter, the separation-bound and
 slack readings, and the regression diagnostics, together with the finite-bin
 definitions. All statistics are first computed within each seed and then aggregated
-across the five seeds; class or bin pairs are not treated as independent
+across seeds; class or bin pairs are not treated as independent
 replicates. The per-class Jensen check and the per-pair separation bound are
 verified numerically on every scale, $\beta$, seed, and class (no violation exceeds
 $10^{-6}$). Every checkpoint in both requested grids is present, and no collapse or
@@ -637,7 +701,7 @@ ZINC ($-0.043$ $R^2$).
 Figure~\ref{fig:info-plane-extra} completes panels (c)--(d) of
 Fig.~\ref{fig:compression-main} in the main text with the regression setting, under
 the same $\beta$ grid, axis
-conventions, and five runs per point; here
+conventions; here
 $I(Y;Z)$ is the Gaussian approximation
 $\tfrac12 \ln\bigl(\mathrm{Var}(y)/\mathrm{Var}(y-\hat y_{\mathrm{MC}})\bigr)$
 read on the sampled posterior, and the residual is the stochastic-path difference
@@ -652,7 +716,7 @@ $\beta = 25$.
 \includegraphics[width=0.48\linewidth]{figures/fig_certificate_plane_housing.png}
 \caption{Information plane (a) and certificate plane (b) for Cal.~Housing,
 companion panels to Fig.~\ref{fig:compression-main}(c,d): identical estimators,
-$\beta$ grid (log $x$-scale in (a)), five runs per point, lines connect $\beta$ in
+$\beta$ grid (log $x$-scale in (a)), lines connect $\beta$ in
 ascending order. CEB
 one curve per panel; EPB three ($\rho \in \{1, 6, 12\}$).}
 \label{fig:info-plane-extra}

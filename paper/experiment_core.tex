@@ -28,28 +28,34 @@ study answers it (Sec.~\ref{sec:robustness}).
 
 \subsection{Experimental setup}
 \label{sec:setup}
-We evaluate twelve dataset--backbone settings over nine public datasets: MNIST,
-ImageNet-100, Cora, IMDb, AG News, California Housing, STS-B, ZINC-12k, and AgeDB,
-covering MLP, CNN, GCN, and RNN backbones. All methods use the same splits, backbone,
-stochastic Gaussian posterior with learned diagonal variance, bottleneck dimension
-$d=256$, Adam training, early stopping, and validation-based selection; GPB's prior
-covariance is the fixed shared $\tau^2I$ ($\tau^2=1$). The baselines are Base, VIB, SVIB, NIB,
-CEB, supervised $\beta$-DVCCA, and the external non-IB baselines NCBD (classification
-only) and AdaCap (regression only); GPB is OPB on classification rows and EPB on
-regression rows, with GPB-L denoting the identical prior and a free head. Full data preprocessing, grids, seeds, and baseline definitions
-are in Appendix~\ref{app:construction}. Regression compression curves, transfer
-attacks, pair-level mismatch plots, and full uncertainty tables are reported in
-Appendices~\ref{app:compression}, \ref{app:robustness}, \ref{app:direct-mismatch},
-and \ref{app:main-std}--\ref{app:main-ci}; the remaining ablations and estimator
-panels are collected in Appendix~\ref{app:additional}.
+We evaluate twelve dataset--backbone settings over nine public datasets:
+MNIST, ImageNet-100, Cora, IMDb, AG News, California Housing, STS-B,
+ZINC-12k, and AgeDB, covering MLP, CNN, GCN, and RNN backbones. All
+methods use the same data splits ($60/20/20$ train/validation/test for
+most datasets), backbone, Adam training, early stopping,
+validation-based selection, and ten seeds per configuration. The baselines are Base, VIB,
+SVIB, NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB
+baselines NCBD and AdaCap; GPB is OPB on classification rows and EPB on
+regression rows, with GPB-L denoting the identical prior and a free
+head. The main comparison is single-dimensional in tuned
+hyperparameters: the plain backbone has no method-specific
+hyperparameters, every $\beta$-weighted method is swept over the same
+six-point $\beta$ grid, NCBD and AdaCap use six-value grids of their
+own, and GPB's anchor scale $a$ (resp.\ isometric scale $\rho$) is fixed
+at $12$ throughout the main comparison. For each method and setting,
+the configuration with the best mean validation metric is selected
+(accuracy on classification settings, $R^2$ on regression settings). The
+reported results are means with standard deviations over seeds, and
+paired differences use $95\%$ bootstrap confidence intervals. The complete
+experimental setup is in Appendix~\ref{app:setup-details}.
 
 \subsection{Main results}
 \label{sec:main-results}
 \input{main_result}
 Table~\ref{tab:main_result} reports the best validation-selected configuration of
-every baseline and GPB variant; the complete standard deviations, paired confidence
-intervals, and per-method configuration details are in Appendices~\ref{app:main-std}
-and \ref{app:main-ci}. The ranking summary is dominated by the two GPB heads: GPB has
+every baseline and GPB variant; the complete standard deviations and paired confidence
+intervals are in Appendices~\ref{app:main-std} and \ref{app:main-ci};
+per-method configuration details are in Appendix~\ref{app:setup-details}. The ranking summary is dominated by the two GPB heads: GPB has
 the lowest mean rank ($1.83$ versus $2.54$ for GPB-L and $4.83$ for the best plain
 baseline) and is best or tied-best in $7/12$ settings. The gains are largest where the task has margin to
 resolve them: on ImageNet-100 (CNN) GPB leads CEB by $3.11$ points and on Cora by
@@ -110,7 +116,7 @@ the floor is largest.
 This section pursues two checks on the learned posterior: how much of the declared
 anchor geometry it inherits, and whether the separation guarantee survives under the
 measured mismatch. All statistics are first computed within each seed and then
-aggregated across the five seeds, and class or bin pairs are not treated as
+aggregated across seeds, and class or bin pairs are not treated as
 independent replicates. For test examples of class $k$, let
 $\widehat D_k=\frac1{n_k}\sum_{n:y_n=k}\|\mu_\phi(x_n)-a q_{\theta,k}\|^2/(2\tau^2)$
 and $\widehat m_k=\frac1{n_k}\sum_{n:y_n=k}\mu_\phi(x_n)$, the sample counterparts
@@ -247,6 +253,9 @@ term, whereas OPB's KL stays anchored at the geometric scale of its fixed prior
 ($48$ at $\beta=0.1$, $21$ at $\beta=1$) and is dominated by anchor alignment, so
 the structure is retained rather than absorbed. Together the curves make the
 anchor-scale/compression trade-off visible across the useful operating range.
+The complementary scale-axis view, reading the full nine-point scale
+grid at three fixed $\beta$ levels, is reported in
+Appendix~\ref{app:scale-sensitivity}.
 
 \subsection{Information-plane diagnostic}
 \label{sec:info-plane}

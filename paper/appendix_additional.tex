@@ -71,7 +71,7 @@ configuration (Table~\ref{tab:ablation}). The complete means are reported in
 Table~\ref{tab:ablation}. The paired bootstrap intervals are in the main text
 (Table~\ref{tab:ablation-ci}) for the classification contrasts and in
 Table~\ref{tab:ablation-ci-epb} for the regression mirrors; all paired differences
-use the shared five seeds at each variant's best validation-selected configuration,
+use the shared seeds at each variant's best validation-selected configuration,
 and the intervals are $95\%$ bootstrap percentile CIs with $B=10{,}000$ and a fixed
 seed. The factor ranking and
 the sign-flip and negative-result patterns are read in the main text
@@ -126,6 +126,33 @@ realized conditional KL over $\beta$. EPB maintains a task plateau through stron
 compression, while the $\rho=1$ weak-compression points exhibit a large variance term.}
 \label{fig:compression-housing}
 \end{figure*}
+
+\subsection{Anchor-scale sensitivity}
+\label{app:scale-sensitivity}
+The main comparison fixes the prior scale at $a=\rho=12$
+(Sec.~\ref{sec:setup}); Fig.~\ref{fig:scale-sensitivity} reads the full
+nine-point scale grid at weak, medium, and strong compression on the two
+representative settings, complementing the $\beta$-axis
+sweeps of Sec.~\ref{sec:sweep} with the scale-axis view.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.49\linewidth]{figures/fig_anchor_sensitivity_imagenet100_mlp.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/fig_anchor_sensitivity_agedb_mlp.png}
+\caption{Anchor-scale sensitivity: (a) ImageNet-100 (MLP) OPB test accuracy
+against the anchor scale $a$; (b) AgeDB (MLP) EPB test $R^2$ against the
+isometric scale $\rho$; $\beta\in\{10^{-2},1,10\}$ (weak/medium/strong
+compression).}
+\label{fig:scale-sensitivity}
+\end{figure*}
+
+On both settings the scale matters only once compression bites: the
+weak-compression curves are flat (within $3.4$ points on ImageNet-100),
+and at $\beta\ge1$ scales below $4$ collapse (to chance accuracy on
+ImageNet-100, to zero $R^2$ on AgeDB) while every scale above $6$ stays
+on a plateau; the operating point is therefore sensitive to the scale
+only through this collapse boundary, and the fixed $a=\rho=12$ lies
+inside the retained band.
 
 \subsection{Information-plane estimates}
 \label{app:info-plane}
