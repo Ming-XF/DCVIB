@@ -36,9 +36,8 @@ most datasets), backbone, Adam training, early stopping,
 validation-based selection, and ten seeds per configuration. The baselines are Base, VIB,
 SVIB, NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB
 baselines NCBD and AdaCap; GPB is OPB on classification rows and EPB on
-regression rows, with GPB-L denoting the identical prior and a free
-head. The main comparison equalizes the tuning budget across
-methods: GPB and its free-head variant GPB-L are swept over a
+regression rows. The main comparison equalizes the tuning budget across
+methods: GPB is swept over a
 two-dimensional $\beta\times$scale grid, the six-point $\beta$ grid
 times a six-point anchor-scale grid ($a$ for classification, $\rho$ for
 regression); every other $\beta$-weighted method, VIB, SVIB, NIB, CEB,
@@ -60,17 +59,15 @@ experimental setup is in Appendix~\ref{app:setup-details}.
 Table~\ref{tab:main_result} reports the best validation-selected configuration of
 every baseline and GPB variant; the complete standard deviations and paired confidence
 intervals are in Appendices~\ref{app:main-std} and \ref{app:main-ci};
-per-method configuration details are in Appendix~\ref{app:setup-details}. The ranking summary is dominated by the two GPB heads: GPB has
-the lowest mean rank ($1.83$ versus $2.54$ for GPB-L and $4.83$ for the best plain
-baseline) and is best or tied-best in $7/12$ settings. The gains are largest where the task has margin to
+per-method configuration details are in Appendix~\ref{app:setup-details}. The ranking summary is dominated by GPB: it has
+the lowest mean rank ($1.58$ versus $4.08$ for the best plain
+baseline) and is best or tied-best in $8/12$ settings. The gains are largest where the task has margin to
 resolve them: on ImageNet-100 (CNN) GPB leads CEB by $3.11$ points and on Cora by
 $1.85$, while the saturated settings are flat (MNIST CNN and AG News, where all
 methods sit within $0.6$ points of the best) and the small-data regressions are
-essentially tied with the best baselines (Housing within $0.002$ $R^2$ of VIB; on
-STS-B the plain backbone remains best). The tied head never hurts: GPB is within
-$0.4$ points of the free-head variant GPB-L in $11/12$ settings, and $1.20$ points
-better on ImageNet-100 (CNN). Among the external non-IB baselines, AdaCap is
-competitive on regression (best on ZINC), while NCBD's mean rank ($6.43$) places it
+essentially tied with the best baselines (Housing within $0.0006$ $R^2$ of VIB; on
+STS-B the plain backbone remains best). Among the external non-IB baselines, AdaCap is
+competitive on regression (best on ZINC), while NCBD's mean rank ($5.43$) places it
 behind the plain backbone on classification. Across modalities, the same construction
 improves the operating point where improvement is available and costs nothing
 elsewhere.

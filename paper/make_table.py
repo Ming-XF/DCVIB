@@ -17,7 +17,7 @@ R²（原始值），且只显示均值、不含标准差（表格较宽）；�
 最优计数只在各模型适用的行上计算。输出可直接
 \input{} 的 table* 浮动体，保存到 paper/main_result.tex；同源生成带标准差的
 paper/main_result_std.tex（gen_table_std，单元格为均值±std，按列拆为
-baselines（含 NCBD）与 CEB/DVCCA/AdaCap+GPB/GPB-L 两张表以适配页宽）；以及
+baselines（含 NCBD）与 CEB/DVCCA/AdaCap+GPB 两张表以适配页宽）；以及
 配对差值表 paper/main_result_CI.tex（gen_result_ci，GPB − 各 baseline 的
 bootstrap 95% CI，同 seed 配对、按列拆四张表（含 NCBD/AdaCap 外部基线表）、
 表尾统计 */† 次数）。
@@ -105,14 +105,14 @@ ROW_ORDER = [
 # ncbd/adacap 为审稿人要求的非 IB 外部基线（NCBD 仅分类 7 个 setting、
 # AdaCap 仅回归 5 个 setting，其余行显示 --），排在 baseline 方法侧；
 # "opb" 列在表格中显示为 GPB（分类行为 OPB、回归行为 EPB，即几何先验瓶颈的
-# 两个实例）；opbl 是 GPB 的 free-head 消融（GPB-L；结果目录 tune_results 中 opb 已改名
-# 为 opbl），排在 opb 之后；"opb" 在 COLUMN_ORDER 中的位置是竖线插入点
-# （其左侧加竖线，把 GPB/GPB-L 与前面的 baseline 方法隔开）。
-COLUMN_ORDER = ["base", "vib", "svib", "nib", "ceb", "dvcca", "ncbd", "adacap", "opb", "opbl"]
+# 两个实例）；GPB 的 free-head 消融 GPB-L（结果目录 tune_results 中 opb 已改名
+# 为 opbl）不进主表，仅在因子消融表（Table 3/12）中报告；"opb" 在 COLUMN_ORDER
+# 中的位置是竖线插入点（其左侧加竖线，把 GPB 与前面的 baseline 方法隔开）。
+COLUMN_ORDER = ["base", "vib", "svib", "nib", "ceb", "dvcca", "ncbd", "adacap", "opb"]
 COLUMN_NAMES = {
     "base": "Base", "vib": "VIB", "svib": "SVIB", "nib": "NIB",
     "ceb": "CEB", "dvcca": "DVCCA", "ncbd": "NCBD", "adacap": "AdaCap",
-    "opb": "GPB", "opbl": "GPB-L",
+    "opb": "GPB",
 }
 
 
@@ -436,12 +436,12 @@ def gen_result1(full):
 DIFF_CI_DELTA = {"Acc": 0.002, "R2": 0.005}
 DIFF_CI_B = 10000
 DIFF_CI_SEED = 0
-# CI 表按列拆四张表：baselines（Base/VIB）、SVIB/NIB、CEB/DVCCA/GPB-L、
+# CI 表按列拆四张表：baselines（Base/VIB）、SVIB/NIB、CEB/DVCCA、
 # 外部基线（NCBD 仅分类行 / AdaCap 仅回归行）
 CI_COL_GROUPS = [
     (["base", "vib"], "tab:main_result_ci_baselines"),
     (["svib", "nib"], "tab:main_result_ci_svib_nib"),
-    (["ceb", "dvcca", "opbl"], "tab:main_result_ci_variants"),
+    (["ceb", "dvcca"], "tab:main_result_ci_variants"),
     (["ncbd", "adacap"], "tab:main_result_ci_external"),
 ]
 
@@ -622,7 +622,7 @@ def gen_result_ci():
         "%（分类百分点、回归 R²）；加粗 = CI 下限 > 0（显著更优）、† = CI 下限 > −δ",
         f"%（非劣界 δ={DIFF_CI_DELTA['Acc'] * 100:g} 百分点 / {DIFF_CI_DELTA['R2']:g}）记 tied；",
         f"% 同 seed 配对（run 顺序即 seed 0..N−1），bootstrap B={DIFF_CI_B}（固定 seed {DIFF_CI_SEED}，百分位法）。",
-        "% 差值列超页宽，按列拆四张表（baselines / svib+nib / ceb+dvcca+GPB-L / ncbd+adacap）；",
+        "% 差值列超页宽，按列拆四张表（baselines / svib+nib / ceb+dvcca / ncbd+adacap）；",
         "% 表尾一行统计各列 */† 次数；ncbd 仅分类行、adacap 仅回归行有值。",
         "",
     ]
@@ -641,10 +641,9 @@ def gen_result_ci():
             "regression in $R^2$). Bold/† as in the baselines table."
         ),
         "tab:main_result_ci_variants": (
-            "Paired-difference 95\\% confidence intervals of GPB over CEB, DVCCA, "
-            "and the free-head ablation GPB-L (GPB minus baseline, per setting; "
-            "classification in percentage points, regression in $R^2$). Bold/† as in "
-            "the baselines table."
+            "Paired-difference 95\\% confidence intervals of GPB over CEB and DVCCA "
+            "(GPB minus baseline, per setting; classification in percentage points, "
+            "regression in $R^2$). Bold/† as in the baselines table."
         ),
         "tab:main_result_ci_external": (
             "Paired-difference 95\\% confidence intervals of GPB over the external "
@@ -871,11 +870,11 @@ def gen_table(grid):
 
 
 def gen_table_std(grid):
-    r"""生成 main_result_std.tex 内容：主结果带标准差版，因 10 方法列 ×
+    r"""生成 main_result_std.tex 内容：主结果带标准差版，因 9 方法列 ×
     (均值±std) 超出页宽，按列拆成两张 table* 浮动体——
     (a) baselines（Base/VIB/SVIB/NIB/NCBD，tab:main_result_std_baselines）与
-    (b) CEB/DVCCA/AdaCap | GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）；
-    每表含全部 12 行（分类/回归块间双横线），加粗/下划线按该行全部 10 列的均值
+    (b) CEB/DVCCA/AdaCap | GPB（tab:main_result_std_variants，竖线分隔同主表）；
+    每表含全部 12 行（分类/回归块间双横线），加粗/下划线按该行全部 9 列的均值
     判定、与 main_result.tex 一致；表尾排名行省略（与主表重复）。"""
     order = {k: i for i, k in enumerate(ROW_ORDER)}
     keys = sorted(grid, key=lambda k: (order.get(k, len(order)), k))
@@ -912,11 +911,11 @@ def gen_table_std(grid):
 
     head = [
         "% 主结果表（带标准差）：由 paper/make_table.py 从 tune_results/*.html 自动生成，请勿手改。",
-        "% 因 10 方法列 × (均值±std) 超出页宽，按列拆为两张表：",
+        "% 因 9 方法列 × (均值±std) 超出页宽，按列拆为两张表：",
         "% (a) baselines（Base/VIB/SVIB/NIB/NCBD，tab:main_result_std_baselines）；",
-        "% (b) CEB/DVCCA/AdaCap 与 GPB/GPB-L（tab:main_result_std_variants，竖线分隔同主表）。",
+        "% (b) CEB/DVCCA/AdaCap 与 GPB（tab:main_result_std_variants，竖线分隔同主表）。",
         "% 每表含全部 12 行；分类 Acc（%）、回归 R²，单元格为均值±std；NCBD/AdaCap 不适用行显示 --；",
-        "% 加粗/下划线按该行全部 10 列的均值判定（与 main_result.tex 一致）；",
+        "% 加粗/下划线按该行全部 9 列的均值判定（与 main_result.tex 一致）；",
         "% 表尾排名行省略（与主表重复）。",
         "",
     ]
@@ -929,10 +928,10 @@ def gen_table_std(grid):
         "tab:main_result_std_baselines",
     )
     out += block_float(
-        ["ceb", "dvcca", "adacap", "opb", "opbl"],
+        ["ceb", "dvcca", "adacap", "opb"],
         "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
         "CEB, DVCCA, AdaCap (regression settings only), and our method; same "
-        "configurations as Table~\\ref{tab:main_result}. GPB and GPB-L are "
+        "configurations as Table~\\ref{tab:main_result}. GPB is "
         "separated from the references by the vertical rule.",
         "tab:main_result_std_variants",
     )
