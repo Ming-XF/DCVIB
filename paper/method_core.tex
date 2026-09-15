@@ -20,14 +20,13 @@ compression criterion alone cannot prefer any cross-label geometry.
 GPB is not a single prior but a framework for declaring reference geometry: it
 restricts the reference to conditional Gaussians
 \begin{equation}
-p_\theta(z|y)=\mathcal N(m_\theta(y),\Sigma_\theta(y)),\qquad
-\Sigma_\theta(y)=\tau^2 I,\qquad \tau^2=1,
+p_\theta(z|y)=\mathcal N(m_\theta(y),\tau^2 I),\qquad \tau^2=1,
 \label{eq:pgib-covariance}
 \end{equation}
 where $p_\theta$ is the label-conditional Gaussian reference, $m_\theta(y)$ its
 anchor mean, and the prior covariance is fixed and isotropic. The posterior
 covariance remains the learned diagonal $\operatorname{diag}\sigma_\phi^2(x)$.
-For the bounds below we identify $\tau_{\max}^2=\tau^2=1$. Their means obey a
+Their means obey a
 declared two-sided separation for every pair of distinct discrete labels
 $y\ne y'$,
 \begin{equation}
@@ -130,7 +129,7 @@ $\Delta(y,y')=\rho_{\min}d_Y(y,y')$ for continuous labels
 \end{equation}
 and
 \begin{equation}
-\mathcal D(w)=\frac{\E\|\mu_\phi(X)-m_\theta(Y)\|^2}{2\tau_{\max}^2}.
+\mathcal D(w)=\frac{\E\|\mu_\phi(X)-m_\theta(Y)\|^2}{2\tau^2}.
 \label{eq:expected-anchor-mismatch}
 \end{equation}
 \begin{theorem}[Comparator-dependent bound on anchor mismatch]
@@ -160,7 +159,7 @@ $\beta\ge(\mathcal R(w_0)+\varepsilon)/(d_\star-\mathcal K(w_0))$.
 Suppose $\E\|\mu_\phi(X)\|^2<\infty$ and, for a label value $y$, let
 \begin{equation}
 m(y)=\E[\mu_\phi(X)\mid Y=y],\qquad
-D(y)=\frac{\E[\|\mu_\phi(X)-m_\theta(y)\|^2\mid Y=y]}{2\tau_{\max}^2}.
+D(y)=\frac{\E[\|\mu_\phi(X)-m_\theta(y)\|^2\mid Y=y]}{2\tau^2}.
 \label{eq:pgib-class-rate}
 \end{equation}
 Then, for every pair of distinct discrete labels and for $P_Y\otimes P_Y$-almost
@@ -168,24 +167,24 @@ every continuous pair $(y,y')$,
 \begin{equation}
 \begin{aligned}
 \|m(y)-m(y')\|
-&\ge\|m_\theta(y)-m_\theta(y')\|-\sqrt{2\tau_{\max}^2D(y)}-\sqrt{2\tau_{\max}^2D(y')}\\
-&\ge\Delta(y,y')-\sqrt{2\tau_{\max}^2D(y)}-\sqrt{2\tau_{\max}^2D(y')}.
+&\ge\|m_\theta(y)-m_\theta(y')\|-\sqrt{2\tau^2D(y)}-\sqrt{2\tau^2D(y')}\\
+&\ge\Delta(y,y')-\sqrt{2\tau^2D(y)}-\sqrt{2\tau^2D(y')}.
 \end{aligned}
 \label{eq:pgib-separation}
 \end{equation}
 The first-level bound is positive exactly when
 \begin{equation}
-\Gamma_{yy'}:=\frac{\sqrt{2\tau_{\max}^2D(y)}+\sqrt{2\tau_{\max}^2D(y')}}
+\Gamma_{yy'}:=\frac{\sqrt{2\tau^2D(y)}+\sqrt{2\tau^2D(y')}}
 {\|m_\theta(y)-m_\theta(y')\|}<1,
 \label{eq:separation-tightness-ratio}
 \end{equation}
 while the declared-margin level is positive exactly when the measured correction
 terms stay below the declared bound,
-$\sqrt{2\tau_{\max}^2D(y)}+\sqrt{2\tau_{\max}^2D(y')}<\Delta(y,y')$, which in the
+$\sqrt{2\tau^2D(y)}+\sqrt{2\tau^2D(y')}<\Delta(y,y')$, which in the
 continuous case fails most readily for nearby label pairs. For OPB the two
 conditions coincide, since the anchor pair distance is the constant $\sqrt2a$ of
 Eq.~\eqref{eq:opb-prior}: $\Delta(y,y')=\sqrt2a$ and, with equal mismatch $D$,
-positivity holds exactly for $D<a^2/(4\tau_{\max}^2)$.
+positivity holds exactly for $D<a^2/(4\tau^2)$.
 \end{theorem}
 
 \begin{corollary}[Beta-dependent transfer of anchor separation]
@@ -201,7 +200,7 @@ For any label set $S$ and level $\bar D_\beta$ with $D(y)\le\bar D_\beta$ for ev
 $y\in S$,
 \begin{equation}
 \|m(y)-m(y')\|
-\ge \Delta(y,y')-2\sqrt{2\tau_{\max}^2\bar D_\beta}
+\ge \Delta(y,y')-2\sqrt{2\tau^2\bar D_\beta}
 \qquad\text{for distinct } (y,y')\in S^2.
 \label{eq:pgib-beta-separation}
 \end{equation}

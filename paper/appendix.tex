@@ -83,10 +83,10 @@ is analytic, including the deterministic distribution as its zero-floor special 
 \subsection{Proofs of the comparator and separation guarantees}
 
 \begin{proof}[Proof of Theorem~\ref{prop:pgib-alignment}]
-Since the GPB prior covariance is $\Sigma_\theta(y)=\tau^2I_d$ with
-$\tau^2=\tau_{\max}^2=1$, the Gaussian KL contains the mean term
-$\frac12(\mu_\phi(x)-m_\theta(y))^\top\Sigma_\theta^{-1}(y)(\mu_\phi(x)-m_\theta(y))
-=\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2_{\max})$. Hence
+Since the GPB prior covariance is the fixed isotropic $\tau^2I_d$ with
+$\tau^2=1$, the Gaussian KL contains the mean term
+$\frac1{2\tau^2}\|\mu_\phi(x)-m_\theta(y)\|^2
+=\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2)$. Hence
 $\mathcal D(\widehat w)\le\mathcal K(\widehat w)$. For any feasible $w_0$ in the
 same family, $\varepsilon$-optimality of $\widehat w$, $\ell\ge0$, and $\beta>0$
 give
@@ -100,7 +100,7 @@ Division by $\beta$ proves Eq.~\eqref{eq:pgib-comparator-bound}.
 
 \begin{proof}[Proof of Theorem~\ref{thm:pgib-separation}]
 Jensen's inequality gives
-$\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2_{\max} D(y)}$
+$\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2 D(y)}$
 (the norm is convex, and $\E\|\mu_\phi(X)\|^2<\infty$ makes $m(y)$ well defined),
 and the triangle inequality on
 $m(y) - m(y') = (m(y) - m_\theta(y)) + (m_\theta(y) - m_\theta(y'))
@@ -108,12 +108,12 @@ $m(y) - m(y') = (m(y) - m_\theta(y)) + (m_\theta(y) - m_\theta(y'))
 Eq.~\eqref{eq:pgib-separation}, the last step
 by the definition of $\Delta(y,y')$. The first level is positive exactly
 when $\Gamma_{yy'}<1$ and the declared-margin level exactly when
-$\sqrt{2\tau^2_{\max}D(y)}+\sqrt{2\tau^2_{\max}D(y')}<\Delta(y,y')$; for OPB the
+$\sqrt{2\tau^2D(y)}+\sqrt{2\tau^2D(y')}<\Delta(y,y')$; for OPB the
 anchor pair distance is the constant $\sqrt2a$ of
 Eq.~\eqref{eq:opb-prior}, so the declared bound satisfies $\Delta(y,y')=\sqrt2a$ and
 the two conditions coincide. With equal mismatch $D$ the common condition
-$\Gamma_{yy'}=2\sqrt{2\tau^2_{\max}D}/(\sqrt2a)<1$ reduces to
-$D<a^2/(4\tau^2_{\max})$. For continuous labels the Jensen inequality holds
+$\Gamma_{yy'}=2\sqrt{2\tau^2D}/(\sqrt2a)<1$ reduces to
+$D<a^2/(4\tau^2)$. For continuous labels the Jensen inequality holds
 pointwise for $P_Y$-a.e.\ $y$ (regular conditional expectation), and intersecting
 the two measure-one sets of valid $y$'s yields the $P_Y\otimes P_Y$-almost-everywhere
 pair statement.
