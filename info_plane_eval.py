@@ -23,8 +23,12 @@
   MC 噪声与 N_c 有限样本近似——一致的精确 MC 估计。mean-log 方向
   （Jensen 下界）在小 β、σ→0、类内分量近似不相交时被远距离分量主导而
   发散，仅作参考写入 I_XZ_given_Y_upper 列、不参与点估计与绘图。回归
-  （housing）无类别可条件，仍用 I(X;Z)−I(Y;Z) 差值（随机路径两估计之差，
-  非严格界，如实标注）。
+  （housing）用核加权 y-条件高斯混合直接估计（方案 2）：q(z|y_i) ≈
+  Σ_j w_j(y_i) q(z|x_j)，w_j = softmax_j(−((y_i−y_j)/h)²/2) 截断到
+  |Δy| 最小的 top-k 个分量并重新归一化（截断混合仍是合法密度），带宽 h
+  用 Silverman 规则在训练划分 y 上拟合（--reg-bandwidth 可覆盖）。逐项
+  KL 非负，点估计结构性非负（至多数值噪声）；h ∈ {h/2, h, 2h} 灵敏度
+  扫描打印到控制台、csv 只写入 h 点估计。不再使用 I(X;Z)−I(Y;Z) 差值。
 
 配置目录沿用 compression_eval.py 的解析与模型重建（opb 分类能量分类器 /
 回归 tied 头自动处理）：MNIST 读 output/adv_mnist/、imagenet100 与 california
@@ -73,6 +77,7 @@ CRITIC_SEED = 42
 MC_SAMPLES = 20  # I(Y;Z) 与条件互信息估计中每个 x 的 z 采样数
 MC_CHUNK = 2048  # MC 预测的分块大小（限制显存）
 COND_CHUNK = 256  # 类条件混合密度矩阵的行分块大小（限制显存）
+REG_CHUNK = 128  # 回归核混合密度矩阵的行分块大小（top-k 分量更多、块更小）
 
 
 def loaders_for(dataset, args):
@@ -237,6 +242,67 @@ def conditional_mi_estimate(mu, logvar, y, device):
     return lo_sum / n_eff, hi_sum / n_eff
 
 
+def silverman_bandwidth(y):
+    """Silverman 规则带宽：h = 1.06·σ_y·N^{-1/5}（y 为归一化标签 (N,)，在
+    训练划分上拟合，无测试泄漏）。"""
+    y = torch.as_tensor(y, dtype=torch.float64).squeeze(-1)
+    std = y.std(unbiased=True).item()
+    n = y.numel()
+    return 1.06 * std * n ** (-1 / 5)
+
+
+def conditional_mi_estimate_regression(mu, logvar, y, device, h, topk):
+    """回归 I(X;Z|Y) 直接估计（方案 2）：核加权 y-条件高斯混合的精确 MC 估计。
+
+    q(z|x) 为模型已知参数化后验（高斯），q(z|y_i) 用测试样本的高斯核加权
+    混合 Σ_j w_j(y_i) q(z|x_j) 近似，w_j = softmax_j(−((y_i−y_j)/h)²/2)
+    截断到 |Δy| 最小的 top-k 个分量并重新归一化（截断混合仍是合法密度），
+    恒等式 I(X;Z|Y) = E_x,y E_{z~q(z|x)}[log q(z|x) − log q(z|y)]（z 仅经
+    x 依赖 y，对模型自身分布精确成立）。log q(z|y) 用 logsumexp 对已知
+    分量精确计算（非 Jensen 界）；估计误差仅剩 z 采样 MC 噪声、核平滑
+    近似与有限测试样本。逐项 KL 非负，点估计结构性非负（至多数值噪声），
+    替代此前的 I(X;Z)−I(Y;Z) 差值（两个不兼容估计量之差可能为负）。
+    返回 (estimate, sensitivity)：h 点估计与 (h/2, h, 2h) 灵敏度元组。
+    """
+    n = mu.size(0)
+    mu_d, lv_d = mu.to(device), logvar.clamp(-10.0, 10.0).to(device)
+    y_d = y.to(device).float().squeeze(-1)
+    var_d = lv_d.exp()
+    std_d = var_d.sqrt()
+    const_c = (math.log(2.0 * math.pi) + lv_d).sum(1)  # (n,)
+
+    dy = (y_d[:, None] - y_d[None, :]).abs()  # (n, n)
+    k = n if topk <= 0 else min(topk, n)
+    comp_idx = torch.topk(dy, k, dim=1, largest=False).indices  # (n, k)
+    dy_k = dy.gather(1, comp_idx)
+
+    hvals = (h / 2, h, 2 * h)
+    w_logs = []  # 各带宽的 log 权重（按行 log-softmax 归一化，(n, k)）
+    for hv in hvals:
+        w = -0.5 * (dy_k / max(hv, 1e-6)).pow(2)
+        w_logs.append((w - w.logsumexp(1, keepdim=True)).double())
+    acc = [torch.zeros(n, dtype=torch.float64, device=device) for _ in hvals]
+
+    for m in range(MC_SAMPLES):
+        z = mu_d + std_d * torch.randn_like(mu_d)  # (n, d)
+        logq_x = -0.5 * (((z - mu_d).pow(2) / var_d + lv_d
+                           + math.log(2.0 * math.pi)).sum(1))  # (n,)
+        for s in range(0, n, REG_CHUNK):
+            b = slice(s, s + REG_CHUNK)
+            idx = comp_idx[b]                        # (A, k)
+            mu_c = mu_d[idx]                         # (A, k, d)
+            var_c = var_d[idx]                       # (A, k, d)
+            const_ck = const_c[idx]                  # (A, k)
+            diff2 = (z[b, None, :] - mu_c).pow(2)    # (A, k, d)
+            s_mat = -0.5 * ((diff2 / var_c).sum(-1) + const_ck)  # (A, k)
+            lqx = logq_x[b].double()
+            for t, wl in enumerate(w_logs):
+                logq_y = (s_mat.double() + wl[b]).logsumexp(1)  # (A,)
+                acc[t][b] += (lqx - logq_y)
+    est = [(v / MC_SAMPLES).mean().item() for v in acc]
+    return est[1], tuple(est)
+
+
 def train_critic(h, mu, logvar, device, epochs=CRITIC_EPOCHS,
                  batch=CRITIC_BATCH, lr=CRITIC_LR, seed=CRITIC_SEED,
                  steps_target=CRITIC_STEPS_TARGET):
@@ -296,7 +362,7 @@ def eval_combo(parser, args, d, dataset, device):
     for run_i, ckpt in enumerate(ckpts, 1):
         model.load_state_dict(torch.load(ckpt, weights_only=True, map_location=device))
         model.eval()
-        h_tr, mu_tr, lv_tr, _, _ = encode(model, train_loader, device)
+        h_tr, mu_tr, lv_tr, y_tr, _ = encode(model, train_loader, device)
         h_te, mu_te, lv_te, y_te, logits_te = encode(model, test_loader, device)
         gh, gz = train_critic(h_tr, mu_tr, lv_tr, device)
         i_xz = infonce_bound(h_te, mu_te, lv_te, gh, gz, device)
@@ -310,8 +376,11 @@ def eval_combo(parser, args, d, dataset, device):
             acc = ""
             i_yz = mc_i_yz(model, mu_te, lv_te, y_te, device, is_regression=True)
             cert_hi = ""
-            # 回归无类别可条件，仍为随机路径两估计之差（非严格界）
-            cert = i_xz - i_yz
+            # 回归 I(X;Z|Y) 直接估计（方案 2）：核加权 y-条件混合，非负
+            h_band = (args.reg_bandwidth if args.reg_bandwidth
+                      else silverman_bandwidth(y_tr))
+            cert, cert_sens = conditional_mi_estimate_regression(
+                mu_te, lv_te, y_te, device, h_band, args.reg_knn)
         else:
             ce = F.cross_entropy(logits_te, y_te, reduction="mean").item()
             acc = (logits_te.argmax(1) == y_te).float().mean().item()
@@ -329,9 +398,14 @@ def eval_combo(parser, args, d, dataset, device):
                      f"{ce:.6f}",
                      f"{acc:.6f}" if acc != "" else "",
                      f"{r2:.6f}" if r2 != "" else ""])
+        sens = ""
+        if task in REGRESSION_TASKS:
+            sens = (f" (h={h_band:.4f}; 扫描 h/2={cert_sens[0]:.4f}, "
+                    f"h={cert_sens[1]:.4f}, 2h={cert_sens[2]:.4f})")
         print(f"[{d.name}] run{run_i} I(X;Z)={i_xz:.4f} I(Y;Z)={i_yz:.4f} "
               f"I(X;Z|Y)={cert:.4f}"
               + (f" (meanlog 参考 {cert_hi:.4f})" if cert_hi != "" else "")
+              + sens
               + f" CE={ce:.4f} "
               + (f"acc={acc:.4f}" if acc != "" else f"r2={r2:.4f}"))
     return rows
@@ -351,6 +425,14 @@ def main():
         "--num-shards", type=int, default=1,
         help="目录分片总数（1 = 不分片，输出 info_plane_{dataset}.csv；"
         ">1 时各分片输出 info_plane_{dataset}_shard{i}.csv，需另行合并）",
+    )
+    parser.add_argument(
+        "--reg-bandwidth", type=float, default=None,
+        help="回归核带宽覆盖（默认 None = Silverman 规则，训练划分 y 拟合）",
+    )
+    parser.add_argument(
+        "--reg-knn", type=int, default=2048,
+        help="回归 y-条件混合的近邻分量截断数（<=0 = 全分量）",
     )
     args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

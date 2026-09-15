@@ -704,12 +704,24 @@ ZINC ($-0.043$ $R^2$).
 
 Figure~\ref{fig:info-plane-extra} completes panels (c)--(d) of
 Fig.~\ref{fig:compression-main} in the main text with the regression setting, under
-the same $\beta$ grid, axis
-conventions; here
+the same $\beta$ grid and five runs per point; here
 $I(Y;Z)$ is the Gaussian approximation
 $\tfrac12 \ln\bigl(\mathrm{Var}(y)/\mathrm{Var}(y-\hat y_{\mathrm{MC}})\bigr)$
-read on the sampled posterior, and the residual is the stochastic-path difference
-$I(X;Z)-I(Y;Z)$. The information plane is informative: CEB
+read on the sampled posterior, and the residual $I(X;Z|Y)$ is estimated directly
+rather than as a difference of the two: $\hat q(z|y)$ is the
+Gaussian-kernel-weighted mixture $\sum_j w_j(y)\,q(z|x_j)$ over the test samples
+($w_j$ a softmax in $-(y-y_j)^2/2h^2$, truncated to the $2048$ nearest labels and
+renormalized, with Silverman's $h$ fitted on the training split), the mixture
+density is evaluated exactly by logsumexp, and
+$I(X;Z|Y)=\mathbb{E}_{x,y}\,\mathrm{KL}(q(z|x)\,\|\,\hat q(z|y))$ is read by Monte
+Carlo; every term is a KL between proper densities, so the estimate is
+non-negative by construction (doubling $h$ shifts it by a median $6.5\%$, at most
+$12\%$). The certificate panel now reads directly: CEB's residual falls from
+$\approx 2.9$ nat at weak compression to near zero together with its task
+information, whereas EPB at $\rho=6,12$ ends strong compression on a small
+positive residual plateau of $0.05$--$0.15$ nat with $I(Y;Z)$ held at
+$0.52$--$0.67$ nat---compression again stops near the task-information level, now
+on a non-negative direct estimate. The information plane is informative: CEB
 compresses itself off the task ($R^2 = 0.49$ at $\beta = 0.1$, $0.18$ at
 $\beta = 0.5$) while every EPB curve keeps $R^2 \ge 0.76$ flat out to
 $\beta = 25$.
@@ -720,7 +732,7 @@ $\beta = 25$.
 \includegraphics[width=0.48\linewidth]{figures/fig_certificate_plane_housing.png}
 \caption{Information plane (a) and certificate plane (b) for Cal.~Housing,
 companion panels to Fig.~\ref{fig:compression-main}(c,d): identical estimators,
-$\beta$ grid (log $x$-scale in (a)), lines connect $\beta$ in
+$\beta$ grid (log $x$-scale in both panels), lines connect $\beta$ in
 ascending order. CEB
 one curve per panel; EPB three ($\rho \in \{1, 6, 12\}$).}
 \label{fig:info-plane-extra}

@@ -7,8 +7,8 @@
 注意：I(X;Z) 为 InfoNCE 下界；I(Y;Z) 为随机路径 MC 估计（分类 ln K − CE_MC
 下界、回归高斯近似）；分类 I(X;Z|Y) 为类条件高斯混合的精确 MC 估计
 （logsumexp 对已知分量混合密度精确；mean-log 参考值 I_XZ_given_Y_upper
-在 σ→0 时发散、不参与绘图）；回归 I(X;Z|Y) 仍为随机路径两估计之差
-（非严格界，如实标注）。x 轴数值非正时退化为线性刻度。
+在 σ→0 时发散、不参与绘图）；回归 I(X;Z|Y) 为核加权 y-条件高斯混合的
+直接 MC 估计（逐项 KL 非负）。x 轴数值非正时退化为线性刻度（兜底）。
 
 输出（白底、英文标签、无总标题）：
     paper/figures/fig_info_plane_{task}.png
@@ -68,8 +68,8 @@ def load(task):
 
 def series_points(data, is_cls):
     """→ [(label, [(beta, I_XZ, I_YZ, cert), ...])]，β 升序；cert 为
-    I(X;Z|Y) 点估计（分类 = logsumexp 精确 MC 估计、回归 = 随机路径差值）。
-    分类标 OPB、回归（housing）标 EPB，与论文实例名一致。"""
+    I(X;Z|Y) 点估计（分类 = logsumexp 精确 MC 估计、回归 = 核加权混合
+    直接估计）。分类标 OPB、回归（housing）标 EPB，与论文实例名一致。"""
     out = []
     for model, anchors in (("ceb", [""]), ("opb", ["1", "6", "12"])):
         for a in anchors:
@@ -139,11 +139,11 @@ def plot_task(task, data):
           "$I(Y;Z)$ (nats)" if task != "housing" else "$I(Y;Z)$ (nats, Gaussian approx.)",
           xlog=True, paper_style=paper_style,
           letter="(c)" if paper_style else None)
-    # 证书平面：x = I(X;Z|Y)（分类为直接估计两界中点、回归为随机路径差值），
-    # y = I(Y;Z)；x 轴数值非正时退化为线性刻度
+    # 证书平面：x = I(X;Z|Y)（分类为类条件混合直接估计、回归为核加权混合
+    # 直接估计），y = I(Y;Z)；x 轴数值非正时退化为线性刻度
     cert_min = min(p[3] for _, pts in series for p in pts)
     cert_label = ("$I(X;Z|Y)$ (nats, direct est.)" if task != "housing"
-                  else "$I(X;Z|Y)$ (nats, stochastic-path difference)")
+                  else "$I(X;Z|Y)$ (nats, kernel-mixture est.)")
     _draw(series, lambda p: p[3], lambda p: p[2],
           FIG_DIR / f"fig_certificate_plane_{task}.png",
           cert_label,
