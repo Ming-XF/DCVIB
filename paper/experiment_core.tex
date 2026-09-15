@@ -41,11 +41,11 @@ readout); GPB is OPB on classification rows and EPB on
 regression rows. The main comparison is single-dimensional in tuned
 hyperparameters: the plain backbone has no method-specific
 hyperparameters, every $\beta$-weighted method is swept over the same
-six-point $\beta$ grid, and NCBD and AdaCap use six-value grids of their
-own. GPB's anchor scale $a$ (resp.\ isometric scale $\rho$) is a
-trainable model parameter, shared across classes and clipped to
-$[1,20]$ during training, so GPB receives no
-larger tuning budget than the others. For each method and setting,
+30-point $\beta$ grid (six decades, five values per decade), and NCBD and
+AdaCap use 30-value grids of their own. GPB's anchor scale $a$ (resp.\
+isometric scale $\rho$) is fixed and selected on the five-value grid
+$\{1,3,6,9,12\}$, so GPB searches a two-dimensional grid of $6\times5=30$
+configurations, matching the baselines' budget. For each method and setting,
 the configuration with the best mean validation metric is selected
 (accuracy on classification settings, $R^2$ on regression settings). The
 reported results are means with standard deviations over seeds, and
@@ -259,8 +259,8 @@ term, whereas OPB's KL stays anchored at the geometric scale of its fixed prior
 ($48$ at $\beta=0.1$, $21$ at $\beta=1$) and is dominated by anchor alignment, so
 the structure is retained rather than absorbed. Together the curves make the
 anchor-scale/compression trade-off visible across the useful operating range.
-The complementary scale-axis view, reading the full nine-point scale
-grid at three fixed $\beta$ levels, is reported in
+The complementary scale-axis view, reading the full five-point scale
+grid $\{1,3,6,9,12\}$ at three fixed $\beta$ levels, is reported in
 Appendix~\ref{app:scale-sensitivity}.
 
 \subsection{Information-plane diagnostic}
