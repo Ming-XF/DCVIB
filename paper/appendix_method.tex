@@ -64,7 +64,7 @@ Method & Method-specific hyperparameters & Configs. \\
 \hline
 Base & --- & $1$ \\
 VIB, SVIB, NIB, CEB, DVCCA & $\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ & $6$ \\
-NCBD & temperature $\tau\in\{0.05,0.1,0.2,0.3,0.5,1\}$ & $6$ \\
+NCBD & temperature $T\in\{0.05,0.1,0.2,0.3,0.5,1\}$ & $6$ \\
 AdaCap & Tikhonov $\lambda\in\{10^{-2},10^{-1},1,10,10^{2},10^{3}\}$ & $6$ \\
 GPB (OPB / EPB) & the same $\beta$ grid; $a=\rho$ trainable & $6$ \\
 \hline
@@ -143,7 +143,7 @@ theoretically cleanest ablation, at the price of prespecifying a latent coordina
 (B) \emph{trainable normalized axis}, $u = W/\|W\|$ with $W$ trained and normalized
 at every step, our main variant, which keeps the scale $\rho$ exact while allowing
 the model to choose the axis; (C) \emph{unconstrained linear axis},
-$\mu_p(y) = W \tilde y$: the simplest ablation, still isometric by linearity but
+$m_\theta(y) = W \tilde y$: the simplest ablation, still isometric by linearity but
 with a free scale that can shrink and weaken the geometry. We recommend (B); the
 frozen-prior variant EPB-RV (Appendix~\ref{app:ablation},
 Table~\ref{tab:ablation-ci-epb}) shows the trainable rotation carries no benefit
@@ -157,12 +157,12 @@ nonlinearly and saturate, the isometric axis preserves label distances at every 
 (with the price that anchor norms grow with $|\tilde y|$; a line and a fixed-radius
 sphere intersect in at most two points, so isometry and equal norms cannot both hold).
 All prior means lie on one line; for $y_i < y_j < y_k$ the distances add,
-$\|\mu_p(y_i)-\mu_p(y_k)\| = \|\mu_p(y_i)-\mu_p(y_j)\| + \|\mu_p(y_j)-\mu_p(y_k)\|$:
+$\|m_\theta(y_i)-m_\theta(y_k)\| = \|m_\theta(y_i)-m_\theta(y_j)\| + \|m_\theta(y_j)-m_\theta(y_k)\|$:
 order and magnitude of label differences are encoded exactly.
 
 \paragraph{Multidimensional regression labels.} For $y \in \R^m$ ($m \le d$), the
 same construction extends verbatim: take $W \in \R^{d \times m}$, its thin polar
-factor $Q = W (W^{\top}W)^{-1/2}$, and the prior $\mu_p(y) = \rho\, Q\, \tilde y$,
+factor $Q_\theta = W (W^{\top}W)^{-1/2}$, and the prior $m_\theta(y) = \rho\, Q_\theta\, \tilde y$,
 which is isometric in the label metric; the scalar case is $m = 1$ with $Q = u$. The
 label metric must be declared before standardization, otherwise ``isometric'' has no
 unique meaning.

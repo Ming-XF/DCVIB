@@ -80,12 +80,12 @@ claims: the noise-free case realizes the zero floor exactly, the measured mismat
 tracks the analytic floor at every noise level, and the fitted objective never
 leaves the explicit comparator's reachable set. The construction uses $K=10$,
 $X=e_C$, and symmetric
-label noise $r\in\{0,0.1,0.2,0.4\}$ with OPB $(a,\tau)=(6,1)$. The analytic
+label noise $r_{\rm n}\in\{0,0.1,0.2,0.4\}$ with OPB $(a,\tau)=(6,1)$. The analytic
 ambiguity floor (Appendix~\ref{app:noisy-alignment-sensitivity}) grows from $0$ to
-$11.2$ nats as $r$ runs over the noise grid. The explicit comparator takes
+$11.2$ nats as $r_{\rm n}$ runs over the noise grid. The explicit comparator takes
 posterior mean $h_0(x)=a\sum_k\eta_k(x)q_k$ and covariance $\tau^2I$, where
-$\eta_k(x)=P(Y=k\mid X=x)$; its KL equals $\delta_{\rm noise}(r)$ exactly (Proposition~\ref{prop:pgib-ambiguity-decomposition}), and its
-anchor-energy risk is $C_{\rm comp}(r)$. The training protocol (population-weighted
+$\eta_k(x)=P(Y=k\mid X=x)$; its KL equals $\delta_{\rm noise}(r_{\rm n})$ exactly (Proposition~\ref{prop:pgib-ambiguity-decomposition}), and its
+anchor-energy risk is $C_{\rm comp}(r_{\rm n})$. The training protocol (population-weighted
 objective, warm start, Monte Carlo risk estimation) is in
 Appendix~\ref{app:noisy-alignment-sensitivity}. Whenever the
 fitted objective satisfies $\widehat L\le L_{\rm comp}=C_{\rm comp}+\beta\delta_{\rm noise}$,
@@ -99,7 +99,7 @@ Appendix~\ref{app:noisy-alignment-sensitivity}.
 
 Table~\ref{tab:controlled-noisy-alignment} reads the transition from the zero to the
 non-zero floor column by column. The zero-noise row reproduces the exact-realizability
-limit to the stored precision. For $r>0$ the measured mismatch tracks the analytic
+limit of Corollary~\ref{cor:pgib-exact-alignment} to the stored precision. For $r_{\rm n}>0$ the measured mismatch tracks the analytic
 floor at both ends of the $\beta$ grid: at $\beta=10$ it matches the floor to within
 $0.02$ nats at every noise level, while at the smallest $\beta$ it sits above the
 floor by an excess that grows with the noise level (from $0.014$ to $0.032$ nats) and
@@ -118,10 +118,10 @@ measured mismatch. All statistics are first computed within each seed and then
 aggregated across seeds, and class or bin pairs are not treated as
 independent replicates. For test examples of class $k$, let
 $\widehat D_k=\frac1{n_k}\sum_{n:y_n=k}\|\mu_\phi(x_n)-a q_{\theta,k}\|^2/(2\tau^2)$
-and $\widehat m_k=\frac1{n_k}\sum_{n:y_n=k}\mu_\phi(x_n)$, the sample counterparts
-of $D(y)$ and $m(y)$ in Theorem~\ref{thm:pgib-separation}
+and $\widehat{\bar\mu}_k=\frac1{n_k}\sum_{n:y_n=k}\mu_\phi(x_n)$, the sample counterparts
+of $D(y)$ and $\bar\mu(y)$ in Theorem~\ref{thm:pgib-separation}
 ($\tau=1$). Its two steps read, at sample level, as the per-class
-Jensen check $\|\widehat m_k-aq_{\theta,k}\|\le\sqrt{2\tau^2\widehat D_k}$ and the
+Jensen check $\|\widehat{\bar\mu}_k-aq_{\theta,k}\|\le\sqrt{2\tau^2\widehat D_k}$ and the
 per-pair separation bound
 \begin{equation}
 \widehat{\mathrm{LB}}_{ij}=\sqrt{2}a-\sqrt{2\tau^2\widehat D_i}-\sqrt{2\tau^2\widehat D_j},

@@ -57,9 +57,7 @@ loss for continuous labels; the anchor means are reused as prediction anchors th
 a tied readout, so the declared geometry is shared by compression and prediction.
 Since the geometric prior remains a label-conditional reference, the CEB certificate
 of Eq.~\eqref{eq:gap} carries over unchanged and every member of $\mathcal G$ inherits
-the guarantees of Section~\ref{sec:guarantees}. The deterministic degeneration of the
-CEB objective and the strict convexity that the anchored reference supplies in its
-place are collected in Appendix~\ref{app:theory}.
+the guarantees of Section~\ref{sec:guarantees}.
 
 \paragraph{Instances: OPB and EPB.}\label{sec:opb}
 For classification, OPB evaluates a prior encoder on all class labels and uses its
@@ -94,7 +92,7 @@ the training set as $\tilde y$ with the statistics frozen. Let $W\in\R^{d\times1
 a trainable direction with per-step normalization $u=W/\|W\|$; the isometric prior is
 \begin{equation}
 p_\theta^{\rm EPB}(z|y)=\mathcal N(\rho\tilde y\,u,\tau^2I),\qquad
-\|\mu_p(y)-\mu_p(y')\|=\rho|\tilde y-\tilde y'|,
+\|m_\theta(y)-m_\theta(y')\|=\rho|\tilde y-\tilde y'|,
 \label{eq:epb-prior}
 \end{equation}
 so latent distances equal $\rho$ times standardized label distances exactly. Order
@@ -156,7 +154,7 @@ $\beta\ge(\mathcal R(w_0)+\varepsilon)/(d_\star-\mathcal K(w_0))$.
 \label{thm:pgib-separation}
 Suppose $\E\|\mu_\phi(X)\|^2<\infty$ and, for a label value $y$, let
 \begin{equation}
-m(y)=\E[\mu_\phi(X)\mid Y=y],\qquad
+\bar\mu(y)=\E[\mu_\phi(X)\mid Y=y],\qquad
 D(y)=\frac{\E[\|\mu_\phi(X)-m_\theta(y)\|^2\mid Y=y]}{2\tau^2}.
 \label{eq:pgib-class-rate}
 \end{equation}
@@ -164,7 +162,7 @@ Then, for every pair of distinct discrete labels and for $P_Y\otimes P_Y$-almost
 every continuous pair $(y,y')$,
 \begin{equation}
 \begin{aligned}
-\|m(y)-m(y')\|
+\|\bar\mu(y)-\bar\mu(y')\|
 &\ge\|m_\theta(y)-m_\theta(y')\|-\sqrt{2\tau^2D(y)}-\sqrt{2\tau^2D(y')}\\
 &\ge\Delta(y,y')-\sqrt{2\tau^2D(y)}-\sqrt{2\tau^2D(y')}.
 \end{aligned}
@@ -194,10 +192,9 @@ $\sup_\beta\varepsilon_\beta<\infty$. Define
 B_\beta:=\mathcal K(w_0)+\frac{\mathcal R(w_0)+\varepsilon_\beta}{\beta}.
 \label{eq:pgib-beta-budget}
 \end{equation}
-For any label set $S$ and level $\bar D_\beta$ with $D(y)\le\bar D_\beta$ for every
-$y\in S$,
+For any label set $S$ and mismatch level $\bar D_\beta\ge\sup_{y\in S}D(y)$,
 \begin{equation}
-\|m(y)-m(y')\|
+\|\bar\mu(y)-\bar\mu(y')\|
 \ge \Delta(y,y')-2\sqrt{2\tau^2\bar D_\beta}
 \qquad\text{for distinct } (y,y')\in S^2.
 \label{eq:pgib-beta-separation}

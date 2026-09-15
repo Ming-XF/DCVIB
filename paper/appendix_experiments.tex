@@ -23,8 +23,8 @@ report, for each setting, the paired difference of GPB over every baseline
 (GPB minus baseline) with a bootstrap $95\%$ confidence interval: the differences
 are paired across the shared seeds, the interval is the percentile interval of
 $B = 10{,}000$ resamples of the per-run differences (fixed seed, reproducible), and
-the non-inferiority margin is $\delta = 0.2$ percentage points of accuracy or
-$\delta = 0.005$ in $R^2$. Bold marks a lower bound above zero (significant
+the non-inferiority margin is $\delta_{\rm NI} = 0.2$ percentage points of accuracy or
+$\delta_{\rm NI} = 0.005$ in $R^2$. Bold marks a lower bound above zero (significant
 advantage) and $^{\dagger}$ a lower bound within the margin (tied); the best
 configuration per method is the same as in the main table. The last table covers
 the external non-IB baselines, NCBD on the classification settings and AdaCap on
@@ -37,21 +37,21 @@ ZINC ($-0.043$ $R^2$).
 
 The analytic ambiguity floor is
 \begin{equation}
-\delta_{\rm noise}(r)=\frac{a^2}{2\tau^2}
-\left[1-(1-r)^2-\frac{r^2}{K-1}\right],
+\delta_{\rm noise}(r_{\rm n})=\frac{a^2}{2\tau^2}
+\left[1-(1-r_{\rm n})^2-\frac{r_{\rm n}^2}{K-1}\right],
 \label{eq:synthetic-noise-floor}
 \end{equation}
 which follows from Proposition~\ref{prop:pgib-ambiguity-decomposition} with the
 explicit comparator of Section~\ref{sec:controlled-validation}: its posterior mean
 $h_0(x)=a\sum_k\eta_k(x)q_k$ annihilates the bias term, its covariance $\tau^2I$
-annihilates $V_0$, and $\eta_k(x)$ equals $1-r$ on the true class and $r/(K-1)$
-otherwise, so $1-\|\eta\|_2^2=1-(1-r)^2-r^2/(K-1)$. It grows from $0$ to $11.2$
-nats as $r$ runs over the noise grid.
+annihilates $V_0$, and $\eta_k(x)$ equals $1-r_{\rm n}$ on the true class and $r_{\rm n}/(K-1)$
+otherwise, so $1-\|\eta\|_2^2=1-(1-r_{\rm n})^2-r_{\rm n}^2/(K-1)$. It grows from $0$ to $11.2$
+nats as $r_{\rm n}$ runs over the noise grid.
 
 Training evaluates the population objective by weighting all $K^2$
 clean/observed-label pairs by the noise model, with a descending-$\beta$ warm start
 to remove avoidable optimization error at the small-$\beta$ end; the comparator risk
-$C_{\rm comp}(r)$ is estimated by Monte Carlo. The population-weighted experiment of
+$C_{\rm comp}(r_{\rm n})$ is estimated by Monte Carlo. The population-weighted experiment of
 Section~\ref{sec:controlled-validation} uses a fixed frame and the standard trainable
 posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity} changes these
 choices one at a time. Fixing the posterior variance to
@@ -123,7 +123,7 @@ transfer).}
 
 \paragraph{Regression.} We partition the standardized test labels into $20$
 equal-width bins and merge any bin containing fewer than $30$ examples. Let
-$\bar y_b$ be the mean label of bin $B_b$, $\widehat m_b$ its posterior center,
+$\bar y_b$ be the mean label of bin $B_b$, $\widehat{\bar\mu}_b$ its posterior center,
 $\widehat D_b$ its average sample-to-own-anchor mismatch, and
 $h_b:=\operatorname{diam}(B_b)$. The finite-bin lower bound is
 \begin{equation}
@@ -286,7 +286,7 @@ lies inside the retained band.
 \subsection{Information-plane estimates}
 \label{app:info-plane}
 Estimator protocol.\ $I(X;Z)$ is estimated by the InfoNCE lower bound
-\citep{oord2018representation} ($\log B-\mathcal{L}_{\mathrm{NCE}}$, $B=4096$; one
+\citep{oord2018representation} ($\log N_{\rm neg}-\mathcal{L}_{\mathrm{NCE}}$, $N_{\rm neg}=4096$; one
 critic per run, trained on the training split, the bound read off the test split with
 $z\sim q(z|x)$). $I(Y;Z)$ is read on the same sampled posterior: $H(Y)-\mathrm{CE}$
 with the cross-entropy averaged over $M=20$ draws $z\sim q(z|x)$ per test point

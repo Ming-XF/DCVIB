@@ -633,7 +633,7 @@ def gen_result_ci():
             "backbone and VIB (GPB minus baseline, per setting; classification in "
             "percentage points, regression in $R^2$). Bold: lower CI bound above "
             "zero; $^{\\dagger}$: lower bound within the non-inferiority margin "
-            "$\\delta$ (tied)."
+            "$\\delta_{\\rm NI}$ (tied)."
         ),
         "tab:main_result_ci_svib_nib": (
             "Paired-difference 95\\% confidence intervals of GPB over SVIB and NIB "
@@ -986,7 +986,7 @@ def gen_result5():
         "\\label{tab:controlled-noisy-alignment}",
         "\\begin{tabular}{c c c c c c}",
         "\\hline",
-        "$r$ & $\\delta_{\\rm noise}$ & $\\widehat D(\\beta{=}10^{-3})$ & "
+        "$r_{\\rm n}$ & $\\delta_{\\rm noise}$ & $\\widehat D(\\beta{=}10^{-3})$ & "
         "$\\widehat D(\\beta{=}10)$ & max excess & $\\widehat L-L_{\\rm comp}$ \\\\",
         "\\hline",
     ]

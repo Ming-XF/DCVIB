@@ -1,0 +1,89 @@
+% =====================================================================
+% 符号表：统一符号约定。每个符号在全文中只有一种含义；作用域受限的
+% 符号（仅出现在某个命题/章节）在说明中标注。
+% =====================================================================
+\section*{Notation}
+
+Each symbol has a single meaning throughout the paper; symbols confined to one
+statement or section are marked with their scope.
+
+\begin{center}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{l l p{7.5cm}}
+\hline
+Symbol & Object & Meaning \\
+\hline
+\endfirsthead
+\hline
+Symbol & Object & Meaning \\
+\hline
+\endhead
+\hline
+\endfoot
+$X$, $Y$ & variables & input and label random variables \\
+$Z$ ($z$, $Z_{\rm align}$) & code & representation random variable, its realization, and the aligned code of the comparator \\
+$P_{XY}$, $P_Y$ & distributions & data distribution and label marginal \\
+$\E$, $\KL$, $\CE$, $\operatorname{Var}$ & operators & expectation, KL divergence, cross-entropy, variance \\
+$H(\cdot)$, $I(\cdot;\cdot)$ & information & entropy and mutual information \\
+$\mathcal N(\mu,\Sigma)$ & Gaussian & multivariate Gaussian distribution \\
+$q_\phi(z|x)$ & posterior & reparameterized Gaussian encoder distribution \\
+$\mu_\phi(x)$, $\sigma_\phi^2(x)$ & posterior mean / variance & learned diagonal posterior parameters \\
+$p_\theta(z|y)$ & geometric prior & label-conditional Gaussian reference \\
+$m_\theta(y)$ & anchor mean & prior mean function (orthogonal anchors $a\,q_{\theta,k}$ for OPB, isometric axis $\rho\tilde y\,u$ for EPB) \\
+$\tau^2$ & prior variance & fixed isotropic prior covariance scale, $\tau^2=1$ \\
+$a$, $\rho$ & scales & anchor scale (OPB) / isometric scale (EPB) \\
+$Q_\theta$, $q_{\theta,k}$ & frame & all-class polar frame and its $k$-th column \\
+$u$ & unit direction & EPB normalized trainable direction \\
+$W$ & direction matrix & EPB trainable direction before normalization \\
+$u_0$, $q_{0,k}$ & comparator frame & fixed unit direction / fixed orthogonal frame of the explicit comparator \\
+$s_k(z)$ & score & anchor-energy score of class $k$ at representation $z$ \\
+$\tilde y$ ($\tilde Y$) & standardized label & min--max normalized target (and its random variable) \\
+$\hat{\tilde y}$ & prediction & tied projection of the regression head \\
+$\pi_k$, $\pi_{\min}$ & class priors & label probabilities and their minimum \\
+$K$, $d$ & dimensions & number of classes / latent dimension \\
+$d_Y$ & label metric & metric on the label space \\
+$\beta$ & KL weight & compression weight in the objective \\
+$\ell$, $c_\psi$ & loss, readout & prediction loss and classifier/regression head \\
+$w$, $\widehat w$, $w_0$ & models & trainable parameters, trained solution, comparator \\
+$\mathcal L_{\rm GPB}$ & objective & GPB training objective of Eq.~\eqref{eq:pgib-objective} \\
+$\mathcal R(w)$, $\mathcal K(w)$ & risk, KL & prediction risk and expected KL of model $w$ \\
+$\mathcal D(w)$, $D(y)$ & mismatch & anchor mismatch at model / class level \\
+$B_\beta$ & budget & certificate budget of Corollary~\ref{cor:pgib-beta-transfer} \\
+$\bar D_\beta$ & mismatch level & per-label level with $\bar D_\beta\ge\sup_{y\in S}D(y)$ on the considered label set (Corollary~\ref{cor:pgib-beta-transfer}) \\
+$\Delta$, $\bar\Delta$, $\Delta(y,y')$ & declared separation & minimal/maximal anchor distance and the pair lower bound \\
+$\rho_{\min}$, $\rho_{\max}$ & Lipschitz constants & bi-Lipschitz bounds of the anchor map \\
+$\Gamma_{yy'}$ & tightness ratio & separation-tightness ratio of Theorem~2 \\
+$\mathcal G$ & family & geometric prior family of the GPB framework \\
+$\bar\mu(y)$ & posterior center & $\mathbb E[\mu_\phi(X)\mid Y=y]$ \\
+$\eta_k(x)$ ($\eta(x)$) & label probability & $\mathbb P(Y=k\mid X=x)$ and its vector \\
+$h_0(x)$ & comparator mean & explicit comparator's posterior mean \\
+$\nu(X)$ & conditional mean & $\mathbb E[\tilde Y\mid X]$ (EPB) \\
+$V_0$ & covariance mismatch & variance part of the comparator KL \\
+$A_Y$ & random anchor & anchor of the sampled label \\
+$C_{\mathrm G}$ & Bayes risk & Bayes cross-entropy of the aligned comparator (proof of Corollary~\ref{cor:pgib-exact-alignment}) \\
+$\xi$ & coverage fraction & label mass coverage in Corollary~\ref{cor:pgib-beta-transfer} \\
+$\gamma$ & CEB weight & Lagrangian weight of the CEB objective (Appendix A.3 discussion only) \\
+$\delta_{\rm noise}(r_{\rm n})$ & ambiguity floor & analytic floor at noise rate $r_{\rm n}$ \\
+$r_{\rm n}$ & noise rate & symmetric label noise rate (controlled experiment) \\
+$\widehat D$ ($\widehat D_k$), $\widehat{\bar\mu}_k$ & empirical statistics & sample mismatch (per class) and per-class center \\
+$\widehat{\mathrm{LB}}$ & empirical bound & sample separation lower bound \\
+$\widehat L$, $L_{\rm comp}$, $C_{\rm comp}$ & objectives & fitted objective, explicit comparator's objective and risk (controlled experiment) \\
+$P_{\mathrm{pair}}$, $P_e$, $\bar P_e$ & error probabilities & pairwise / overall error of the aligned model and its displayed bound \\
+$\Phi$, $h_2$ & functions & standard normal CDF and binary entropy (Fano corollary) \\
+$\sigma_{\min}(U_\theta)$ & singular value & smallest singular value of the all-class matrix (Assumption, Appendix~\ref{app:construction}) \\
+$T$ & temperature & NCBD temperature (Appendix~\ref{app:setup-details}) \\
+$\lambda$ & Tikhonov & AdaCap Tikhonov regularization (Appendix~\ref{app:setup-details}) \\
+$\delta_{\rm NI}$ & margin & non-inferiority margin of the paired CIs (Appendix~\ref{app:main-ci}) \\
+$B$ & resamples & bootstrap resample count (Appendices~\ref{app:main-ci}, \ref{app:ablation}) \\
+$B_b$, $\bar y_b$, $h_b$, $\bar\mu_i$ & bins & label bin, its representative label, its diameter, and its center (Appendix~\ref{app:direct-mismatch}) \\
+$N_{\rm neg}$, $\mathcal L_{\rm NCE}$ & InfoNCE & negative count and InfoNCE loss (Appendix~\ref{app:info-plane}) \\
+$M$ & draws & Monte Carlo draw count per test point (Appendix~\ref{app:info-plane}) \\
+$h$ & bandwidth & Gaussian-kernel bandwidth of the regression mixture (Appendix~\ref{app:info-plane-extra}) \\
+$\hat q(z|y)$ & mixture & estimated class-conditional mixture density (Appendix~\ref{app:info-plane-extra}) \\
+$\hat y_{\rm MC}$ & prediction & Monte Carlo prediction of the sampled posterior (Appendix~\ref{app:info-plane-extra}) \\
+$\varepsilon$ ($\varepsilon_\beta$) & tolerance & ($\beta$-dependent) optimality tolerance of the training objective \\
+$\varepsilon_\infty$, $\varepsilon_2$ & attack budgets & adversarial perturbation bounds (Appendix~\ref{app:robustness}) \\
+\hline
+\end{longtable}
+\end{center}
