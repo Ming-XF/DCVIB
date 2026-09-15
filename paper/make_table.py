@@ -979,6 +979,11 @@ def gen_result5():
         "\\centering",
         "\\small",
         "\\setlength{\\tabcolsep}{4pt}",
+        "\\caption{Controlled label-noise floor (mean $\\pm$ std over five seeds); "
+        "max excess is $\\max_\\beta(\\widehat D-\\delta_{\\rm noise})$, and the "
+        "last column is the fitted objective minus the explicit comparator "
+        "objective at $\\beta=10$.}",
+        "\\label{tab:controlled-noisy-alignment}",
         "\\begin{tabular}{c c c c c c}",
         "\\hline",
         "$r$ & $\\delta_{\\rm noise}$ & $\\widehat D(\\beta{=}10^{-3})$ & "
@@ -1000,11 +1005,6 @@ def gen_result5():
     lines += [
         "\\hline",
         "\\end{tabular}",
-        "\\caption{Controlled label-noise floor (mean $\\pm$ std over five seeds); "
-        "max excess is $\\max_\\beta(\\widehat D-\\delta_{\\rm noise})$, and the "
-        "last column is the fitted objective minus the explicit comparator "
-        "objective at $\\beta=10$.}",
-        "\\label{tab:controlled-noisy-alignment}",
         "\\end{table}",
     ]
     return "\n".join(lines) + "\n"

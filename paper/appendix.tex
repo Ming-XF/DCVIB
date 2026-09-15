@@ -247,6 +247,14 @@ Table~\ref{tab:search-protocol}.
 \begin{table}[t]
 \centering\small
 \setlength{\tabcolsep}{3pt}
+\caption{Per-method hyperparameter grids of the main comparison
+(Table~\ref{tab:main_result}). Each configuration is trained on the same
+ten seeds under the shared training budget; the configuration with the
+best mean validation metric is selected per method and setting. GPB's
+anchor scale $a$ (resp.\ isometric scale $\rho$) is trained as a shared
+model parameter, clipped to $[1,20]$ during training, so every method
+evaluates the same number of configurations (six).}
+\label{tab:search-protocol}
 \begin{tabular}{l l c}
 \hline
 Method & Method-specific hyperparameters & Configs. \\
@@ -258,14 +266,6 @@ AdaCap & Tikhonov $\lambda\in\{10^{-2},10^{-1},1,10,10^{2},10^{3}\}$ & $6$ \\
 GPB (OPB / EPB) & the same $\beta$ grid; $a=\rho$ trainable & $6$ \\
 \hline
 \end{tabular}
-\caption{Per-method hyperparameter grids of the main comparison
-(Table~\ref{tab:main_result}). Each configuration is trained on the same
-ten seeds under the shared training budget; the configuration with the
-best mean validation metric is selected per method and setting. GPB's
-anchor scale $a$ (resp.\ isometric scale $\rho$) is trained as a shared
-model parameter, clipped to $[1,20]$ during training, so every method
-evaluates the same number of configurations (six).}
-\label{tab:search-protocol}
 \end{table}
 
 \subsection{Construction details}
