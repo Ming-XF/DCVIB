@@ -7,14 +7,33 @@
 
 \subsection{Proofs of the main guarantees}
 
+\begin{lemma}[OPB KL decomposition]
+\label{lem:opb-kl-decomposition}
+For a diagonal posterior covariance and the prior of Eq.~\eqref{eq:opb-prior}, the
+standard diagonal-Gaussian KL formula reads
+\begin{equation}
+\KL\bigl(q_\phi(z|x)\,\|\,p_\theta^{\mathrm{OPB}}(z|y)\bigr)
+= \frac{1}{2\tau^2}\|\mu_\phi(x) - a\,q_{\theta,y}\|^2
++ \frac12 \sum_{r=1}^{d}\Bigl[
+\frac{\sigma_{\phi,r}^2(x)}{\tau^2} - 1 - \log\frac{\sigma_{\phi,r}^2(x)}{\tau^2}
+\Bigr],
+\label{eq:opb-kl-decomposition}
+\end{equation}
+a class-anchor mismatch term plus a variance mismatch term that is non-negative and
+vanishes exactly at $\sigma_{\phi,r}^2(x) = \tau^2$ for all $r$.
+\end{lemma}
+
 \begin{proof}[Proof of Theorem~\ref{prop:pgib-alignment}]
-Since the GPB prior covariance is the fixed isotropic $\tau^2I_d$ with
-$\tau^2=1$, the Gaussian KL contains the mean term
-$\frac1{2\tau^2}\|\mu_\phi(x)-m_\theta(y)\|^2
-=\|\mu_\phi(x)-m_\theta(y)\|^2/(2\tau^2)$. Hence
-$\mathcal D(\widehat w)\le\mathcal K(\widehat w)$. For any feasible $w_0$ in the
-same family, $\varepsilon$-optimality of $\widehat w$, $\ell\ge0$, and $\beta>0$
-give
+The Gaussian KL of Lemma~\ref{lem:opb-kl-decomposition} is the sum of its mean and
+variance terms, the latter non-negative, so with the fixed prior variance $\tau^2=1$,
+\begin{equation*}
+\KL\bigl(q_\phi(z|x)\,\|\,p_\theta(z|y)\bigr)
+\ge\frac1{2\tau^2}\|\mu_\phi(x)-m_\theta(y)\|^2
+=\frac{\|\mu_\phi(x)-m_\theta(y)\|^2}{2},
+\end{equation*}
+and hence $\mathcal D(\widehat w)\le\mathcal K(\widehat w)$. For any feasible $w_0$
+in the same family, $\varepsilon$-optimality of $\widehat w$, $\ell\ge0$, and
+$\beta>0$ give
 \begin{equation*}
 \beta\mathcal K(\widehat w)
 \le \mathcal R(\widehat w)+\beta\mathcal K(\widehat w)
@@ -25,11 +44,16 @@ Division by $\beta$ proves Eq.~\eqref{eq:pgib-comparator-bound}.
 
 \begin{proof}[Proof of Theorem~\ref{thm:pgib-separation}]
 Jensen's inequality gives
-$\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2 D(y)}$
+\begin{equation*}
+\|m(y) - m_\theta(y)\| \le \sqrt{2\tau^2 D(y)}
+\end{equation*}
 (the norm is convex, and $\E\|\mu_\phi(X)\|^2<\infty$ makes $m(y)$ well defined),
 and the triangle inequality on
-$m(y) - m(y') = (m(y) - m_\theta(y)) + (m_\theta(y) - m_\theta(y'))
-+ (m_\theta(y') - m(y'))$ gives the two-level bound of
+\begin{equation*}
+m(y) - m(y') = (m(y) - m_\theta(y)) + (m_\theta(y) - m_\theta(y'))
++ (m_\theta(y') - m(y'))
+\end{equation*}
+gives the two-level bound of
 Eq.~\eqref{eq:pgib-separation}, the last step
 by the definition of $\Delta(y,y')$. The first level is positive exactly
 when $\Gamma_{yy'}<1$ and the declared-margin level exactly when
@@ -37,8 +61,12 @@ $\sqrt{2\tau^2D(y)}+\sqrt{2\tau^2D(y')}<\Delta(y,y')$; for OPB the
 anchor pair distance is the constant $\sqrt2a$ of
 Eq.~\eqref{eq:opb-prior}, so the declared bound satisfies $\Delta(y,y')=\sqrt2a$ and
 the two conditions coincide. With equal mismatch $D$ the common condition
-$\Gamma_{yy'}=2\sqrt{2\tau^2D}/(\sqrt2a)<1$ reduces to
-$D<a^2/(4\tau^2)$. For continuous labels the Jensen inequality holds
+\begin{equation*}
+\Gamma_{yy'}=\frac{2\sqrt{2\tau^2D}}{\sqrt2a}<1
+\qquad\Longleftrightarrow\qquad
+D<\frac{a^2}{4\tau^2}.
+\end{equation*}
+For continuous labels the Jensen inequality holds
 pointwise for $P_Y$-a.e.\ $y$ (regular conditional expectation), and intersecting
 the two measure-one sets of valid $y$'s yields the $P_Y\otimes P_Y$-almost-everywhere
 pair statement.
@@ -51,18 +79,29 @@ estimated by
 binning the label axis into intervals $B_i$ with representative labels $\bar y_i$
 and centers $m_i = \E[\mu_\phi(X) \mid Y \in B_i]$; the bin diameter adds a
 quantization error bounded by
-$\rho_{\max}\,\operatorname{diam}(B_i) + \rho_{\max}\,\operatorname{diam}(B_j)$ (by
-the upper bound of Eq.~\eqref{eq:pgib-lipschitz}), which vanishes as the bins
+\begin{equation*}
+\rho_{\max}\,\operatorname{diam}(B_i) + \rho_{\max}\,\operatorname{diam}(B_j)
+\end{equation*}
+(by the upper bound of Eq.~\eqref{eq:pgib-lipschitz}), which vanishes as the bins
 shrink. The separation statement itself is pointwise and needs no binning.
 \end{remark}
 
 \begin{proof}[Proof of Corollary~\ref{cor:pgib-beta-transfer}]
 Theorem~\ref{prop:pgib-alignment} gives
-$\mathcal D(\widehat w_\beta)\le B_\beta$. For discrete labels, the tower property
-gives $\mathcal D(\widehat w_\beta)=\sum_k\pi_kD(k)$, hence
-$D(k)\le B_\beta/\pi_k\le B_\beta/\pi_{\min}$; for continuous labels, Markov's
-inequality on the nonnegative random variable $D(Y)$ gives
-$P_Y(D(Y)>B_\beta/\xi)\le\xi$. In both cases
+\begin{equation*}
+\mathcal D(\widehat w_\beta)\le B_\beta.
+\end{equation*}
+For discrete labels, the tower property gives
+$\mathcal D(\widehat w_\beta)=\sum_k\pi_kD(k)$, hence
+\begin{equation*}
+D(k)\le B_\beta/\pi_k\le B_\beta/\pi_{\min};
+\end{equation*}
+for continuous labels, Markov's inequality on the nonnegative random variable
+$D(Y)$ gives
+\begin{equation*}
+P_Y\bigl(D(Y)>B_\beta/\xi\bigr)\le\xi.
+\end{equation*}
+In both cases
 Theorem~\ref{thm:pgib-separation} then gives
 Eq.~\eqref{eq:pgib-beta-separation}. The rate statement follows
 directly from the definition of $B_\beta$: with $\mathcal K(w_0)=0$ and
@@ -129,13 +168,16 @@ The conditional bias--variance identity then yields
 =a^2\E[1-\|\eta(X)\|_2^2]
 +\E\left\|h(X)-a\sum_k\eta_k(X)q_{0,k}\right\|^2.
 \end{equation*}
-Adding the diagonal-Gaussian covariance term $V_0$ proves
-Eq.~\eqref{eq:opb-ambiguity-decomposition}. For EPB set
-$A_Y:=\rho\tilde Y u_0$. Then
-$\E[A_Y\mid X]=\rho\nu(X)u_0$ and
-$\E[\|A_Y-\E[A_Y\mid X]\|^2\mid X]
-=\rho^2\operatorname{Var}(\tilde Y\mid X)$. The same identity plus $V_0$ proves
-Eq.~\eqref{eq:epb-ambiguity-decomposition}.
+Adding the diagonal-Gaussian covariance term $V_0$ of
+Lemma~\ref{lem:opb-kl-decomposition} proves
+Eq.~\eqref{eq:opb-ambiguity-decomposition}. For EPB set $A_Y:=\rho\tilde Y u_0$; then
+\begin{equation*}
+\E[A_Y\mid X]=\rho\nu(X)u_0
+\qquad\text{and}\qquad
+\E\bigl[\|A_Y-\E[A_Y\mid X]\|^2\mid X\bigr]
+=\rho^2\operatorname{Var}(\tilde Y\mid X).
+\end{equation*}
+The same identity plus $V_0$ proves Eq.~\eqref{eq:epb-ambiguity-decomposition}.
 \end{proof}
 
 Substituting either decomposition into $B_\beta$ in
@@ -161,13 +203,18 @@ for classification. For EPB regression,
 \begin{proof}
 For classification, the assumed comparator $q(z|x)=p_\theta(z|y)$ has
 $\mathcal K(w_0)=0$. Its Bayes cross-entropy is
-$C_{\mathrm G}=H(Y\mid Z_{\mathrm{align}})\le\ln K$; with shared covariance the
-determinant factors cancel and its posterior is the anchor-energy rule. Applying
-Eq.~\eqref{eq:pgib-comparator-bound} gives Eq.~\eqref{eq:pgib-alignment}. For
-regression the aligned comparator again has zero KL. Under the tied head its error is
-$(\tau/\rho)\eta$, $\eta\sim\mathcal N(0,1)$, so its standardized squared risk is
-$\tau^2/\rho^2$; the same proposition gives
-Eq.~\eqref{eq:pgib-alignment-regression}.
+\begin{equation*}
+C_{\mathrm G}=H(Y\mid Z_{\mathrm{align}})\le\ln K,
+\end{equation*}
+since with shared covariance the determinant factors cancel and its posterior is the
+anchor-energy rule. Applying Eq.~\eqref{eq:pgib-comparator-bound} gives
+Eq.~\eqref{eq:pgib-alignment}. For regression the aligned comparator again has zero
+KL. Under the tied head its error is $(\tau/\rho)\eta$ with
+$\eta\sim\mathcal N(0,1)$, whose standardized squared risk is
+\begin{equation*}
+\tau^2/\rho^2;
+\end{equation*}
+the same proposition gives Eq.~\eqref{eq:pgib-alignment-regression}.
 \end{proof}
 
 \begin{proposition}[Positive rate cost of class-independent means]
@@ -182,10 +229,16 @@ If $\E[\mu_\phi(X)\mid Y=k]=c$ for every class, then
 
 \begin{proof}
 By Jensen's inequality the left side is at least
-$\tfrac{1}{2\tau^2}\sum_k \pi_k \|c - a q_{\theta,k}\|^2
-= \tfrac{1}{2\tau^2}\bigl(\|c\|^2 - 2a\,c^{\top}\!\sum_k\pi_k q_{\theta,k} + a^2\bigr)$.
-Minimizing over $c$ gives $c = a\sum_k\pi_k q_{\theta,k}$; by orthonormality
-$\|\sum_k\pi_k q_{\theta,k}\|^2 = \sum_k \pi_k^2$, yielding Eq.~\eqref{eq:opb-collapse}.
+\begin{equation*}
+\tfrac{1}{2\tau^2}\sum_k \pi_k \|c - a q_{\theta,k}\|^2
+= \tfrac{1}{2\tau^2}\Bigl(\|c\|^2 - 2a\,c^{\top}\!\sum_k\pi_k q_{\theta,k} + a^2\Bigr).
+\end{equation*}
+Minimizing over $c$ gives
+\begin{equation*}
+c = a\sum_k\pi_k q_{\theta,k},
+\end{equation*}
+and by orthonormality $\|\sum_k\pi_k q_{\theta,k}\|^2 = \sum_k \pi_k^2$, yielding
+Eq.~\eqref{eq:opb-collapse}.
 \end{proof}
 
 \begin{corollary}[The orthogonal instance instantiates conditional posterior separation]
@@ -198,41 +251,23 @@ For OPB, $\tau^2=1$ and $\Delta(y,y')=\sqrt2a$, so
 \end{corollary}
 \subsection{Additional theoretical results}
 
-\begin{lemma}[OPB KL decomposition]
-\label{lem:opb-kl-decomposition}
-For a diagonal posterior covariance and the prior of Eq.~\eqref{eq:opb-prior},
-\begin{equation}
-\KL\bigl(q_\phi(z|x)\,\|\,p_\theta^{\mathrm{OPB}}(z|y)\bigr)
-= \frac{1}{2\tau^2}\|\mu_\phi(x) - a\,q_{\theta,y}\|^2
-+ \frac12 \sum_{r=1}^{d}\Bigl[
-\frac{\sigma_{\phi,r}^2(x)}{\tau^2} - 1 - \log\frac{\sigma_{\phi,r}^2(x)}{\tau^2}
-\Bigr],
-\label{eq:opb-kl-decomposition}
-\end{equation}
-a class-anchor mismatch term plus a variance mismatch term that is non-negative and
-vanishes exactly at $\sigma_{\phi,r}^2(x) = \tau^2$ for all $r$. The mismatch term is
-quadratic in the displacement to a reference whose scale and covariance cannot move:
-this is the mechanism behind the strict convexity of
-Proposition~\ref{prop:opb-sweep} below.
-\end{lemma}
-
-\begin{proof}
-Apply the diagonal-Gaussian KL formula with posterior mean $\mu_\phi(x)$, prior mean
-$a\,q_{\theta,y}$, posterior variances $\sigma_{\phi,r}^2(x)$, and the fixed prior
-variance $\tau^2$.
-\end{proof}
-
 \begin{corollary}[Label-information lower bound in the aligned Gaussian model]
 \label{cor:opb-fano}
 Assume uniform classes and exact alignment
 $q(z|Y=k) = \mathcal{N}(a\,q_{\theta,k}, \tau^2 I_d)$. The pairwise error probability
 of the nearest-anchor classifier is
-$P_{\mathrm{pair}} = \Phi\bigl(-\frac{a}{\sqrt{2}\,\tau}\bigr)$, with
-$P_e \le \min\{1, (K-1)P_{\mathrm{pair}}\}$, and whenever the displayed bound
-$\bar P_e \le 1 - 1/K$, Fano's inequality gives
-$I(Y;Z) \ge \log K - h_2(\bar P_e) - \bar P_e \log(K-1)$. This links the anchor
-scale-to-noise ratio $a/\tau$ to the retained label information, conditionally on the
-aligned Gaussian model.
+\begin{equation}
+P_{\mathrm{pair}} = \Phi\Bigl(-\frac{a}{\sqrt{2}\,\tau}\Bigr),
+\qquad
+P_e \le \min\bigl\{1, (K-1)P_{\mathrm{pair}}\bigr\},
+\end{equation}
+and whenever the displayed bound satisfies $\bar P_e \le 1 - 1/K$, Fano's inequality
+gives
+\begin{equation}
+I(Y;Z) \ge \log K - h_2(\bar P_e) - \bar P_e \log(K-1).
+\end{equation}
+This links the anchor scale-to-noise ratio $a/\tau$ to the retained label
+information, conditionally on the aligned Gaussian model.
 \end{corollary}
 
 \begin{proof}
@@ -265,7 +300,8 @@ g(s, \sigma^2) := \E_\eta\Bigl[
 \qquad \eta \sim \mathcal{N}(0, I_K),
 \label{eq:opb-ce-train}
 \end{equation}
-and the training Lagrangian is
+and the training Lagrangian, with the KL term of
+Lemma~\ref{lem:opb-kl-decomposition}, is
 \begin{equation}
 L_\beta(s, \sigma^2) = g(s, \sigma^2)
 + \beta\Bigl[
@@ -313,17 +349,25 @@ has slope $(-c,\, c(\eta_j - \eta_y))$), hence jointly convex in $(s, \sigma)$, 
 expectation $g$ is jointly convex. No strictness is claimed for $g$: for $K = 2$ the
 integrand depends on $(s, \sigma)$ only through the single linear combination
 $-cs + c\sigma(\eta_2 - \eta_1)$, so its Hessian has rank one. Write the KL term as
-$R(s, \sigma) := \tfrac{1}{2\tau^2}(s-a)^2
-+ \tfrac{d}{2}\bigl(\sigma^2/\tau^2 - 1 - \ln(\sigma^2/\tau^2)\bigr)$; its Hessian in
-$(s, \sigma)$ is
-$\nabla^2 R = \operatorname{diag}\bigl(\tau^{-2},\; d\,(\tau^{-2} + \sigma^{-2})\bigr)$,
+\begin{equation*}
+R(s, \sigma) := \tfrac{1}{2\tau^2}(s-a)^2
++ \tfrac{d}{2}\bigl(\sigma^2/\tau^2 - 1 - \ln(\sigma^2/\tau^2)\bigr);
+\end{equation*}
+its Hessian in $(s, \sigma)$ is
+\begin{equation*}
+\nabla^2 R = \operatorname{diag}\Bigl(\tau^{-2},\; d\,\bigl(\tau^{-2} + \sigma^{-2}\bigr)\Bigr),
+\end{equation*}
 strictly positive definite for every $\sigma > 0$, so $\beta R$ is strictly convex in
 $(s, \sigma)$. Hence $L_\beta = g + \beta R$ is the sum of a jointly convex and a
 strictly convex function, and is strictly convex in $(s, \sigma)$. Since
 $R \to +\infty$ as $s \to \infty$, $\sigma \to 0^+$, or $\sigma \to \infty$, the
 sublevel sets of $L_\beta$ are compact, and the unique joint minimizer exists (by
 strict convexity it is unique). For $a > 0$ the minimizer is interior in $s$: at
-$s = 0$, $\partial L_\beta/\partial s = -c\,\E[p_{\mathrm{w}}] - \beta a/\tau^2 < 0$,
+$s = 0$,
+\begin{equation*}
+\frac{\partial L_\beta}{\partial s}\Big|_{s=0}
+= -c\,\E[p_{\mathrm{w}}] - \frac{\beta a}{\tau^2} < 0,
+\end{equation*}
 where $p_{\mathrm{w}}$ is the error probability of the sampled code, so $s^* > 0$.
 \end{proof}
 
