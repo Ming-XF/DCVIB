@@ -91,28 +91,6 @@ since $P P^{\top} = I_K$ and the inverse square root conjugates under $P$. Permu
 the label numbering therefore permutes the anchors accordingly, and no class index
 plays a distinguished role.
 
-\begin{proposition}[Orthogonal class-prior geometry by construction]
-\label{prop:opb-frame}
-Under Eqs.~\eqref{eq:opb-qr}--\eqref{eq:opb-prior}, the class means
-$a_k = a\,q_{\theta,k}$ have Gram matrix $a^2 I_K$: under
-Assumption~\ref{ass:fullrank}, the prior
-supplies a class-separated spherical code at every training step, whatever the
-optimizer does.
-\end{proposition}
-
-\begin{proof}
-The geometry in Eq.~\eqref{eq:opb-prior} follows from
-$Q_\theta^{\top}Q_\theta = I_K$ after scaling by $a$; in particular
-$\|a_i - a_j\|^2 = \|a_i\|^2 + \|a_j\|^2 - 2a_i^{\top}a_j = 2a^2$.
-\end{proof}
-
-\begin{proposition}[Anchor-energy classifier equivalence]
-\label{prop:opb-energy}
-The scores $s_k(z)=-\|z-aq_{\theta,k}\|^2/(2\tau^2)+\log\pi_k$ are Gaussian Bayes
-scores up to a class-independent term. For uniform classes, the corresponding linear
-weights are $(a/\tau^2)q_{\theta,k}$.
-\end{proposition}
-
 \paragraph{Initialization, monitoring, and re-initialization.} The posterior logvar
 head is zero-initialized ($\sigma^2 = \tau^2 = 1$ at initialization, so training
 starts at $\KL \approx \tfrac{1}{2\tau^2} a^2$); the prior encoder is
@@ -132,9 +110,11 @@ Their prior covariance is the fixed shared $\tau^2I$ with $\tau^2=1$ (matching t
 zero-initialized posterior at $\sigma^2=1$ so training starts at
 $\KL\approx a^2/(2\tau^2)$), with no learned prior-covariance parameters. The
 posterior retains its learned diagonal covariance $\sigma^2_\phi(x)$, as specified
-in Eq.~\eqref{eq:pgib-covariance}. Proposition~\ref{prop:opb-energy} therefore
-applies verbatim: the anchor-energy readout is the exact Gaussian Bayes head of the
-benchmark model. The direct diagnostics in Section~\ref{sec:direct-mismatch}
+in Eq.~\eqref{eq:pgib-covariance}. The anchor-energy readout is the exact Gaussian
+Bayes head of the benchmark model: the scores of Eq.~\eqref{eq:opb-energy} are
+Gaussian Bayes scores up to a class-independent term, and for uniform classes the
+corresponding linear weights are $(a/\tau^2)q_{\theta,k}$. The direct diagnostics
+in Section~\ref{sec:direct-mismatch}
 normalize by the declared $\tau^2$.
 
 \paragraph{EPB axis choices.} Three variants of the direction: (A) \emph{fixed

@@ -169,24 +169,45 @@ where $V_0$ is the covariance mismatch. For EPB regression,
 +\frac1{2\tau^2}\E\|h_0(X)-\rho\nu(X)u_0\|^2+V_0.
 \label{eq:epb-ambiguity-decomposition}
 \end{equation}
+Substituting either decomposition into $B_\beta$ in
+Corollary~\ref{cor:pgib-beta-transfer} separates the comparator-dependent geometry
+transfer floor into label ambiguity, encoder mean approximation, and covariance
+mismatch.
 \end{proposition}
 
 \begin{proof}
-For OPB let $A_Y:=a q_{0,Y}$. Conditional on $X$, orthonormality gives
-$\E[A_Y\mid X]=a\sum_k\eta_k(X)q_{0,k}$ and
+For a comparator with posterior mean $h_0$ and diagonal covariance,
+Lemma~\ref{lem:opb-kl-decomposition} splits the KL into its mean and variance
+terms,
 \begin{equation*}
-\E\!\left[\|A_Y-\E[A_Y\mid X]\|^2\mid X\right]
-=a^2\left(1-\|\eta(X)\|_2^2\right).
+\mathcal K(w_0)=\frac1{2\tau^2}\E\|h_0(X)-A_Y\|^2+V_0,
 \end{equation*}
-The conditional bias--variance identity then yields
+where $A_Y:=a q_{0,Y}$ is the random anchor of the sampled label. It remains to
+decompose the mean term. Conditional on $X$, orthonormality gives
+\begin{equation*}
+\E[A_Y\mid X]=a\sum_k\eta_k(X)q_{0,k},
+\end{equation*}
+and, since every anchor is a unit vector and the frame is orthonormal,
+\begin{equation*}
+\E\Bigl[\|A_Y-\E[A_Y\mid X]\|^2\mid X\Bigr]
+=a^2\Bigl(\E\bigl[\|q_{0,Y}\|^2\mid X\bigr]
+-\Bigl\|\sum_k\eta_k(X)q_{0,k}\Bigr\|^2\Bigr)
+=a^2\Bigl(1-\sum_k\eta_k^2(X)\Bigr).
+\end{equation*}
+The conditional bias--variance identity
+\begin{equation*}
+\E\|h_0(X)-A_Y\|^2
+=\E\Bigl[\|A_Y-\E[A_Y\mid X]\|^2\Bigr]
++\E\Bigl[\|h_0(X)-\E[A_Y\mid X]\|^2\Bigr]
+\end{equation*}
+(the cross term vanishes by the definition of conditional expectation) then gives
 \begin{equation*}
 \E\|h_0(X)-A_Y\|^2
 =a^2\E[1-\|\eta(X)\|_2^2]
-+\E\left\|h_0(X)-a\sum_k\eta_k(X)q_{0,k}\right\|^2.
++\E\left\|h_0(X)-a\sum_k\eta_k(X)q_{0,k}\right\|^2,
 \end{equation*}
-Adding the diagonal-Gaussian covariance term $V_0$ of
-Lemma~\ref{lem:opb-kl-decomposition} proves
-Eq.~\eqref{eq:opb-ambiguity-decomposition}. For EPB set $A_Y:=\rho\tilde Y u_0$; then
+which proves Eq.~\eqref{eq:opb-ambiguity-decomposition}. For EPB set
+$A_Y:=\rho\tilde Y u_0$; then
 \begin{equation*}
 \E[A_Y\mid X]=\rho\nu(X)u_0
 \qquad\text{and}\qquad
@@ -195,11 +216,6 @@ Eq.~\eqref{eq:opb-ambiguity-decomposition}. For EPB set $A_Y:=\rho\tilde Y u_0$;
 \end{equation*}
 The same identity plus $V_0$ proves Eq.~\eqref{eq:epb-ambiguity-decomposition}.
 \end{proof}
-
-Substituting either decomposition into $B_\beta$ in
-Corollary~\ref{cor:pgib-beta-transfer} separates the comparator-dependent geometry
-transfer floor into label ambiguity, encoder mean approximation, and covariance
-mismatch.
 
 \begin{corollary}[Zero-floor exact-realizability special cases]
 \label{cor:pgib-exact-alignment}
@@ -226,18 +242,15 @@ since with shared covariance the determinant factors cancel and its posterior is
 anchor-energy rule. Applying Eq.~\eqref{eq:pgib-comparator-bound} gives
 Eq.~\eqref{eq:pgib-alignment}. For regression the aligned comparator again has zero
 KL. Under the tied head its error is $(\tau/\rho)\eta$ with
-$\eta\sim\mathcal N(0,1)$, whose standardized squared risk is
-\begin{equation*}
-\tau^2/\rho^2;
-\end{equation*}
+$\eta\sim\mathcal N(0,1)$, whose standardized squared risk is $\tau^2/\rho^2$;
 the same proposition gives Eq.~\eqref{eq:pgib-alignment-regression}.
 \end{proof}
 
 \begin{corollary}[Label-information lower bound in the aligned Gaussian model]
 \label{cor:opb-fano}
 Assume uniform classes and exact alignment
-$q(z|Y=k) = \mathcal{N}(a\,q_{\theta,k}, \tau^2 I_d)$. The pairwise error probability
-of the nearest-anchor classifier is
+$q(z|Y=k) = \mathcal{N}(a\,q_{\theta,k}, \tau^2 I_d)$, and let $P_e$ be the error
+probability of the nearest-anchor classifier. Its pairwise error probability is
 \begin{equation}
 P_{\mathrm{pair}} = \Phi\Bigl(-\frac{a}{\sqrt{2}\,\tau}\Bigr),
 \qquad
@@ -248,14 +261,26 @@ gives
 \begin{equation}
 I(Y;Z) \ge \log K - h_2(\bar P_e) - \bar P_e \log(K-1).
 \end{equation}
-This links the anchor scale-to-noise ratio $a/\tau$ to the retained label
-information, conditionally on the aligned Gaussian model.
+Conditionally on the aligned Gaussian model, the declared scale-to-noise ratio
+$a/\tau$ thus fixes how much label information the geometry alone can guarantee,
+the theoretical reference for the task-information plateaus of
+Section~\ref{sec:info-plane}.
 \end{corollary}
 
 \begin{proof}
-Two anchors have distance $\sqrt{2}a$ by Proposition~\ref{prop:opb-frame}; the
-equal-covariance binary decision boundary is halfway between them, giving
-$\Phi(-\sqrt{2}a/(2\tau))$. The union bound and Fano's inequality on
-$[0, 1-1/K]$ conclude.
+The orthonormal frame of Eq.~\eqref{eq:opb-prior} gives any two anchors distance $\sqrt2a$. For
+two Gaussians with the shared covariance $\tau^2I_d$, the Bayes boundary is the
+perpendicular bisector of their centers, and the binary error is the Gaussian tail
+beyond the half-distance,
+\begin{equation*}
+P_{\mathrm{pair}}
+=\mathbb P\bigl(\mathcal N(0,1)>a/(\sqrt2\,\tau)\bigr)
+=\Phi\bigl(-a/(\sqrt2\,\tau)\bigr).
+\end{equation*}
+The union bound over the $K-1$ competing classes gives the displayed bound
+$\bar P_e$. Fano's inequality reads
+$H(Y\mid Z)\le h_2(P_e)+P_e\log(K-1)$; the right-hand side is increasing in its
+argument on $[0,1-1/K]$, so substituting $P_e\le\bar P_e$ preserves the
+inequality, and $I(Y;Z)=H(Y)-H(Y\mid Z)=\log K-H(Y\mid Z)$ concludes.
 \end{proof}
 
