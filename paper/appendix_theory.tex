@@ -5,7 +5,7 @@
 \section{Proofs and theoretical analysis}
 \label{app:theory}
 
-\subsection{Proofs of the main guarantees}
+\paragraph{Proofs of the main guarantees.}
 
 \begin{lemma}[OPB KL decomposition]
 \label{lem:opb-kl-decomposition}
@@ -153,8 +153,7 @@ their geometric diagnostics report realized mismatch and geometry. The controlle
 known-noise experiment instead evaluates the ambiguity term where its population value
 is analytic, including the deterministic distribution as its zero-floor special case.
 
-\subsection{Deferred theory statements and proofs}
-\label{app:deferred-theory}
+\paragraph{Deferred statements and proofs.}
 
 \begin{proposition}[Ambiguity--approximation decomposition]
 \label{prop:pgib-ambiguity-decomposition}
@@ -234,8 +233,6 @@ $\eta\sim\mathcal N(0,1)$, whose standardized squared risk is
 the same proposition gives Eq.~\eqref{eq:pgib-alignment-regression}.
 \end{proof}
 
-\subsection{Additional theoretical results}
-
 \begin{corollary}[Label-information lower bound in the aligned Gaussian model]
 \label{cor:opb-fano}
 Assume uniform classes and exact alignment
@@ -262,33 +259,3 @@ $\Phi(-\sqrt{2}a/(2\tau))$. The union bound and Fano's inequality on
 $[0, 1-1/K]$ conclude.
 \end{proof}
 
-\begin{remark}[Scope and limitations]
-\label{rem:opb-scope}
-The results of the main text establish a structured conditional prior, an exact KL
-geometry, and conditional separation guarantees, and they do \emph{not} establish a
-mutual information upper bound tighter than CEB's: Eq.~\eqref{eq:gap} is the usual
-CEB bound, here for a particular prior family. The orthogonal-frame construction
-fixes all pairwise anchor distances, so the framework should not claim to recover
-arbitrary semantic class similarities. All geometric statements are conditional on
-Assumption~\ref{ass:fullrank}: orthonormality holds exactly by the polar construction
-wherever the factorization exists, and the condition is verified, not imposed,
-along the reported runs (Section~\ref{sec:opb}); the construction is exactly
-equivariant under relabeling of the classes by Eq.~\eqref{eq:opb-equivariance}, so
-no class index plays a distinguished role. If the frame were computed from the
-current input batch rather than from the all-class prior matrix, the prior would
-become batch-dependent and the certificate-preservation argument would no longer
-follow directly. Finally, the anchor-energy classifier of
-Proposition~\ref{prop:opb-energy} fixes the classifier scale to $a/\tau^2$ by
-construction; whether a free classifier (with an explicit norm constraint or
-regularizer) admits its own degenerate route is left to future work, and the free
-linear classifier is kept in the experiments as a variant for comparison.
-The trainable frame and axis constitute a rotation channel that this paper does not
-address: the certificate's zero set contains the full-retention orthogonal label codes
-at any frame rotation (the reference can rotate to meet them, and for the GPB
-instance only the frame rotation remains at certificate zero), so the framework pins
-the \emph{geometry of the code} rather than the retained label information; under the
-aligned Gaussian model the retention is instead governed by the Fano bound of
-Corollary~\ref{cor:opb-fano}. The trainability of the frame and axis is examined
-empirically in the frozen-prior ablation of Appendix~\ref{app:ablation}
-(Tables~\ref{tab:ablation-ci} and~\ref{tab:ablation-ci-epb}).
-\end{remark}
