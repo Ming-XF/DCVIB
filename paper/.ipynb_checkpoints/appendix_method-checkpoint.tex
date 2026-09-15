@@ -6,21 +6,20 @@
 
 \subsection{Complete experimental setup}
 \label{app:setup-details}
-\paragraph{Scope and shared settings.} We evaluate twelve dataset--backbone settings over nine public datasets:
+We evaluate twelve dataset--backbone settings over nine public datasets:
 MNIST, ImageNet-100, Cora, IMDb, AG News, California Housing, STS-B,
 ZINC-12k, and AgeDB, covering MLP, CNN, GCN, and RNN backbones. All
-methods use the same data splits ($60/20/20$ train/validation/test
-with a fixed seed for most datasets, official splits kept where provided,
-e.g., Cora and ZINC-12k), backbone, Gaussian posterior with learned diagonal
+methods use the same data splits --- $60/20/20$ train/validation/test
+with a fixed seed for most datasets, official splits kept where provided
+(Cora, ZINC-12k) --- , backbone, Gaussian posterior with learned diagonal
 variance, bottleneck $d=256$, Adam training, early stopping, and
 validation-based selection; GPB's prior covariance is the
-fixed shared $\tau^2I$ ($\tau^2=1$).
-
-\paragraph{Training defaults and preprocessing.} The shared training defaults are
-hidden sizes $512$--$256$, dropout $0.2$, learning rate $10^{-3}$ (Cora
-uses $10^{-2}$), batch size $512$, and a $200$-epoch budget with early
-stopping (patience $20$); dataset-specific defaults are likewise shared
-by every method on that dataset: STS-B uses a single-layer LSTM with
+fixed shared $\tau^2I$ ($\tau^2=1$). The shared training defaults are
+hidden sizes $512$--$256$, dropout $0.2$, learning rate $10^{-3}$, batch
+size $128$, and a $100$-epoch budget with early stopping (patience
+$10$); dataset-specific defaults are likewise shared by every method on
+that dataset: Cora uses learning rate $10^{-2}$, batch size $512$,
+$200$ epochs, and patience $20$; STS-B uses a single-layer LSTM with
 hidden size $256$ and frozen GloVe embeddings; AG News uses
 $50$-dimensional PCA-reduced BERT features; ImageNet-100 uses $4\times4$
 spatial pool-4 ResNet-50 features; the remaining dataset-specific
@@ -28,29 +27,25 @@ preprocessing is given in the release. Every configuration is trained
 on the same ten seeds ($0$--$9$). Input features are standardized per
 dataset, and regression targets are min--max normalized to $[0,1]$;
 both are fitted on the training split only, and reported MAE is
-rescaled to the original units.
-
-\paragraph{Baselines and search-budget fairness.} The baselines are Base, VIB, SVIB,
+rescaled to the original units. The baselines are Base, VIB, SVIB,
 NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB baselines
-NCBD and AdaCap: NCBD trains unit-hypersphere features and prototypes
-with the NONL contrastive objective (simplex-ETF optimum), and AdaCap
-pairs a permutation contrastive loss with a Tikhonov closed-form readout,
-so the comparison spans geometric/prototype and contrastive non-IB
-mechanisms in addition to the IB variants. GPB is OPB on classification
-rows and EPB on regression rows. The main
+NCBD and AdaCap; GPB is OPB on classification rows and EPB on regression rows. The main
 comparison is single-dimensional in tuned hyperparameters: the plain
 backbone has no method-specific hyperparameters (one configuration),
 every $\beta$-weighted method, VIB, SVIB, NIB, CEB, DVCCA, and GPB, is
 swept over the same six-point $\beta$ grid and selected by the same
 rule, so no method receives a larger search budget than the others;
-NCBD and AdaCap are swept over their own six-value grids; GPB's anchor
-scale $a$ (resp.\ isometric scale $\rho$) is likewise trained as a shared
-model parameter clipped to $[1,20]$, so no method receives a tuning
-advantage. The guarantees of Section 2.2 are stated for any fixed scale
-value and apply verbatim to the trained model with its learned scale held
-fixed, and the same validation-based selection rule applies to every
-ablation variant (Appendix~\ref{app:ablation}). The per-method grids are
-summarized in Table~\ref{tab:search-protocol}.
+NCBD and AdaCap are swept over their own six-value grids. GPB's anchor
+scale $a$ (resp.\ isometric scale $\rho$) is a trainable model parameter
+shared across classes and clipped to
+$[1,20]$ during training. The guarantees of Section 2.2 are stated for
+any fixed scale value and apply verbatim to the trained model with its
+learned scale held fixed. For each method and setting, the
+configuration with the best mean validation metric is selected (accuracy
+on classification settings, $R^2$ on regression settings), under the
+same selection rule for every method and every ablation variant
+(Appendix~\ref{app:ablation}). The per-method grids are summarized in
+Table~\ref{tab:search-protocol}.
 
 \begin{table}[t]
 \centering\small
@@ -78,9 +73,19 @@ GPB (OPB / EPB) & the same $\beta$ grid; $a=\rho$ trainable & $6$ \\
 \subsection{Construction details}
 \label{app:construction}
 
-\paragraph{Initialization, monitoring, and re-initialization.} The construction is
-equivariant under label permutations ($Q_\theta(U_\theta P)=Q_\theta(U_\theta)P$),
-so no class index plays a distinguished role; the posterior logvar
+\paragraph{Polar permutation equivariance.} For any label permutation matrix $P$,
+\begin{equation}
+Q_\theta(U_\theta P)
+= U_\theta P \bigl( P^{\top} U_\theta^{\top} U_\theta P \bigr)^{-1/2}
+= U_\theta \bigl( U_\theta^{\top} U_\theta \bigr)^{-1/2} P
+= Q_\theta(U_\theta)\, P ,
+\label{eq:opb-equivariance}
+\end{equation}
+since $P P^{\top} = I_K$ and the inverse square root conjugates under $P$. Permuting
+the label numbering therefore permutes the anchors accordingly, and no class index
+plays a distinguished role.
+
+\paragraph{Initialization, monitoring, and re-initialization.} The posterior logvar
 head is zero-initialized ($\sigma^2 = \tau^2 = 1$ at initialization, so training
 starts at $\KL \approx \tfrac{1}{2\tau^2} a^2$); the prior encoder is
 identity-initialized, so the initial raw matrix is $U_\theta = [e_1, \dots, e_K]$,
