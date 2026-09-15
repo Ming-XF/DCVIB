@@ -51,17 +51,15 @@ family $\mathcal G$. The objective is
 \qquad z\sim q_\phi(z|X).
 \label{eq:pgib-objective}
 \end{equation}
-The instances studied below, OPB (classification) and EPB (regression), are two
-members of this framework, both realizing the single objective above: the anchor means
-enter the KL and are reused as prediction anchors through the tied readout
-(anchor-energy scores for classification, tied projection for regression), so the
-declared geometry is shared by compression and prediction and no instance-specific
-objective is stated. Here $\ell\ge0$ is cross-entropy for classification and the chosen
-nonnegative regression loss for continuous labels. Moreover, since the geometric prior remains a label-conditional reference, the
-CEB certificate of Eq.~\eqref{eq:gap} carries over unchanged, unifying
-compression with the declared geometry in a single KL term, and any method whose
-reference prior belongs to $\mathcal G$ inherits the guarantees of
-Section~\ref{sec:guarantees}.
+The instances below, OPB (classification) and EPB (regression), realize this single
+objective with $\ell\ge0$ cross-entropy for classification and the chosen regression
+loss for continuous labels; the anchor means are reused as prediction anchors through
+a tied readout, so the declared geometry is shared by compression and prediction.
+Since the geometric prior remains a label-conditional reference, the CEB certificate
+of Eq.~\eqref{eq:gap} carries over unchanged and every member of $\mathcal G$ inherits
+the guarantees of Section~\ref{sec:guarantees}. The deterministic degeneration of the
+CEB objective and the strict convexity that the anchored reference supplies in its
+place are collected in Appendix~\ref{app:theory}.
 
 \paragraph{Instances: OPB and EPB.}\label{sec:opb}
 For classification, OPB evaluates a prior encoder on all class labels and uses its

@@ -1,0 +1,168 @@
+% =====================================================================
+% 附录 B：实验设置与构造细节。由原 appendix.tex 的 A.3/A.4 搬运而来。
+% =====================================================================
+\section{Setup and construction details}
+\label{app:method}
+
+\subsection{Complete experimental setup}
+\label{app:setup-details}
+We evaluate twelve dataset--backbone settings over nine public datasets:
+MNIST, ImageNet-100, Cora, IMDb, AG News, California Housing, STS-B,
+ZINC-12k, and AgeDB, covering MLP, CNN, GCN, and RNN backbones. All
+methods use the same data splits --- $60/20/20$ train/validation/test
+with a fixed seed for most datasets, official splits kept where provided
+(Cora, ZINC-12k) --- , backbone, Gaussian posterior with learned diagonal
+variance, bottleneck $d=256$, Adam training, early stopping, and
+validation-based selection; GPB's prior covariance is the
+fixed shared $\tau^2I$ ($\tau^2=1$). The shared training defaults are
+hidden sizes $512$--$256$, dropout $0.2$, learning rate $10^{-3}$, batch
+size $128$, and a $100$-epoch budget with early stopping (patience
+$10$); dataset-specific defaults are likewise shared by every method on
+that dataset: Cora uses learning rate $10^{-2}$, batch size $512$,
+$200$ epochs, and patience $20$; STS-B uses a single-layer LSTM with
+hidden size $256$ and frozen GloVe embeddings; AG News uses
+$50$-dimensional PCA-reduced BERT features; ImageNet-100 uses $4\times4$
+spatial pool-4 ResNet-50 features; the remaining dataset-specific
+preprocessing is given in the release. Every configuration is trained
+on the same ten seeds ($0$--$9$). Input features are standardized per
+dataset, and regression targets are min--max normalized to $[0,1]$;
+both are fitted on the training split only, and reported MAE is
+rescaled to the original units. The baselines are Base, VIB, SVIB,
+NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB baselines
+NCBD and AdaCap; GPB is OPB on classification rows and EPB on regression rows. The main
+comparison is single-dimensional in tuned hyperparameters: the plain
+backbone has no method-specific hyperparameters (one configuration),
+every $\beta$-weighted method, VIB, SVIB, NIB, CEB, DVCCA, and GPB, is
+swept over the same six-point $\beta$ grid and selected by the same
+rule, so no method receives a larger search budget than the others;
+NCBD and AdaCap are swept over their own six-value grids. GPB's anchor
+scale $a$ (resp.\ isometric scale $\rho$) is a trainable model parameter
+shared across classes and clipped to
+$[1,20]$ during training. The guarantees of Section 2.2 are stated for
+any fixed scale value and apply verbatim to the trained model with its
+learned scale held fixed. For each method and setting, the
+configuration with the best mean validation metric is selected (accuracy
+on classification settings, $R^2$ on regression settings), under the
+same selection rule for every method and every ablation variant
+(Appendix~\ref{app:ablation}). The per-method grids are summarized in
+Table~\ref{tab:search-protocol}.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\caption{Per-method hyperparameter grids of the main comparison
+(Table~\ref{tab:main_result}). Each configuration is trained on the same
+ten seeds under the shared training budget; the configuration with the
+best mean validation metric is selected per method and setting. GPB's
+anchor scale $a$ (resp.\ isometric scale $\rho$) is trained as a shared
+model parameter, clipped to $[1,20]$ during training, so every method
+evaluates the same number of configurations (six).}
+\label{tab:search-protocol}
+\begin{tabular}{l l c}
+\hline
+Method & Method-specific hyperparameters & Configs. \\
+\hline
+Base & --- & $1$ \\
+VIB, SVIB, NIB, CEB, DVCCA & $\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ & $6$ \\
+NCBD & temperature $\tau\in\{0.05,0.1,0.2,0.3,0.5,1\}$ & $6$ \\
+AdaCap & Tikhonov $\lambda\in\{10^{-2},10^{-1},1,10,10^{2},10^{3}\}$ & $6$ \\
+GPB (OPB / EPB) & the same $\beta$ grid; $a=\rho$ trainable & $6$ \\
+\hline
+\end{tabular}
+\end{table}
+\subsection{Construction details}
+\label{app:construction}
+
+\begin{assumption}[Full rank]
+\label{ass:fullrank}
+$U_\theta$ has full column rank wherever the polar factor and its backward pass are
+evaluated; this is monitored rather than imposed by an extra loss.
+\end{assumption}
+
+\paragraph{Polar permutation equivariance.} For any label permutation matrix $P$,
+\begin{equation}
+Q_\theta(U_\theta P)
+= U_\theta P \bigl( P^{\top} U_\theta^{\top} U_\theta P \bigr)^{-1/2}
+= U_\theta \bigl( U_\theta^{\top} U_\theta \bigr)^{-1/2} P
+= Q_\theta(U_\theta)\, P ,
+\label{eq:opb-equivariance}
+\end{equation}
+since $P P^{\top} = I_K$ and the inverse square root conjugates under $P$. Permuting
+the label numbering therefore permutes the anchors accordingly, and no class index
+plays a distinguished role.
+
+\begin{proposition}[Orthogonal class-prior geometry by construction]
+\label{prop:opb-frame}
+Under Eqs.~\eqref{eq:opb-qr}--\eqref{eq:opb-prior}, the class means
+$a_k = a\,q_{\theta,k}$ have Gram matrix $a^2 I_K$: under
+Assumption~\ref{ass:fullrank}, the prior
+supplies a class-separated spherical code at every training step, whatever the
+optimizer does.
+\end{proposition}
+
+\begin{proof}
+The geometry in Eq.~\eqref{eq:opb-prior} follows from
+$Q_\theta^{\top}Q_\theta = I_K$ after scaling by $a$; in particular
+$\|a_i - a_j\|^2 = \|a_i\|^2 + \|a_j\|^2 - 2a_i^{\top}a_j = 2a^2$.
+\end{proof}
+
+\begin{proposition}[Anchor-energy classifier equivalence]
+\label{prop:opb-energy}
+The scores $s_k(z)=-\|z-aq_{\theta,k}\|^2/(2\tau^2)+\log\pi_k$ are Gaussian Bayes
+scores up to a class-independent term. For uniform classes, the corresponding linear
+weights are $(a/\tau^2)q_{\theta,k}$.
+\end{proposition}
+
+\paragraph{Initialization, monitoring, and re-initialization.} The posterior logvar
+head is zero-initialized ($\sigma^2 = \tau^2 = 1$ at initialization, so training
+starts at $\KL \approx \tfrac{1}{2\tau^2} a^2$); the prior encoder is
+identity-initialized, so the initial raw matrix is $U_\theta = [e_1, \dots, e_K]$,
+full column rank, with a stable polar-factor backward (the verified condition of
+Assumption~\ref{ass:fullrank}). The full-rank condition is \emph{verified, not
+imposed}: $\sigma_{\min}(U_\theta)$ is monitored along training and stays bounded
+away from zero in the reported runs, and no additional regularizer is added to the
+objective, which remains Eq.~\eqref{eq:pgib-objective} exactly. Near rank deficiency
+the polar factor's gradient is delicate; should the monitor flag a near-deficient
+step, the recommended handling is a re-initialization of the prior encoder (the
+reported runs never triggered it).
+
+\paragraph{Covariance protocol.} Equations~\eqref{eq:opb-prior} and
+\eqref{eq:epb-prior} define the OPB and EPB instances used throughout the paper.
+Their prior covariance is the fixed shared $\tau^2I$ with $\tau^2=1$ (matching the
+zero-initialized posterior at $\sigma^2=1$ so training starts at
+$\KL\approx a^2/(2\tau^2)$), with no learned prior-covariance parameters. The
+posterior retains its learned diagonal covariance $\sigma^2_\phi(x)$, as specified
+in Eq.~\eqref{eq:pgib-covariance}. Proposition~\ref{prop:opb-energy} therefore
+applies verbatim: the anchor-energy readout is the exact Gaussian Bayes head of the
+benchmark model. The direct diagnostics in Section~\ref{sec:direct-mismatch}
+normalize by the declared $\tau^2$.
+
+\paragraph{EPB axis choices.} Three variants of the direction: (A) \emph{fixed
+axis}, $u = [1, 0, \dots, 0]$, with no trainable prior direction: the
+theoretically cleanest ablation, at the price of prespecifying a latent coordinate;
+(B) \emph{trainable normalized axis}, $u = W/\|W\|$ with $W$ trained and normalized
+at every step, our main variant, which keeps the scale $\rho$ exact while allowing
+the model to choose the axis; (C) \emph{unconstrained linear axis},
+$\mu_p(y) = W \tilde y$: the simplest ablation, still isometric by linearity but
+with a free scale that can shrink and weaken the geometry. We recommend (B); the
+frozen-prior variant EPB-RV (Appendix~\ref{app:ablation},
+Table~\ref{tab:ablation-ci-epb}) shows the trainable rotation carries no benefit
+on Housing, and we keep (C) as a diagnostic. The main variant uses no bias: an affine offset cancels in pairwise
+distances but is a free extra degree of matching, and $\tilde y$ is already centered.
+
+\paragraph{EPB isometry notes.} The isometry is exact and global: any nonzero linear
+map of a scalar label is isometric up to its norm, and the normalization fixes that
+norm to $\rho$; unlike fixed random-feature anchors, whose pairwise distances grow
+nonlinearly and saturate, the isometric axis preserves label distances at every scale
+(with the price that anchor norms grow with $|\tilde y|$; a line and a fixed-radius
+sphere intersect in at most two points, so isometry and equal norms cannot both hold).
+All prior means lie on one line; for $y_i < y_j < y_k$ the distances add,
+$\|\mu_p(y_i)-\mu_p(y_k)\| = \|\mu_p(y_i)-\mu_p(y_j)\| + \|\mu_p(y_j)-\mu_p(y_k)\|$:
+order and magnitude of label differences are encoded exactly.
+
+\paragraph{Multidimensional regression labels.} For $y \in \R^m$ ($m \le d$), the
+same construction extends verbatim: take $W \in \R^{d \times m}$, its thin polar
+factor $Q = W (W^{\top}W)^{-1/2}$, and the prior $\mu_p(y) = \rho\, Q\, \tilde y$,
+which is isometric in the label metric; the scalar case is $m = 1$ with $Q = u$. The
+label metric must be declared before standardization, otherwise ``isometric'' has no
+unique meaning.
