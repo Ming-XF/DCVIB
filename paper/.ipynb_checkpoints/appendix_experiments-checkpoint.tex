@@ -87,13 +87,14 @@ Eq.~\eqref{eq:empirical-class-separation-bound} ($\tau^2=1$).
 
 Panels (a) and (b) of Fig.~\ref{fig:direct-mismatch-deferred} read these
 quantities. In the decoupling scatter (a), the points form a flat band at
-$82$--$86\%$ MC-10 accuracy (averaged over ten posterior samples) while
-spreading across the full log-$\widehat D$ axis: accuracy is insensitive to the
-mismatch, and the strongly aligned right end of the band sits no lower than the
-rest, so deep compression costs nothing on the task metric. The slack between
+$82$--$86\%$ accuracy while spreading across the full log-$\widehat D$ axis,
+except that the $a=1$ points under strong compression fall far below the band:
+only that regime loses substantial task information. The slack between
 the bound and the realized separation (both defined in
-Section~\ref{sec:direct-mismatch}) stays non-negative at every reported point
-(b): the bound is consistent but conservative.
+Section~\ref{sec:direct-mismatch}) shrinks with compression for all three
+scales and stays non-negative at every reported point (b): the bound is
+consistent but conservative, and tightens exactly where compression is
+strongest.
 
 \begin{figure*}[t]
 \centering
@@ -101,11 +102,10 @@ Section~\ref{sec:direct-mismatch}) stays non-negative at every reported point
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\par\medskip
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
-\caption{Alignment and separation diagnostics deferred from the main text. (a) MC-10
-accuracy against $\widehat D$ (color $=\beta$, marker $=a$). (b) Slack percentiles
+\caption{Alignment and separation diagnostics deferred from the main text. (a) Accuracy
+against $\widehat D$ (color $=\beta$, marker $=a$). (b) Slack percentiles
 (p05--p50--p95). (c) Cal.\ Housing anchor
-mismatch against $\beta$ by isometric scale $\rho$, decomposed into axial and
-off-axis contributions. (d) Cal.\ Housing bin-pair separation against
+mismatch against $\beta$ by isometric scale $\rho$. (d) Cal.\ Housing bin-pair separation against
 the declared prior distance at $\rho=6$ (color $=\beta$; identity line: exact
 transfer).}
 \label{fig:direct-mismatch-deferred}
@@ -125,39 +125,31 @@ $h_b:=\operatorname{diam}(B_b)$. The finite-bin lower bound is
 \label{eq:empirical-regression-separation-bound}
 \end{equation}
 where the last term is the quantization correction of
-Remark~\ref{rem:pgib-binning}. On Housing with $\rho=6$, mismatch falls from
-$0.264$ to $0.026$, the axial slope remains $0.73$--$0.77$, and the mismatch is
-almost entirely axial (about $0.2$ against $0.004$ off-axis), while $R^2$ changes
-only from $0.786$ to $0.767$ over the sweep: a tenfold mismatch reduction need not
-imply a comparable task-metric gain. Panel (d) of Fig.~\ref{fig:direct-mismatch-deferred}
+Remark~\ref{rem:pgib-binning}. Panel (c) of Fig.~\ref{fig:direct-mismatch-deferred}
+shows the Housing mismatch--$\beta$ curves by isometric scale. Only the $\rho=1$
+curve descends visibly with $\beta$, converging onto the zero line from a large
+weak-compression value, while $\rho=6,12$ stay close to zero throughout with only
+a small weak-compression deviation: the smallest scale cannot hold the posterior
+on its axis without compression. Panel (d) of
+Fig.~\ref{fig:direct-mismatch-deferred}
 plots the actual bin-center distances against the declared isometric distances at
-$\rho=6$: the cloud hugs a line of slope $0.73$--$0.77$ below the identity line at
+$\rho=6$: the cloud hugs a line below the identity line at
 all four $\beta$ values, so the posterior follows the declared metric structure at
-about three quarters of its scale, and the scale-transfer ratio is essentially
-$\beta$-invariant. After the quantization correction, $43\%$ of bin pairs retain a
-positive bound. Panel (c) of Fig.~\ref{fig:direct-mismatch-deferred} shows these
-mismatch--$\beta$ curves with their axial/off-axis decomposition: the dotted
-off-axis contribution stays below $0.01$ nats, so the posterior lies essentially
-on the declared axis.
+a fixed fraction of its scale, and the scale-transfer ratio is essentially
+$\beta$-invariant. After the quantization correction, a positive bound survives
+for a substantial share of bin pairs.
 
-\paragraph{Normalization and variance extremes.} The empirical mismatch normalizes
-by the declared prior variance $\tau^2=1$, whereas the
-exact Gaussian KL uses every sample's and coordinate's own posterior variance
-$\sigma^2_\phi(x)$. They therefore need not coincide: averaged over the ImageNet-100
-grid, $\widehat D=41.2$, the KL mean term is $46.5$, and the KL variance term is
-$51.4$. On Housing, a small number of weak-compression, large-$\rho$ posterior
-variance explosions raise the across-grid mean KL variance term to $2.8\times10^6$;
-these checkpoints remain in all plots. The unnormalized axial/off-axis components and
-total KL are therefore reported alongside $\widehat D$.
 \subsection{Adversarial robustness details}
 \label{app:robustness}
-Targeted PGD uses 20 steps, EOT-10 gradients, 10-sample MC predictions, and budgets
-$\varepsilon_\infty=0.3$ and $\varepsilon_2=6$. Curves are shown only when clean
-stochastic accuracy exceeds $90\%$. At maximum compression, OPB $(a=6,12)$ reaches
-$31.1\%/30.5\%$ targeted success under $L_\infty$, while transfer attacks from CEB
-to OPB reach at most $2.0\%$/$3.4\%$ under $L_\infty/L_2$, far below OPB's white-box
-attack. The transfer result is a gradient-masking check rather than a causal geometry
-test.
+This appendix supplements Section~\ref{sec:robustness}, which measures targeted
+white-box PGD success on MNIST, with the transfer check that rules out gradient
+masking. Targeted PGD uses 20 steps, EOT-10 gradients, 10-sample MC predictions,
+and budgets $\varepsilon_\infty=0.3$ and $\varepsilon_2=6$. For the transfer
+check, adversaries generated on one model are evaluated on another (CEB to OPB
+and back); their transferred success (Fig.~\ref{fig:adv-transfer}) stays far
+below the white-box level of Fig.~\ref{fig:robustness-main} at every budget, so
+the white-box gains are not an artifact of masked gradients, though the check
+excludes masking rather than establishing a causal geometry effect.
 
 \begin{figure*}[t]
 \centering
@@ -226,11 +218,12 @@ regression, unlike the classification settings where it adds $+0.83$ on
 ImageNet-100 (Table~\ref{tab:ablation-ci}).
 \subsection{Regression compression curves}
 \label{app:compression}
-The main text shows the classification compression sweep. This companion figure gives
-the complete California Housing regression sweep under the same $\beta$ grid, including
-the weak-compression variance explosion and the strong-compression EPB plateau. The
-curves are diagnostics of achieved KL and task performance, not tests of the alignment
-rate.
+Section~\ref{sec:sweep} shows the compression sweep on classification; this
+section shows the regression counterpart on California Housing under the same
+$\beta$ grid. Fig.~\ref{fig:compression-housing} shows: EPB maintains its
+test-$R^2$ plateau through strong compression, and only the $\rho=1$
+weak-compression points exhibit a large variance term, so the regression side
+reproduces the classification behavior.
 
 \begin{figure*}[t]
 \centering
@@ -243,9 +236,8 @@ compression, while the $\rho=1$ weak-compression points exhibit a large variance
 \end{figure*}
 \subsection{Anchor-scale sensitivity}
 \label{app:scale-sensitivity}
-The main comparison selects the prior scale on the five-value grid
-$\{1,3,6,9,12\}$ (Sec.~\ref{sec:setup}); Fig.~\ref{fig:scale-sensitivity} reads the full
-five-point scale grid at weak, medium, and strong compression on the two
+Fig.~\ref{fig:scale-sensitivity} reads the full nine-value scale grid
+$\{1,2,4,6,8,10,12,14,16\}$ at weak, medium, and strong compression on the two
 representative settings, complementing the $\beta$-axis
 sweeps of Sec.~\ref{sec:sweep} with the scale-axis view.
 
@@ -261,12 +253,11 @@ compression).}
 \end{figure*}
 
 On both settings the scale matters only once compression bites: the
-weak-compression curves are flat (within $3.4$ points on ImageNet-100),
+weak-compression curves are flat,
 and at $\beta\ge1$ scales below $4$ collapse (to chance accuracy on
 ImageNet-100, to zero $R^2$ on AgeDB) while every scale above $6$ stays
 on a plateau; the operating point is therefore sensitive to the scale
-only through this collapse boundary, and the selected scale
-lies inside the retained band.
+only through this collapse boundary.
 \subsection{Information-plane estimates}
 \label{app:info-plane}
 Estimator protocol.\ $I(X;Z)$ is estimated by the InfoNCE lower bound
