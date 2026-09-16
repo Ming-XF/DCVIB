@@ -43,10 +43,10 @@ ROOT = Path(__file__).resolve().parent
 OUT_DIR = ROOT / "output" / "synthetic_noisy_align"
 
 # 论文图文字大小（正文绘图脚本 compression_plot/mismatch_eval_plot 约定 33/29/20，
-# 附录两面板在此基础上整体缩小 10）
-PANEL_LABELSIZE = 23
-PANEL_TICKSIZE = 19
-PANEL_LEGENDSIZE = 10
+# 附录两面板在此基础上整体缩小 12，与 2×2 延迟图四面板的 21/17/8 一致）
+PANEL_LABELSIZE = 21
+PANEL_TICKSIZE = 17
+PANEL_LEGENDSIZE = 8
 
 R_COLORS = {
     0.0: "#2a78d6", 0.1: "#eb6834", 0.2: "#4f9a5f", 0.4: "#9a6ac4",
@@ -125,6 +125,12 @@ def save_fig(fig, path, title=""):
     fig.savefig(OUT_DIR / path, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"图已保存：{OUT_DIR / path}")
+
+
+def _panel_label(ax, letter, fontsize=PANEL_LABELSIZE):
+    """论文面板角标：面板左上角外侧加粗字母（与正文 mismatch_eval_plot 一致）。"""
+    ax.text(0.0, 1.04, letter, transform=ax.transAxes, fontsize=fontsize,
+            fontweight="bold", va="bottom", ha="left")
 
 
 def line_legend(ax, loc="upper right", fontsize=7.5, anchor=None):
@@ -284,7 +290,8 @@ def fig_appendix(datasets, ref):
         ax.set_ylabel(r"$\widehat D(Y)$ (nats)", fontsize=PANEL_LABELSIZE)
         ax.tick_params(labelsize=PANEL_TICKSIZE)
         if idx == 0:
-            line_legend(ax, fontsize=PANEL_LEGENDSIZE, anchor=(1.0, 0.92))
+            line_legend(ax, fontsize=PANEL_LEGENDSIZE + 6, anchor=(1.0, 0.98))
+        _panel_label(ax, f"({chr(ord('a') + idx)})", fontsize=PANEL_LABELSIZE - 2)
         save_fig(fig, path, title + ": $\widehat D$ vs. $\beta$ with $\delta_{\mathrm{noise}}$ floors")
 
 

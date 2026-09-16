@@ -5,18 +5,15 @@
 \section{Additional experiments}
 \label{app:experiments}
 
-\subsection{Main results with standard deviations}
-\label{app:main-std}
+\subsection{Main results: standard deviations and confidence intervals}
+\label{app:main-ci}
 
 Tables~\ref{tab:main_result_std_baselines} and~\ref{tab:main_result_std_variants}
 report the same configurations as the main table with standard deviations over
-runs, split by column groups for width (the baselines table includes NCBD and the
-variants table includes AdaCap); bold and underline follow the same
+runs, split by column groups for width; bold and underline follow the same
 mean-based rule as Table~\ref{tab:main_result}.
 
 \input{main_result_std}
-\subsection{Paired-difference confidence intervals}
-\label{app:main-ci}
 
 Tables~\ref{tab:main_result_ci_baselines}--\ref{tab:main_result_ci_external}
 report, for each setting, the paired difference of GPB over every baseline
@@ -26,10 +23,7 @@ $B = 10{,}000$ resamples of the per-run differences (fixed seed, reproducible), 
 the non-inferiority margin is $\delta_{\rm NI} = 0.2$ percentage points of accuracy or
 $\delta_{\rm NI} = 0.005$ in $R^2$. Bold marks a lower bound above zero (significant
 advantage) and $^{\dagger}$ a lower bound within the margin (tied); the best
-configuration per method is the same as in the main table. The last table covers
-the external non-IB baselines, NCBD on the classification settings and AdaCap on
-the regression settings; the only interval lying entirely below zero is AdaCap on
-ZINC ($-0.043$ $R^2$).
+configuration per method is the same as in the main table.
 
 \input{main_result_CI}
 \subsection{Controlled label-ambiguity sensitivity analyses}
@@ -52,70 +46,66 @@ Training evaluates the population objective by weighting all $K^2$
 clean/observed-label pairs by the noise model, with a descending-$\beta$ warm start
 to remove avoidable optimization error at the small-$\beta$ end; the comparator risk
 $C_{\rm comp}(r_{\rm n})$ is estimated by Monte Carlo. The population-weighted experiment of
-Section~\ref{sec:controlled-validation} uses a fixed frame and the standard trainable
+Section~\ref{sec:controlled-validation} uses the standard trainable
 posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity} changes these
 choices one at a time. Fixing the posterior variance to
-$\sigma^2\equiv\tau^2$ leaves the measured mismatch on the analytic floors, confirming
-that the result is not an artifact of posterior-covariance flexibility. Replacing the
-fixed frame by the trainable polar frame gives the same result, so the floor
-is invariant to the learned rigid frame rotation.
+$\sigma^2\equiv\tau^2$ (Fig.~\ref{fig:noisy-alignment-sensitivity}a) leaves the
+measured mismatch on the analytic floors, confirming that the result is not an
+artifact of posterior-covariance flexibility.
 
-The third panel replaces the exact population weights by sampled noisy labels. It
+The second panel (Fig.~\ref{fig:noisy-alignment-sensitivity}b) replaces the exact
+population weights by sampled noisy labels. It
 shows the expected finite-sample displacement from the population floor at weak
 compression and convergence toward the empirical floor as compression strengthens.
-Six sampled-label configurations at large $\beta$ fail the explicit comparator-objective
-gate (twelve stored rows because both best and final checkpoints are retained); they are
-marked as optimization failures rather than interpreted as violations of
-Eq.~\eqref{eq:pgib-comparator-bound}. The population-weighted main grid and both
-structural controls satisfy the gate at every point.
+Five sampled-label configurations at large $\beta$ fail the explicit comparator-objective
+gate; they are marked as optimization failures rather than interpreted as violations
+of Eq.~\eqref{eq:pgib-comparator-bound}. The population-weighted main grid and the
+structural control satisfy the gate at every point.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_i_varfixed.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_ii_trainable.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_iii_sampled.png}
+\includegraphics[width=0.49\linewidth]{figures/fig_noisy_appendix_i_varfixed.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/fig_noisy_appendix_iii_sampled.png}
 \caption{Sensitivity analyses for the controlled label-ambiguity experiment.
-(a) Posterior variance fixed to the prior variance. (b) Trainable polar
-frame. (c) Labels sampled rather than integrated with their exact population weights;
-failed comparator-gate configurations are marked. Dashed lines denote the analytic
-population ambiguity floors. Points are means and error bars are standard deviations
-over seeds.}
+(a) Posterior variance fixed to the prior variance. (b) Labels sampled rather
+than integrated with their exact population weights; failed comparator-gate
+configurations are marked. Dashed lines denote the analytic population
+ambiguity floors. Points are means over seeds.}
 \label{fig:noisy-alignment-sensitivity}
 \end{figure*}
 \subsection{Alignment and separation: definitions and diagnostics}
 \label{app:direct-mismatch}
 
-This section collects the diagnostic panels deferred from
-Section~\ref{sec:direct-mismatch}: the decoupling scatter, the separation-bound and
-slack readings, and the regression diagnostics, together with the finite-bin
-definitions. All statistics are first computed within each seed and then aggregated
-across seeds; class or bin pairs are not treated as independent
-replicates. The per-class Jensen check and the per-pair separation bound are
-verified numerically on every scale, $\beta$, seed, and class (no violation exceeds
-$10^{-6}$). Every checkpoint in both requested grids is present, and no collapse or
-variance-explosion point is removed.
+This section supplements Section~\ref{sec:direct-mismatch}, which checks how
+much of the declared anchor geometry the learned posterior inherits and whether
+the separation guarantee survives under the measured mismatch. It adds the
+decoupling scatter, the slack reading, and the regression diagnostics. On the
+ImageNet-100 (MLP) test split we compute, per anchor scale $a\in\{1,6,12\}$ and
+across the $\beta$ grid, the slack $S-\mathrm{LB}$ between the realized
+class-center separation and the sample-level lower bound of
+Eq.~\eqref{eq:empirical-class-separation-bound} ($\tau^2=1$).
 
-The deferred classification panels complete the picture
-(Fig.~\ref{fig:direct-mismatch-deferred}). The decoupling scatter (a) shows MC-10
-accuracy staying within $82$--$86\%$ while $\widehat D$ spans three orders of
-magnitude: mechanism and task metric are decoupled. Panel (b) shows the raw bound
-rising toward the declared $\sqrt2a$ exactly where the mismatch corrections shrink,
-so the slack narrows where the bound is informative; CEB's mismatch is plotted
-descriptively, without a bound or slack entries, since its reference has no declared
-$\Delta$. The
-slack percentiles (c) stay non-negative at every reported point: the bound is
-consistent but conservative.
+Panels (a) and (b) of Fig.~\ref{fig:direct-mismatch-deferred} read these
+quantities. In the decoupling scatter (a), the points form a flat band at
+$82$--$86\%$ MC-10 accuracy (averaged over ten posterior samples) while
+spreading across the full log-$\widehat D$ axis: accuracy is insensitive to the
+mismatch, and the strongly aligned right end of the band sits no lower than the
+rest, so deep compression costs nothing on the task metric. The slack between
+the bound and the realized separation (both defined in
+Section~\ref{sec:direct-mismatch}) stays non-negative at every reported point
+(b): the bound is consistent but conservative.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_i_separation_beta.png}\hfill
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\hfill
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\par\medskip
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
 \caption{Alignment and separation diagnostics deferred from the main text. (a) MC-10
-accuracy against $\widehat D$ (color $=\beta$, marker $=a$). (b) Mean separation
-(solid) and raw lower bound (dashed) against $\beta$; gray dotted: CEB,
-descriptive. (c) Slack percentiles. (d) Cal.\ Housing bin-pair separation against
+accuracy against $\widehat D$ (color $=\beta$, marker $=a$). (b) Slack percentiles
+(p05--p50--p95). (c) Cal.\ Housing anchor
+mismatch against $\beta$ by isometric scale $\rho$, decomposed into axial and
+off-axis contributions. (d) Cal.\ Housing bin-pair separation against
 the declared prior distance at $\rho=6$ (color $=\beta$; identity line: exact
 transfer).}
 \label{fig:direct-mismatch-deferred}
@@ -139,28 +129,16 @@ Remark~\ref{rem:pgib-binning}. On Housing with $\rho=6$, mismatch falls from
 $0.264$ to $0.026$, the axial slope remains $0.73$--$0.77$, and the mismatch is
 almost entirely axial (about $0.2$ against $0.004$ off-axis), while $R^2$ changes
 only from $0.786$ to $0.767$ over the sweep: a tenfold mismatch reduction need not
-imply a comparable task-metric gain. Figure~\ref{fig:direct-mismatch-deferred}d
+imply a comparable task-metric gain. Panel (d) of Fig.~\ref{fig:direct-mismatch-deferred}
 plots the actual bin-center distances against the declared isometric distances at
 $\rho=6$: the cloud hugs a line of slope $0.73$--$0.77$ below the identity line at
 all four $\beta$ values, so the posterior follows the declared metric structure at
 about three quarters of its scale, and the scale-transfer ratio is essentially
 $\beta$-invariant. After the quantization correction, $43\%$ of bin pairs retain a
-positive bound. Figure~\ref{fig:direct-mismatch-housing} shows the two regression
-sweep panels: the mismatch--$\beta$ curves with their axial/off-axis decomposition
-(the dotted off-axis contribution stays below $0.01$ nats, so the posterior lies
-essentially on the declared axis), and the $R^2$-against-$\widehat D$ scatter whose
-band stays within $0.75$--$0.79$ while $\widehat D$ spans orders of magnitude.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_d_housing_r2_vs_d.png}
-\caption{Cal.\ Housing mismatch sweep panels (deferred from the main text). (a)
-Anchor mismatch $\widehat D$ against $\beta$, by isometric scale $\rho$, decomposed
-into axial and off-axis contributions. (b) Test $R^2$ against $\widehat D$; color
-denotes $\beta$ and marker shape $\rho$.}
-\label{fig:direct-mismatch-housing}
-\end{figure*}
+positive bound. Panel (c) of Fig.~\ref{fig:direct-mismatch-deferred} shows these
+mismatch--$\beta$ curves with their axial/off-axis decomposition: the dotted
+off-axis contribution stays below $0.01$ nats, so the posterior lies essentially
+on the declared axis.
 
 \paragraph{Normalization and variance extremes.} The empirical mismatch normalizes
 by the declared prior variance $\tau^2=1$, whereas the

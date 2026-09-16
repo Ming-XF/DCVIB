@@ -41,11 +41,16 @@ A_MARKERS = {1.0: "o", 6.0: "s", 12.0: "^"}
 PANEL_LABELSIZE = 33
 PANEL_TICKSIZE = 29
 PANEL_LEGENDSIZE = 20
+# 2×2 延迟图（fig:direct-mismatch-deferred）四面板：标签/刻度在 PANEL_* 基础上
+# 统一减 12，图例减 6（14，与 noisy 附录图第一面板图例一致）
+DEFERRED_LABELSIZE = PANEL_LABELSIZE - 12
+DEFERRED_TICKSIZE = PANEL_TICKSIZE - 12
+DEFERRED_LEGENDSIZE = PANEL_LEGENDSIZE - 6
 
 
-def _panel_label(ax, letter):
+def _panel_label(ax, letter, fontsize=PANEL_LABELSIZE):
     """论文面板角标：面板左上角外侧加粗字母（(a)/(b)/...）。"""
-    ax.text(0.0, 1.04, letter, transform=ax.transAxes, fontsize=PANEL_LABELSIZE,
+    ax.text(0.0, 1.04, letter, transform=ax.transAxes, fontsize=fontsize,
             fontweight="bold", va="bottom", ha="left")
 
 
@@ -148,37 +153,38 @@ def fig_panel_b(cls_data):
         sc = ax.scatter(xs, ys, c=bs, norm=matplotlib.colors.LogNorm(), cmap="viridis",
                         marker=A_MARKERS[a], s=45, edgecolors="white", linewidths=0.4,
                         label=f"$a={a:g}$")
-    ax.set_xlabel(r"$D$ (nats)", fontsize=PANEL_LABELSIZE)
-    ax.set_ylabel("MC-10 acc. (%)", fontsize=PANEL_LABELSIZE)
-    ax.tick_params(labelsize=PANEL_TICKSIZE)
-    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
+    ax.set_xlabel(r"$D$ (nats)", fontsize=DEFERRED_LABELSIZE)
+    ax.set_ylabel("acc", fontsize=DEFERRED_LABELSIZE)
+    ax.tick_params(labelsize=DEFERRED_TICKSIZE)
+    ax.legend(fontsize=DEFERRED_LEGENDSIZE, frameon=False)
     cbar = plt.colorbar(sc, ax=ax)
-    cbar.set_label(r"$\beta$", fontsize=PANEL_LABELSIZE)
-    cbar.ax.tick_params(labelsize=PANEL_TICKSIZE)
-    _panel_label(ax, "(b)")
+    cbar.set_label(r"$\beta$", fontsize=DEFERRED_LABELSIZE)
+    cbar.ax.tick_params(labelsize=DEFERRED_TICKSIZE)
+    _panel_label(ax, "(a)", fontsize=DEFERRED_LABELSIZE - 2)
     save_fig(fig, "fig_mismatch_b_imagenet100_acc_vs_d.png")
 
 
 def fig_panel_c(reg_data):
-    """(c) Housing: D vs β（实线）+ 轴向（虚线）/离轴（点线）贡献，按 ρ 分曲线。"""
+    """2×2 延迟图 (c)：Housing D vs β（实线），按 ρ 分曲线。"""
     fig, ax = new_fig()
+    ax.grid(False, which="both")  # 取消网格线（含 log x 次网格竖线）
     epb = reg_data["opb"]
     for rho in (1.0, 6.0, 12.0):
-        for col, ls, mk in (("d_mean", "-", "o"), ("d_axial", "--", None), ("d_offaxis", ":", None)):
-            pts = series(epb, col).get(rho)
-            if not pts:
-                continue
-            xs = [p[0] for p in pts]
-            ys = [p[1] for p in pts]
-            errs = [p[2] for p in pts]
-            ax.errorbar(xs, ys, yerr=errs, color=A_COLORS[rho], linestyle=ls,
-                        marker=mk, markersize=4, linewidth=1.6, capsize=2,
-                        markerfacecolor="white", markeredgewidth=0.8,
-                        label=rf"$\rho={rho:g}$" if col == "d_mean" else None)
+        pts = series(epb, "d_mean").get(rho)
+        if not pts:
+            continue
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        ax.plot(xs, ys, color=A_COLORS[rho], linestyle="-",
+                marker="o", markersize=4, linewidth=1.6,
+                markerfacecolor="white", markeredgewidth=0.8,
+                label=rf"$\rho={rho:g}$")
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\beta$")
-    ax.set_ylabel("nats")
-    ax.legend(fontsize=8, frameon=False)
+    ax.set_xlabel(r"$\beta$", fontsize=DEFERRED_LABELSIZE)
+    ax.set_ylabel(r"$\widehat D$ (nats)", fontsize=DEFERRED_LABELSIZE)
+    ax.tick_params(labelsize=DEFERRED_TICKSIZE)
+    ax.legend(fontsize=DEFERRED_LEGENDSIZE, frameon=False)
+    _panel_label(ax, "(c)", fontsize=DEFERRED_LABELSIZE - 2)
     save_fig(fig, "fig_mismatch_c_housing_d_beta.png")
 
 
@@ -205,36 +211,8 @@ def fig_panel_d(reg_data):
 
 
 def fig_appendix_cls(cls_data):
-    """分类附录三个面板分别成图：(i) S/LB vs β、(ii) P(LB>0)、(iii) slack 分位带。"""
+    """分类附录两个面板分别成图：(ii) P(LB>0)、(iii) slack 分位带。"""
     opb = cls_data["opb"]
-    ceb = cls_data.get("ceb", {})
-
-    # (i) S 与 LB vs β（CEB 的 D 作灰色点线描述性参照）
-    fig, ax = new_fig()
-    ax.grid(False)  # 论文图 1：取消网格线
-    for a in (1.0, 6.0, 12.0):
-        for col, ls, mk in (("center_distance_mean", "-", "o"), ("lower_bound_mean", "--", None)):
-            pts = series(opb, col).get(a)
-            if not pts:
-                continue
-            xs = [p[0] for p in pts]
-            ys = [p[1] for p in pts]
-            ax.plot(xs, ys, color=A_COLORS[a], linestyle=ls, marker=mk,
-                    markersize=4, linewidth=1.6,
-                    markerfacecolor="white", markeredgewidth=0.8,
-                    label=f"$a={a:g}$" if col == "center_distance_mean" else None)
-    pts = series(ceb, "d_mean").get(None)
-    if pts:
-        xs = [p[0] for p in pts]
-        ys = [p[1] for p in pts]
-        ax.plot(xs, ys, color="#8a8a8a", linestyle=":", linewidth=1.4, label="CEB: $D$")
-    ax.set_xscale("log")
-    ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
-    ax.set_ylabel("dist. (nats$^{1/2}$)", fontsize=PANEL_LABELSIZE)
-    ax.tick_params(labelsize=PANEL_TICKSIZE)
-    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
-    _panel_label(ax, "(c)")
-    save_fig(fig, "fig_mismatch_appendix_cls_i_separation_beta.png")
 
     # (ii) P(LB>0) vs β
     fig, ax = new_fig()
@@ -259,7 +237,7 @@ def fig_appendix_cls(cls_data):
 
     # (iii) slack 分位带
     fig, ax = new_fig()
-    ax.grid(False)  # 论文图 2：取消网格线
+    ax.grid(False, which="both")  # 论文图 2：取消网格线（含 log x 次网格竖线）
     for a in (1.0, 6.0, 12.0):
         p50 = series(opb, "slack_p50").get(a)
         p05 = series(opb, "slack_p05").get(a)
@@ -274,11 +252,11 @@ def fig_appendix_cls(cls_data):
                 linewidth=1.6, label=f"$a={a:g}$")
         ax.fill_between(xs, lo, hi, color=A_COLORS[a], alpha=0.15)
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
-    ax.set_ylabel("slack", fontsize=PANEL_LABELSIZE)
-    ax.tick_params(labelsize=PANEL_TICKSIZE)
-    ax.legend(fontsize=PANEL_LEGENDSIZE, frameon=False)
-    _panel_label(ax, "(e)")
+    ax.set_xlabel(r"$\beta$", fontsize=DEFERRED_LABELSIZE)
+    ax.set_ylabel("slack", fontsize=DEFERRED_LABELSIZE)
+    ax.tick_params(labelsize=DEFERRED_TICKSIZE)
+    ax.legend(fontsize=DEFERRED_LEGENDSIZE, frameon=False)
+    _panel_label(ax, "(b)", fontsize=DEFERRED_LABELSIZE - 2)
     save_fig(fig, "fig_mismatch_appendix_cls_iii_slack.png")
 
 
@@ -309,9 +287,11 @@ def fig_appendix_reg():
 
 def fig_appendix_reg_binscatter():
     """论文图 2(f)：回归 bin 对散点（ρ=6、seed 0），全部 β 合成一张，
-    S_bc vs ρ|ȳ_b−ȳ_c|，颜色 = β（对数色标）+ y=x 参考线。"""
+    S_bc vs ρ|ȳ_b−ȳ_c|，颜色 = β（对数色标）+ y=x 参考线。
+    画布与其他面板统一为 new_fig() 默认 7.2×4.6（原 6.4×4.6 在论文等宽
+    排版下文字比其他面板大 ~13%）。"""
     betas = [1e-4, 1e-2, 1.0, 10.0]
-    fig, ax = new_fig(6.4, 4.6)
+    fig, ax = new_fig()
     ax.grid(False)  # 论文图 2：取消网格线
     # 归一化必须在全部 β 上共享（每 scatter 新建 norm 会在单值数据上退化）
     norm = matplotlib.colors.LogNorm(vmin=min(betas), vmax=max(betas))
@@ -331,14 +311,14 @@ def fig_appendix_reg_binscatter():
                         norm=norm, cmap="viridis", alpha=0.7)
     lims = [ax.get_xlim()[0], ax.get_xlim()[1]]
     ax.plot(lims, lims, color="k", linestyle="--", linewidth=1.0, alpha=0.6)
-    ax.set_xlabel(r"$\rho\,|\bar y_b - \bar y_c|$ (declared dist.)", fontsize=PANEL_LABELSIZE)
-    ax.set_ylabel(r"$S_{bc}$", fontsize=PANEL_LABELSIZE)
-    ax.tick_params(labelsize=PANEL_TICKSIZE)
+    ax.set_xlabel(r"$\rho\,|\bar y_b - \bar y_c|$ (declared dist.)", fontsize=DEFERRED_LABELSIZE)
+    ax.set_ylabel(r"$S_{bc}$", fontsize=DEFERRED_LABELSIZE)
+    ax.tick_params(labelsize=DEFERRED_TICKSIZE)
     if sc is not None:
         cbar = plt.colorbar(sc, ax=ax)
-        cbar.set_label(r"$\beta$", fontsize=PANEL_LABELSIZE)
-        cbar.ax.tick_params(labelsize=PANEL_TICKSIZE)
-    _panel_label(ax, "(f)")
+        cbar.set_label(r"$\beta$", fontsize=DEFERRED_LABELSIZE)
+        cbar.ax.tick_params(labelsize=DEFERRED_TICKSIZE)
+    _panel_label(ax, "(d)", fontsize=DEFERRED_LABELSIZE - 2)
     save_fig(fig, "fig_mismatch_appendix_reg_binscatter.png")
 
 

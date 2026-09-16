@@ -76,37 +76,36 @@ ambiguity floors. Points are means over seeds.}
 \subsection{Alignment and separation: definitions and diagnostics}
 \label{app:direct-mismatch}
 
-This section collects the diagnostic panels deferred from
-Section~\ref{sec:direct-mismatch}: the decoupling scatter, the separation-bound and
-slack readings, and the regression diagnostics, together with the finite-bin
-definitions. All statistics are first computed within each seed and then aggregated
-across seeds; class or bin pairs are not treated as independent
-replicates. The per-class Jensen check and the per-pair separation bound are
-verified numerically on every scale, $\beta$, seed, and class (no violation exceeds
-$10^{-6}$). Every checkpoint in both requested grids is present, and no collapse or
-variance-explosion point is removed.
+This section supplements Section~\ref{sec:direct-mismatch}, which checks how
+much of the declared anchor geometry the learned posterior inherits and whether
+the separation guarantee survives under the measured mismatch. It adds the
+decoupling scatter, the slack reading, and the regression diagnostics. On the
+ImageNet-100 (MLP) test split we compute, per anchor scale $a\in\{1,6,12\}$ and
+across the $\beta$ grid, the slack $S-\mathrm{LB}$ between the realized
+class-center separation and the sample-level lower bound of
+Eq.~\eqref{eq:empirical-class-separation-bound} ($\tau^2=1$).
 
-The deferred classification panels complete the picture
-(Fig.~\ref{fig:direct-mismatch-deferred}). The decoupling scatter (a) shows MC-10
-accuracy staying within $82$--$86\%$ while $\widehat D$ spans three orders of
-magnitude: mechanism and task metric are decoupled. Panel (b) shows the raw bound
-rising toward the declared $\sqrt2a$ exactly where the mismatch corrections shrink,
-so the slack narrows where the bound is informative; CEB's mismatch is plotted
-descriptively, without a bound or slack entries, since its reference has no declared
-$\Delta$. The
-slack percentiles (c) stay non-negative at every reported point: the bound is
-consistent but conservative.
+Panels (a) and (b) of Fig.~\ref{fig:direct-mismatch-deferred} read these
+quantities. In the decoupling scatter (a), the points form a flat band at
+$82$--$86\%$ accuracy while spreading across the full log-$\widehat D$ axis,
+except that the $a=1$ points under strong compression fall far below the band:
+only that regime loses substantial task information. The slack between
+the bound and the realized separation (both defined in
+Section~\ref{sec:direct-mismatch}) shrinks with compression for all three
+scales and stays non-negative at every reported point (b): the bound is
+consistent but conservative, and tightens exactly where compression is
+strongest.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_i_separation_beta.png}\hfill
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\hfill
-\includegraphics[width=0.24\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
-\caption{Alignment and separation diagnostics deferred from the main text. (a) MC-10
-accuracy against $\widehat D$ (color $=\beta$, marker $=a$). (b) Mean separation
-(solid) and raw lower bound (dashed) against $\beta$; gray dotted: CEB,
-descriptive. (c) Slack percentiles. (d) Cal.\ Housing bin-pair separation against
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_b_imagenet100_acc_vs_d.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\par\medskip
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
+\caption{Alignment and separation diagnostics deferred from the main text. (a) Accuracy
+against $\widehat D$ (color $=\beta$, marker $=a$). (b) Slack percentiles
+(p05--p50--p95). (c) Cal.\ Housing anchor
+mismatch against $\beta$ by isometric scale $\rho$. (d) Cal.\ Housing bin-pair separation against
 the declared prior distance at $\rho=6$ (color $=\beta$; identity line: exact
 transfer).}
 \label{fig:direct-mismatch-deferred}
@@ -126,42 +125,20 @@ $h_b:=\operatorname{diam}(B_b)$. The finite-bin lower bound is
 \label{eq:empirical-regression-separation-bound}
 \end{equation}
 where the last term is the quantization correction of
-Remark~\ref{rem:pgib-binning}. On Housing with $\rho=6$, mismatch falls from
-$0.264$ to $0.026$, the axial slope remains $0.73$--$0.77$, and the mismatch is
-almost entirely axial (about $0.2$ against $0.004$ off-axis), while $R^2$ changes
-only from $0.786$ to $0.767$ over the sweep: a tenfold mismatch reduction need not
-imply a comparable task-metric gain. Figure~\ref{fig:direct-mismatch-deferred}d
+Remark~\ref{rem:pgib-binning}. Panel (c) of Fig.~\ref{fig:direct-mismatch-deferred}
+shows the Housing mismatch--$\beta$ curves by isometric scale. Only the $\rho=1$
+curve descends visibly with $\beta$, converging onto the zero line from a large
+weak-compression value, while $\rho=6,12$ stay close to zero throughout with only
+a small weak-compression deviation: the smallest scale cannot hold the posterior
+on its axis without compression. Panel (d) of
+Fig.~\ref{fig:direct-mismatch-deferred}
 plots the actual bin-center distances against the declared isometric distances at
-$\rho=6$: the cloud hugs a line of slope $0.73$--$0.77$ below the identity line at
+$\rho=6$: the cloud hugs a line below the identity line at
 all four $\beta$ values, so the posterior follows the declared metric structure at
-about three quarters of its scale, and the scale-transfer ratio is essentially
-$\beta$-invariant. After the quantization correction, $43\%$ of bin pairs retain a
-positive bound. Figure~\ref{fig:direct-mismatch-housing} shows the two regression
-sweep panels: the mismatch--$\beta$ curves with their axial/off-axis decomposition
-(the dotted off-axis contribution stays below $0.01$ nats, so the posterior lies
-essentially on the declared axis), and the $R^2$-against-$\widehat D$ scatter whose
-band stays within $0.75$--$0.79$ while $\widehat D$ spans orders of magnitude.
+a fixed fraction of its scale, and the scale-transfer ratio is essentially
+$\beta$-invariant. After the quantization correction, a positive bound survives
+for a substantial share of bin pairs.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/fig_mismatch_d_housing_r2_vs_d.png}
-\caption{Cal.\ Housing mismatch sweep panels (deferred from the main text). (a)
-Anchor mismatch $\widehat D$ against $\beta$, by isometric scale $\rho$, decomposed
-into axial and off-axis contributions. (b) Test $R^2$ against $\widehat D$; color
-denotes $\beta$ and marker shape $\rho$.}
-\label{fig:direct-mismatch-housing}
-\end{figure*}
-
-\paragraph{Normalization and variance extremes.} The empirical mismatch normalizes
-by the declared prior variance $\tau^2=1$, whereas the
-exact Gaussian KL uses every sample's and coordinate's own posterior variance
-$\sigma^2_\phi(x)$. They therefore need not coincide: averaged over the ImageNet-100
-grid, $\widehat D=41.2$, the KL mean term is $46.5$, and the KL variance term is
-$51.4$. On Housing, a small number of weak-compression, large-$\rho$ posterior
-variance explosions raise the across-grid mean KL variance term to $2.8\times10^6$;
-these checkpoints remain in all plots. The unnormalized axial/off-axis components and
-total KL are therefore reported alongside $\widehat D$.
 \subsection{Adversarial robustness details}
 \label{app:robustness}
 Targeted PGD uses 20 steps, EOT-10 gradients, 10-sample MC predictions, and budgets
