@@ -72,61 +72,25 @@ GPB (OPB / EPB) & $\beta$ grid above $\times$ $a=\rho\in\{1,3,6,9,12\}$ & $6\tim
 \subsection{Construction details}
 \label{app:construction}
 
-\paragraph{Initialization, monitoring, and re-initialization.} The construction is
-equivariant under label permutations ($Q_\theta(U_\theta P)=Q_\theta(U_\theta)P$),
-so no class index plays a distinguished role; the posterior logvar
-head is zero-initialized ($\sigma^2 = \tau^2 = 1$ at initialization, so training
-starts at $\KL \approx \tfrac{1}{2\tau^2} a^2$); the prior encoder is
-identity-initialized, so the initial raw matrix is $U_\theta = [e_1, \dots, e_K]$,
-full column rank, with a stable polar-factor backward (the verified full-rank
-condition). The full-rank condition is \emph{verified, not
-imposed}: $\sigma_{\min}(U_\theta)$ is monitored along training and stays bounded
-away from zero in the reported runs, and no additional regularizer is added to the
-objective, which remains Eq.~\eqref{eq:pgib-objective} exactly. Near rank deficiency
-the polar factor's gradient is delicate; should the monitor flag a near-deficient
-step, the recommended handling is a re-initialization of the prior encoder (the
-reported runs never triggered it).
+\paragraph{OPB construction notes.} The construction is equivariant under label
+permutations ($Q_\theta(U_\theta P)=Q_\theta(U_\theta)P$), so no class index plays a
+distinguished role, and the prior encoder is identity-initialized, so the initial
+raw matrix $U_\theta=[e_1,\dots,e_K]$ is full column rank with a stable
+polar-factor backward. The prior covariance is the fixed $\tau^2I$ with
+$\tau^2=1$ and no learned parameters. For uniform classes the anchor-energy
+scores of Eq.~\eqref{eq:opb-energy} are linear in $z$ up to a class-independent
+term, with weights $(a/\tau^2)q_{\theta,k}$, so the readout scale is fixed by
+the prior alone.
 
-\paragraph{Covariance protocol.} Equations~\eqref{eq:opb-prior} and
-\eqref{eq:epb-prior} define the OPB and EPB instances used throughout the paper.
-Their prior covariance is the fixed shared $\tau^2I$ with $\tau^2=1$ (matching the
-zero-initialized posterior at $\sigma^2=1$ so training starts at
-$\KL\approx a^2/(2\tau^2)$), with no learned prior-covariance parameters. The
-posterior retains its learned diagonal covariance $\sigma^2_\phi(x)$, as specified
-in Eq.~\eqref{eq:pgib-covariance}. The anchor-energy readout is the exact Gaussian
-Bayes head of the benchmark model: the scores of Eq.~\eqref{eq:opb-energy} are
-Gaussian Bayes scores up to a class-independent term, and for uniform classes the
-corresponding linear weights are $(a/\tau^2)q_{\theta,k}$. The direct diagnostics
-in Section~\ref{sec:direct-mismatch}
-normalize by the declared $\tau^2$.
-
-\paragraph{EPB axis choices.} Three variants of the direction: (A) \emph{fixed
-axis}, $u = [1, 0, \dots, 0]$, with no trainable prior direction: the
-theoretically cleanest ablation, at the price of prespecifying a latent coordinate;
-(B) \emph{trainable normalized axis}, $u = W/\|W\|$ with $W$ trained and normalized
-at every step, our main variant, which keeps the scale $\rho$ exact while allowing
-the model to choose the axis; (C) \emph{unconstrained linear axis},
-$m_\theta(y) = W \tilde y$: the simplest ablation, still isometric by linearity but
-with a free scale that can shrink and weaken the geometry. We recommend (B); the
-frozen-prior variant EPB-RV (Appendix~\ref{app:ablation},
-Table~\ref{tab:ablation-ci-epb}) shows the trainable rotation carries no benefit
-on Housing, and we keep (C) as a diagnostic. The main variant uses no bias: an affine offset cancels in pairwise
-anchor distances and would only add a free matching degree, so it is
-omitted.
-
-\paragraph{EPB isometry notes.} The isometry is exact and global: any nonzero linear
-map of a scalar label is isometric up to its norm, and the normalization fixes that
-norm to $\rho$; unlike fixed random-feature anchors, whose pairwise distances grow
-nonlinearly and saturate, the isometric axis preserves label distances at every scale
-(with the price that anchor norms grow with $|\tilde y|$; a line and a fixed-radius
-sphere intersect in at most two points, so isometry and equal norms cannot both hold).
-All prior means lie on one line; for $y_i < y_j < y_k$ the distances add,
-$\|m_\theta(y_i)-m_\theta(y_k)\| = \|m_\theta(y_i)-m_\theta(y_j)\| + \|m_\theta(y_j)-m_\theta(y_k)\|$:
-order and magnitude of label differences are encoded exactly.
-
-\paragraph{Multidimensional regression labels.} For $y \in \R^m$ ($m \le d$), the
-same construction extends verbatim: take $W \in \R^{d \times m}$, its thin polar
-factor $Q_\theta = W (W^{\top}W)^{-1/2}$, and the prior $m_\theta(y) = \rho\, Q_\theta\, \tilde y$,
-which is isometric in the label metric; the scalar case is $m = 1$ with $Q_\theta = u$. The
-label metric must be declared before normalization, otherwise ``isometric'' has no
+\paragraph{EPB isometry notes.} The exactness is automatic: any
+nonzero linear map of a scalar label is isometric up to its norm, and the
+normalization fixes that norm to $\rho$. All prior means lie on one line through
+the origin, so anchor norms grow with $|\tilde y|$: a line and a fixed-radius
+sphere intersect in at most two points, so isometry and equal norms cannot both
+hold. For $y\in\R^m$ ($m\le d$) the same construction extends verbatim: take
+$W\in\R^{d\times m}$ and its thin polar factor $Q_\theta$ as in
+Eq.~\eqref{eq:opb-qr} with $K$ replaced by $m$, and the prior
+$m_\theta(y)=\rho\, Q_\theta\, \tilde y$, isometric in the declared metric on
+the normalized labels, the scalar case being $m=1$ with $Q_\theta=u$. The label
+metric must be declared before normalization, otherwise ``isometric'' has no
 unique meaning.
