@@ -7,8 +7,8 @@
   (b) D̂−δ_noise vs 1/β：双 log、只画正值；
   (c) β·(D̂−δ_noise) vs β（log x）+ C_comp 水平虚线；
   (d) noisy-label acc（实线）与 clean-class acc（虚线）vs β。
-附录图三面板：(i) posterior_var=fixed（最干净的标签歧义验证）、
-  (ii) trainable frame 稳健性、(iii) 采样标签敏感性（经验 η 偏差另打印）。
+附录图两面板：(i) posterior_var=fixed（最干净的标签歧义验证）、
+  (ii) 采样标签敏感性（经验 η 偏差另打印）。
 所有点 mean±std over seeds（5 seeds）；失败行跳过并计数；opt_fail=1 的点
 打叉标记（该点不得用于上界讨论）。r=0 与既有确定性实验
 （output/synthetic_align/synthetic_align.csv，fixed a=6）交叉核对并打印。
@@ -30,6 +30,8 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
+import numpy as np
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -39,6 +41,12 @@ from prior_geometry import _setup_rc
 
 ROOT = Path(__file__).resolve().parent
 OUT_DIR = ROOT / "output" / "synthetic_noisy_align"
+
+# 论文图文字大小（正文绘图脚本 compression_plot/mismatch_eval_plot 约定 33/29/20，
+# 附录两面板在此基础上整体缩小 10）
+PANEL_LABELSIZE = 23
+PANEL_TICKSIZE = 19
+PANEL_LEGENDSIZE = 10
 
 R_COLORS = {
     0.0: "#2a78d6", 0.1: "#eb6834", 0.2: "#4f9a5f", 0.4: "#9a6ac4",
@@ -86,7 +94,7 @@ def mean_std(vals):
 
 
 def plot_series(ax, data, r, col, xlog=True, marker="o", linestyle="-", scale=1.0,
-                zorder=3, label=True):
+                zorder=3, label=True, yerr=True):
     m = data[r]
     xs, ys, errs = [], [], []
     for b in sorted(m):
@@ -94,7 +102,8 @@ def plot_series(ax, data, r, col, xlog=True, marker="o", linestyle="-", scale=1.
         xs.append(b)
         ys.append(mean * scale)
         errs.append(std * scale)
-    ax.errorbar(xs, ys, yerr=errs, label=f"$r={r:g}$" if label else None,
+    ax.errorbar(xs, ys, yerr=errs if yerr else None,
+                label=f"$r={r:g}$" if label else None,
                 color=R_COLORS[r],
                 marker=marker, markersize=4, linewidth=1.6, capsize=2,
                 linestyle=linestyle, zorder=zorder,
@@ -118,8 +127,9 @@ def save_fig(fig, path, title=""):
     print(f"图已保存：{OUT_DIR / path}")
 
 
-def line_legend(ax, loc="upper right"):
-    """图例加三个样式代理项：实测标记 / 解析地板虚线 / 理论参考点线。"""
+def line_legend(ax, loc="upper right", fontsize=7.5, anchor=None):
+    """图例加三个样式代理项：实测标记 / 解析地板虚线 / 理论参考点线。
+    anchor 为 bbox_to_anchor（如 (1.0, 0.92) 使图例整体下移）。"""
     from matplotlib.lines import Line2D
     handles, labels = ax.get_legend_handles_labels()
     handles += [
@@ -131,7 +141,8 @@ def line_legend(ax, loc="upper right"):
                label="reference $\\delta_{\\mathrm{noise}}+C_{\\mathrm{comp}}/\\beta$"),
     ]
     labels += [h.get_label() for h in handles[-3:]]
-    ax.legend(handles=handles, labels=labels, fontsize=7.5, frameon=False, loc=loc, ncol=2)
+    kw = {"bbox_to_anchor": anchor} if anchor is not None else {}
+    ax.legend(handles=handles, labels=labels, fontsize=fontsize, frameon=False, loc=loc, ncol=2, **kw)
 
 
 def fig_panel_a(data, ref, opt_fail):
@@ -227,30 +238,53 @@ def fig_panel_d(data):
 
 
 def fig_appendix(datasets, ref):
-    """三个稳健性面板分别成图：(i) 方差固定、(ii) 可训练帧、(iii) 采样标签。"""
+    """两个稳健性面板分别成图：(i) 方差固定、(ii) 采样标签。
+    每面板：解析地板虚线（r=0 的地板即横轴，不画）+ 理论参考点线
+    δ+C_comp/β + 实测 D̂ 标记 + opt_fail × 标记；图例只画在第一张
+    （两图并排同配色，第二张不重复图例）。"""
     paths = ["fig_noisy_appendix_i_varfixed.png",
-             "fig_noisy_appendix_ii_trainable.png",
              "fig_noisy_appendix_iii_sampled.png"]
     titles = [
         "(i) posterior variance fixed ($\\sigma^2\\equiv\\tau^2$)",
-        "(ii) trainable polar frame",
-        "(iii) sampled labels (finite-sample sensitivity)",
+        "(ii) sampled labels (finite-sample sensitivity)",
     ]
-    for (data, _), path, title in zip(datasets, paths, titles):
+    for idx, ((data, opt_fail), path, title) in enumerate(zip(datasets, paths, titles)):
         if not data:
             print(f"[跳过] 无数据：{path}")
             continue
         fig, ax = new_fig()
+        # 取消全部网格线（new_fig 开了 which="both"，需同时关主+次网格，
+        # 否则 log x 轴的次网格竖线残留）
+        ax.grid(False, which="both")
         for r in sorted(data):
+            if r == 0.0:
+                continue  # δ_noise(0)=0，地板即横轴，无需画线
             delta = ref[r][sorted(ref[r])[0]][0]
             ax.axhline(delta, color=R_COLORS[r], linestyle="--", linewidth=2.0, alpha=0.85,
                        zorder=1)
         for r in sorted(data):
-            plot_series(ax, data, r, "d_hat", linestyle="", zorder=4)
+            plot_series(ax, data, r, "d_hat", linestyle="", zorder=4, yerr=False)
+        # reference 曲线不参与自动缩放：先取地板+实测点决定的可视上界，
+        # 再把 δ+C_comp/β 超过上界的部分掩蔽（小 β 端 1/β 爆炸会压扁全图）
+        ymax = ax.get_ylim()[1]
+        for r in sorted(data):
+            betas = sorted(ref[r])
+            delta = ref[r][betas[0]][0]
+            c = ref[r][betas[0]][1]
+            vals = np.array([delta + c / b for b in betas])
+            ys = np.ma.masked_where(vals > ymax, vals)
+            ax.plot(betas, ys, color=R_COLORS[r],
+                    linestyle=":", linewidth=1.2, alpha=0.85, zorder=2)
+        for (r, b), n in opt_fail.items():
+            if n:
+                ax.scatter([b], [mean_std(data[r][b]["d_hat"])[0]], marker="x",
+                           color=R_COLORS[r], s=40, linewidths=1.5, zorder=6)
         ax.set_xscale("log")
-        ax.set_xlabel(r"$\beta$")
-        ax.set_ylabel(r"$\widehat D(Y)$ (nats)")
-        line_legend(ax)
+        ax.set_xlabel(r"$\beta$", fontsize=PANEL_LABELSIZE)
+        ax.set_ylabel(r"$\widehat D(Y)$ (nats)", fontsize=PANEL_LABELSIZE)
+        ax.tick_params(labelsize=PANEL_TICKSIZE)
+        if idx == 0:
+            line_legend(ax, fontsize=PANEL_LEGENDSIZE, anchor=(1.0, 0.92))
         save_fig(fig, path, title + ": $\widehat D$ vs. $\beta$ with $\delta_{\mathrm{noise}}$ floors")
 
 
@@ -370,14 +404,12 @@ def main():
         print(f"\ngating（L̂≤L_comp+1.0）：{len(bad)} 个 (r,β) 组合含 opt_fail 行"
               + (f"：{bad}" if bad else "——全部通过"))
 
-    d1, _, _ = load(args.csv, "population", "fixed", "fixed")
-    d2, _, _ = load(args.csv, "population", "trainable", "paper")
-    d3, f3, _ = load(args.csv, "sampled", "fixed", "paper")
+    d1, _, o1 = load(args.csv, "population", "fixed", "fixed")
+    d3, f3, o3 = load(args.csv, "sampled", "fixed", "paper")
     print(f"附录图数据：var=fixed {sum(len(v) for v in d1.values())} β 点、"
-          f"trainable {sum(len(v) for v in d2.values())} β 点、"
           f"sampled {sum(len(v) for v in d3.values())} β 点（失败行 {f3}）")
-    if d1 or d2 or d3:
-        fig_appendix([(d1, None), (d2, None), (d3, None)], ref)
+    if d1 or d3:
+        fig_appendix([(d1, o1), (d3, o3)], ref)
 
     write_summary(args.csv, ref)
 

@@ -46,34 +46,31 @@ Training evaluates the population objective by weighting all $K^2$
 clean/observed-label pairs by the noise model, with a descending-$\beta$ warm start
 to remove avoidable optimization error at the small-$\beta$ end; the comparator risk
 $C_{\rm comp}(r_{\rm n})$ is estimated by Monte Carlo. The population-weighted experiment of
-Section~\ref{sec:controlled-validation} uses a fixed frame and the standard trainable
+Section~\ref{sec:controlled-validation} uses the standard trainable
 posterior variance. Figure~\ref{fig:noisy-alignment-sensitivity} changes these
 choices one at a time. Fixing the posterior variance to
-$\sigma^2\equiv\tau^2$ leaves the measured mismatch on the analytic floors, confirming
-that the result is not an artifact of posterior-covariance flexibility. Replacing the
-fixed frame by the trainable polar frame gives the same result, so the floor
-is invariant to the learned rigid frame rotation.
+$\sigma^2\equiv\tau^2$ (Fig.~\ref{fig:noisy-alignment-sensitivity}a) leaves the
+measured mismatch on the analytic floors, confirming that the result is not an
+artifact of posterior-covariance flexibility.
 
-The third panel replaces the exact population weights by sampled noisy labels. It
+The second panel (Fig.~\ref{fig:noisy-alignment-sensitivity}b) replaces the exact
+population weights by sampled noisy labels. It
 shows the expected finite-sample displacement from the population floor at weak
 compression and convergence toward the empirical floor as compression strengthens.
-Six sampled-label configurations at large $\beta$ fail the explicit comparator-objective
-gate (twelve stored rows because both best and final checkpoints are retained); they are
-marked as optimization failures rather than interpreted as violations of
-Eq.~\eqref{eq:pgib-comparator-bound}. The population-weighted main grid and both
-structural controls satisfy the gate at every point.
+Five sampled-label configurations at large $\beta$ fail the explicit comparator-objective
+gate; they are marked as optimization failures rather than interpreted as violations
+of Eq.~\eqref{eq:pgib-comparator-bound}. The population-weighted main grid and the
+structural control satisfy the gate at every point.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_i_varfixed.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_ii_trainable.png}\hfill
-\includegraphics[width=0.32\linewidth]{figures/fig_noisy_appendix_iii_sampled.png}
+\includegraphics[width=0.49\linewidth]{figures/fig_noisy_appendix_i_varfixed.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/fig_noisy_appendix_iii_sampled.png}
 \caption{Sensitivity analyses for the controlled label-ambiguity experiment.
-(a) Posterior variance fixed to the prior variance. (b) Trainable polar
-frame. (c) Labels sampled rather than integrated with their exact population weights;
-failed comparator-gate configurations are marked. Dashed lines denote the analytic
-population ambiguity floors. Points are means and error bars are standard deviations
-over seeds.}
+(a) Posterior variance fixed to the prior variance. (b) Labels sampled rather
+than integrated with their exact population weights; failed comparator-gate
+configurations are marked. Dashed lines denote the analytic population
+ambiguity floors. Points are means over seeds.}
 \label{fig:noisy-alignment-sensitivity}
 \end{figure*}
 \subsection{Alignment and separation: definitions and diagnostics}

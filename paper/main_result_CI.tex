@@ -3,7 +3,7 @@
 %（分类百分点、回归 R²）；加粗 = CI 下限 > 0（显著更优）、† = CI 下限 > −δ
 %（非劣界 δ=0.2 百分点 / 0.005）记 tied；
 % 同 seed 配对（run 顺序即 seed 0..N−1），bootstrap B=10000（固定 seed 0，百分位法）。
-% 差值列超页宽，按列拆四张表（baselines / svib+nib / ceb+dvcca / ncbd+adacap）；
+% 差值列超页宽，按列拆三张表（base/vib、svib/nib/ceb、dvcca/ncbd/adacap）；
 % 表尾一行统计各列 */† 次数；ncbd 仅分类行、adacap 仅回归行有值。
 \begin{table*}[t]
 \centering
@@ -38,61 +38,30 @@ AgeDB & CNN & \textbf{+0.079 [+0.066, +0.091]} & \textbf{+0.136 [+0.043, +0.302]
 \par\smallskip
 \begin{table*}[t]
 \centering
-\caption{Paired-difference 95\% confidence intervals of GPB over SVIB and NIB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table.}
-\label{tab:main_result_ci_svib_nib}
-\small
-{
-\setlength{\tabcolsep}{0.5pt}
-\begin{tabular}{llcc}
-\hline
-Dataset & Backbone & SVIB & NIB \\
-\hline
-MNIST & MLP & \textbf{+0.4 [+0.3, +0.5]} & \textbf{+0.3 [+0.2, +0.3]} \\
-MNIST & CNN & \textbf{+0.1 [+0.1, +0.1]} & \textbf{+0.1 [+0.1, +0.2]} \\
-ImageNet-100 & MLP & \textbf{+1.4 [+1.1, +1.7]} & \textbf{+2.1 [+1.8, +2.2]} \\
-ImageNet-100 & CNN & \textbf{+3.0 [+2.4, +3.9]} & \textbf{+3.2 [+2.9, +3.5]} \\
-Cora & GCN & \textbf{+1.7 [+0.2, +3.4]} & \textbf{+1.8 [+1.1, +2.4]} \\
-IMDb & RNN & \textbf{+0.8 [+0.2, +1.4]} & \textbf{+0.7 [+0.2, +1.2]} \\
-AG News & RNN & +0.0 [-0.1, +0.1]$^{\dagger}$ & -0.0 [-0.2, +0.1]$^{\dagger}$ \\
-\hline\hline
-Cal. Housing & MLP & -0.000 [-0.006, +0.004] & +0.003 [-0.001, +0.009]$^{\dagger}$ \\
-STS-B & RNN & +0.006 [-0.021, +0.028] & \textbf{+0.035 [+0.011, +0.058]} \\
-ZINC & GCN & +0.002 [-0.001, +0.004]$^{\dagger}$ & \textbf{+0.017 [+0.010, +0.026]} \\
-AgeDB & MLP & +0.015 [-0.010, +0.041] & \textbf{+0.083 [+0.062, +0.100]} \\
-AgeDB & CNN & \textbf{+0.138 [+0.045, +0.303]} & \textbf{+0.136 [+0.040, +0.302]} \\
-\hline
- &  & 7*/2† & 10*/2† \\
-\hline
-\end{tabular}
-}
-\end{table*}
-\par\smallskip
-\begin{table*}[t]
-\centering
-\caption{Paired-difference 95\% confidence intervals of GPB over CEB and DVCCA (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in the baselines table.}
+\caption{Paired-difference 95\% confidence intervals of GPB over SVIB, NIB, and CEB (GPB minus baseline, per setting; classification in percentage points, regression in $R^2$). Bold/† as in Table~\ref{tab:main_result_ci_baselines}.}
 \label{tab:main_result_ci_variants}
 \small
 {
 \setlength{\tabcolsep}{0.5pt}
-\begin{tabular}{llcc}
+\begin{tabular}{llccc}
 \hline
-Dataset & Backbone & CEB & DVCCA \\
+Dataset & Backbone & SVIB & NIB & CEB \\
 \hline
-MNIST & MLP & \textbf{+0.1 [+0.0, +0.2]} & \textbf{+0.3 [+0.2, +0.4]} \\
-MNIST & CNN & +0.0 [-0.0, +0.1]$^{\dagger}$ & +0.0 [-0.1, +0.1]$^{\dagger}$ \\
-ImageNet-100 & MLP & \textbf{+1.6 [+1.5, +1.7]} & \textbf{+1.4 [+1.1, +1.7]} \\
-ImageNet-100 & CNN & \textbf{+3.1 [+2.4, +3.7]} & \textbf{+2.9 [+2.4, +3.5]} \\
-Cora & GCN & \textbf{+1.8 [+1.5, +2.3]} & \textbf{+1.2 [+0.4, +1.9]} \\
-IMDb & RNN & \textbf{+1.3 [+0.3, +2.1]} & \textbf{+1.1 [+0.8, +1.5]} \\
-AG News & RNN & +0.0 [-0.1, +0.2]$^{\dagger}$ & +0.1 [-0.0, +0.2]$^{\dagger}$ \\
+MNIST & MLP & \textbf{+0.4 [+0.3, +0.5]} & \textbf{+0.3 [+0.2, +0.3]} & \textbf{+0.1 [+0.0, +0.2]} \\
+MNIST & CNN & \textbf{+0.1 [+0.1, +0.1]} & \textbf{+0.1 [+0.1, +0.2]} & +0.0 [-0.0, +0.1]$^{\dagger}$ \\
+ImageNet-100 & MLP & \textbf{+1.4 [+1.1, +1.7]} & \textbf{+2.1 [+1.8, +2.2]} & \textbf{+1.6 [+1.5, +1.7]} \\
+ImageNet-100 & CNN & \textbf{+3.0 [+2.4, +3.9]} & \textbf{+3.2 [+2.9, +3.5]} & \textbf{+3.1 [+2.4, +3.7]} \\
+Cora & GCN & \textbf{+1.7 [+0.2, +3.4]} & \textbf{+1.8 [+1.1, +2.4]} & \textbf{+1.8 [+1.5, +2.3]} \\
+IMDb & RNN & \textbf{+0.8 [+0.2, +1.4]} & \textbf{+0.7 [+0.2, +1.2]} & \textbf{+1.3 [+0.3, +2.1]} \\
+AG News & RNN & +0.0 [-0.1, +0.1]$^{\dagger}$ & -0.0 [-0.2, +0.1]$^{\dagger}$ & +0.0 [-0.1, +0.2]$^{\dagger}$ \\
 \hline\hline
-Cal. Housing & MLP & +0.000 [-0.003, +0.004]$^{\dagger}$ & +0.002 [-0.005, +0.009] \\
-STS-B & RNN & +0.009 [-0.009, +0.025] & +0.005 [-0.020, +0.026] \\
-ZINC & GCN & \textbf{+0.009 [+0.005, +0.011]} & \textbf{+0.005 [+0.002, +0.007]} \\
-AgeDB & MLP & \textbf{+0.022 [+0.006, +0.038]} & \textbf{+0.036 [+0.012, +0.057]} \\
-AgeDB & CNN & \textbf{+0.082 [+0.064, +0.099]} & \textbf{+0.149 [+0.065, +0.310]} \\
+Cal. Housing & MLP & -0.000 [-0.006, +0.004] & +0.003 [-0.001, +0.009]$^{\dagger}$ & +0.000 [-0.003, +0.004]$^{\dagger}$ \\
+STS-B & RNN & +0.006 [-0.021, +0.028] & \textbf{+0.035 [+0.011, +0.058]} & +0.009 [-0.009, +0.025] \\
+ZINC & GCN & +0.002 [-0.001, +0.004]$^{\dagger}$ & \textbf{+0.017 [+0.010, +0.026]} & \textbf{+0.009 [+0.005, +0.011]} \\
+AgeDB & MLP & +0.015 [-0.010, +0.041] & \textbf{+0.083 [+0.062, +0.100]} & \textbf{+0.022 [+0.006, +0.038]} \\
+AgeDB & CNN & \textbf{+0.138 [+0.045, +0.303]} & \textbf{+0.136 [+0.040, +0.302]} & \textbf{+0.082 [+0.064, +0.099]} \\
 \hline
- &  & 8*/3† & 8*/2† \\
+ &  & 7*/2† & 10*/2† & 8*/3† \\
 \hline
 \end{tabular}
 }
@@ -100,30 +69,30 @@ AgeDB & CNN & \textbf{+0.082 [+0.064, +0.099]} & \textbf{+0.149 [+0.065, +0.310]
 \par\smallskip
 \begin{table*}[t]
 \centering
-\caption{Paired-difference 95\% confidence intervals of GPB over the external non-IB baselines NCBD (classification settings only) and AdaCap (regression settings only); GPB minus baseline, classification in percentage points, regression in $R^2$. Bold/† as in the baselines table.}
+\caption{Paired-difference 95\% confidence intervals of GPB over DVCCA and the external non-IB baselines NCBD (classification settings only) and AdaCap (regression settings only); GPB minus baseline, classification in percentage points, regression in $R^2$. Bold/† as in Table~\ref{tab:main_result_ci_baselines}.}
 \label{tab:main_result_ci_external}
 \small
 {
 \setlength{\tabcolsep}{0.5pt}
-\begin{tabular}{llcc}
+\begin{tabular}{llccc}
 \hline
-Dataset & Backbone & NCBD & AdaCap \\
+Dataset & Backbone & DVCCA & NCBD & AdaCap \\
 \hline
-MNIST & MLP & \textbf{+0.6 [+0.4, +0.8]} & -- \\
-MNIST & CNN & \textbf{+0.1 [+0.1, +0.2]} & -- \\
-ImageNet-100 & MLP & \textbf{+0.8 [+0.6, +0.9]} & -- \\
-ImageNet-100 & CNN & \textbf{+5.5 [+4.3, +6.9]} & -- \\
-Cora & GCN & \textbf{+0.8 [+0.0, +1.9]} & -- \\
-IMDb & RNN & +0.2 [-0.5, +0.7] & -- \\
-AG News & RNN & \textbf{+0.5 [+0.2, +0.8]} & -- \\
+MNIST & MLP & \textbf{+0.3 [+0.2, +0.4]} & \textbf{+0.6 [+0.4, +0.8]} & -- \\
+MNIST & CNN & +0.0 [-0.1, +0.1]$^{\dagger}$ & \textbf{+0.1 [+0.1, +0.2]} & -- \\
+ImageNet-100 & MLP & \textbf{+1.4 [+1.1, +1.7]} & \textbf{+0.8 [+0.6, +0.9]} & -- \\
+ImageNet-100 & CNN & \textbf{+2.9 [+2.4, +3.5]} & \textbf{+5.5 [+4.3, +6.9]} & -- \\
+Cora & GCN & \textbf{+1.2 [+0.4, +1.9]} & \textbf{+0.8 [+0.0, +1.9]} & -- \\
+IMDb & RNN & \textbf{+1.1 [+0.8, +1.5]} & +0.2 [-0.5, +0.7] & -- \\
+AG News & RNN & +0.1 [-0.0, +0.2]$^{\dagger}$ & \textbf{+0.5 [+0.2, +0.8]} & -- \\
 \hline\hline
-Cal. Housing & MLP & -- & \textbf{+0.014 [+0.009, +0.019]} \\
-STS-B & RNN & -- & \textbf{+0.115 [+0.086, +0.135]} \\
-ZINC & GCN & -- & -0.043 [-0.046, -0.041] \\
-AgeDB & MLP & -- & +0.005 [-0.007, +0.021] \\
-AgeDB & CNN & -- & +0.002 [-0.004, +0.006]$^{\dagger}$ \\
+Cal. Housing & MLP & +0.002 [-0.005, +0.009] & -- & \textbf{+0.014 [+0.009, +0.019]} \\
+STS-B & RNN & +0.005 [-0.020, +0.026] & -- & \textbf{+0.115 [+0.086, +0.135]} \\
+ZINC & GCN & \textbf{+0.005 [+0.002, +0.007]} & -- & -0.043 [-0.046, -0.041] \\
+AgeDB & MLP & \textbf{+0.036 [+0.012, +0.057]} & -- & +0.005 [-0.007, +0.021] \\
+AgeDB & CNN & \textbf{+0.149 [+0.065, +0.310]} & -- & +0.002 [-0.004, +0.006]$^{\dagger}$ \\
 \hline
- &  & 6*/0† & 2*/1† \\
+ &  & 8*/2† & 6*/0† & 2*/1† \\
 \hline
 \end{tabular}
 }
