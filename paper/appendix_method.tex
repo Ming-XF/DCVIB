@@ -8,11 +8,14 @@
 \label{app:setup-details}
 \paragraph{Scope and shared settings.} We evaluate twelve dataset--backbone settings over nine public datasets:
 MNIST, ImageNet-100, Cora, IMDb, AG News, California Housing, STS-B,
-ZINC-12k, and AgeDB, covering MLP, CNN, GCN, and RNN backbones. All
+ZINC-12k, and AgeDB
+\citep{lecun1998gradient,deng2009imagenet,sen2008collective,maas2011learning,
+zhang2015character,pace1997sparse,cer2017semeval,irwin2012zinc,
+moschoglou2017agedb}, covering MLP, CNN, GCN, and RNN backbones. All
 methods use the same data splits ($60/20/20$ train/validation/test
 with a fixed seed for most datasets, official splits kept where provided,
 e.g., Cora and ZINC-12k), backbone, Gaussian posterior with learned diagonal
-variance, bottleneck $d=256$, Adam training, early stopping, and
+variance, bottleneck $d=256$, Adam \citep{kingma2015adam} training, early stopping, and
 validation-based selection; GPB's prior covariance is the
 fixed shared $\tau^2I$ ($\tau^2=1$). All reported accuracy and $R^2$ values
 are evaluated as ten-sample Monte Carlo predictions.
@@ -22,9 +25,9 @@ hidden sizes $512$--$256$, dropout $0.2$, learning rate $10^{-3}$ (Cora
 uses $10^{-2}$), batch size $512$, and a $200$-epoch budget with early
 stopping (patience $20$); dataset-specific defaults are likewise shared
 by every method on that dataset: STS-B uses a single-layer LSTM with
-hidden size $256$ and frozen GloVe embeddings; AG News uses
-$50$-dimensional PCA-reduced BERT features; ImageNet-100 uses $4\times4$
-spatial pool-4 ResNet-50 features; the remaining dataset-specific
+hidden size $256$ and frozen GloVe \citep{pennington2014glove} embeddings; AG News uses
+$50$-dimensional PCA-reduced BERT \citep{devlin2019bert} features; ImageNet-100 uses $4\times4$
+spatial pool-4 ResNet-50 \citep{he2016deep} features; the remaining dataset-specific
 preprocessing is given in the release. Every configuration is trained
 on the same ten seeds ($0$--$9$). Input features are standardized per
 dataset, and regression targets are min--max normalized to $[0,1]$;

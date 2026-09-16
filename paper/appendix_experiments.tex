@@ -18,7 +18,8 @@ mean-based rule as Table~\ref{tab:main_result}.
 Tables~\ref{tab:main_result_ci_baselines}--\ref{tab:main_result_ci_external}
 report, for each setting, the paired difference of GPB over every baseline
 (GPB minus baseline) with a bootstrap $95\%$ confidence interval: the differences
-are paired across the shared seeds, the interval is the percentile interval of
+are paired across the shared seeds, the interval is the percentile interval
+\citep{efron1994introduction} of
 $B = 10{,}000$ resamples of the per-run differences (fixed seed, reproducible), and
 the non-inferiority margin is $\delta_{\rm NI} = 0.2$ percentage points of accuracy or
 $\delta_{\rm NI} = 0.005$ in $R^2$. Bold marks a lower bound above zero (significant
@@ -236,7 +237,7 @@ only through this collapse boundary.
 \subsection{Information-plane estimates}
 \label{app:info-plane}
 \textbf{Estimator protocol.}\ $I(X;Z)$ is estimated by the InfoNCE lower bound
-\citep{oord2018representation} ($\log N_{\rm neg}-\mathcal{L}_{\mathrm{NCE}}$, $N_{\rm neg}=4096$; one
+\citep{oord2018representation,poole2019variational} ($\log N_{\rm neg}-\mathcal{L}_{\mathrm{NCE}}$, $N_{\rm neg}=4096$; one
 critic per run, trained on the training split, the bound read off the test split with
 $z\sim q(z|x)$). $I(Y;Z)$ is read on the same sampled posterior: $H(Y)-\mathrm{CE}$
 with the cross-entropy averaged over $M=20$ draws $z\sim q(z|x)$ per test point
