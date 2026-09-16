@@ -260,29 +260,24 @@ on a plateau; the operating point is therefore sensitive to the scale
 only through this collapse boundary.
 \subsection{Information-plane estimates}
 \label{app:info-plane}
-Estimator protocol.\ $I(X;Z)$ is estimated by the InfoNCE lower bound
+\textbf{Estimator protocol.}\ $I(X;Z)$ is estimated by the InfoNCE lower bound
 \citep{oord2018representation} ($\log N_{\rm neg}-\mathcal{L}_{\mathrm{NCE}}$, $N_{\rm neg}=4096$; one
 critic per run, trained on the training split, the bound read off the test split with
 $z\sim q(z|x)$). $I(Y;Z)$ is read on the same sampled posterior: $H(Y)-\mathrm{CE}$
 with the cross-entropy averaged over $M=20$ draws $z\sim q(z|x)$ per test point
 (still a lower bound, as $\mathrm{CE}\ge H(Y|Z)$). The residual $I(X;Z|Y)$ is
-estimated directly rather than as a difference: every $q(z|x)$ is a known Gaussian,
-so the class-conditional mixture
+read on the known Gaussian posteriors: the class-conditional mixture
 $q(z|y)=\frac{1}{N_y}\sum_{j:y_j=y}q(z|x_j)$ over the test samples is evaluated
 exactly by logsumexp, and
 $I(X;Z|Y)=\mathbb{E}_{x,y}\,\mathrm{KL}(q(z|x)\,\|\,q(z|y))$ is read by Monte
-Carlo---an exact estimate up to $z$-sampling noise and the finite per-class test
-sample, not a difference of bounds. The certificate-plane axis is drawn linear
-because the collapsed CEB trajectory lands on zero. The MNIST panels appear in
-Fig.~\ref{fig:compression-main}(c,d) of the main text.
+Carlo, exact up to $z$-sampling noise and the finite per-class test sample. The
+certificate-plane axis is drawn linear because the collapsed CEB trajectory lands
+on zero.
 
-Matched-compression performance.
-Table~\ref{tab:info-plane-matched} pairs each CEB point with the OPB configuration of
-nearest estimated $I(X;Z)$. At $\approx2.0$ nat, CEB ($\beta=0.5$) retains $86.0\%$
-while OPB ($a=1$, $\beta=0.5$) retains $97.8\%$; at $\approx2.5$ nat ($\beta=0.1$) the
-two tie ($98.2\%$ vs.\ $98.1\%$). The directly estimated residual is comparable or
-slightly larger for OPB at both points ($0.41$ vs.\ $0.47$ nat at $\beta=0.1$;
-$0.20$ vs.\ $0.21$ nat at $\beta=0.5$), so OPB's task plateau is not bought by extra
+\textbf{Matched-compression performance.}
+Table~\ref{tab:info-plane-matched} pairs each CEB point with the OPB configuration
+of nearest estimated $I(X;Z)$: at equal compression OPB retains no less accuracy
+and its residual is comparable, so OPB's task plateau is not bought by extra
 residual compression. These are paired empirical comparisons at two estimated
 compression levels, not a causal attribution to geometry.
 
@@ -293,43 +288,34 @@ compression levels, not a causal attribution to geometry.
 are in the stored evaluation report). The OPB configuration is the one whose
 estimated $I(X;Z)$ is nearest to the CEB point.}
 \label{tab:info-plane-matched}
-\begin{tabular}{l c c c l c c c}
+\begin{tabular}{l c c c c c c}
 \hline
-& \multicolumn{3}{c}{CEB} & \multicolumn{4}{c}{OPB}\\
-\cline{2-4}\cline{5-8}
-Setting & $I(X;Z)$ & $I(X;Z|Y)$ & Acc. & config. & $I(X;Z)$ & $I(X;Z|Y)$ & Acc.\\
+& \multicolumn{3}{c}{CEB} & \multicolumn{3}{c}{OPB}\\
+\cline{2-4}\cline{5-7}
+Setting & $I(X;Z)$ & $I(X;Z|Y)$ & Acc. & $I(X;Z)$ & $I(X;Z|Y)$ & Acc.\\
 \hline
-MNIST, $\beta=0.1$ & $2.54$ & $0.41$ & $98.2$ & $a=1,\beta=0.1$ & $2.55$ & $0.47$ & $98.1$\\
-MNIST, $\beta=0.5$ & $1.96$ & $0.20$ & $86.0$ & $a=1,\beta=0.5$ & $2.01$ & $0.21$ & $97.8$\\
+MNIST & $2.54$ & $0.41$ & $98.2$ & $2.55$ & $0.47$ & $98.1$\\
+MNIST & $1.96$ & $0.20$ & $86.0$ & $2.01$ & $0.21$ & $97.8$\\
 \hline
 \end{tabular}
 \end{table}
-\subsection{Information-plane panels for Cal.~Housing}
-\label{app:info-plane-extra}
-
-Figure~\ref{fig:info-plane-extra} completes panels (c)--(d) of
-Fig.~\ref{fig:compression-main} in the main text with the regression setting, under
-the same $\beta$ grid and five runs per point; here
+\textbf{Regression companion.}\ Figure~\ref{fig:info-plane-extra} verifies on the
+regression setting what the classification panels of Section~\ref{sec:info-plane}
+establish, namely what each method compresses and discards as compression
+deepens; here
 $I(Y;Z)$ is the Gaussian approximation
 $\tfrac12 \ln\bigl(\mathrm{Var}(y)/\mathrm{Var}(y-\hat y_{\mathrm{MC}})\bigr)$
-read on the sampled posterior, and the residual $I(X;Z|Y)$ is estimated directly
-rather than as a difference of the two: $\hat q(z|y)$ is the
-Gaussian-kernel-weighted mixture $\sum_j w_j(y)\,q(z|x_j)$ over the test samples
-($w_j$ a softmax in $-(y-y_j)^2/2h^2$, truncated to the $2048$ nearest labels and
-renormalized, with Silverman's $h$ fitted on the training split), the mixture
-density is evaluated exactly by logsumexp, and
-$I(X;Z|Y)=\mathbb{E}_{x,y}\,\mathrm{KL}(q(z|x)\,\|\,\hat q(z|y))$ is read by Monte
-Carlo; every term is a KL between proper densities, so the estimate is
-non-negative by construction (doubling $h$ shifts it by a median $6.5\%$, at most
-$12\%$). The certificate panel now reads directly: CEB's residual falls from
-$\approx 2.9$ nat at weak compression to near zero together with its task
-information, whereas EPB at $\rho=6,12$ ends strong compression on a small
-positive residual plateau of $0.05$--$0.15$ nat with $I(Y;Z)$ held at
-$0.52$--$0.67$ nat---compression again stops near the task-information level, now
-on a non-negative direct estimate. The information plane is informative: CEB
-compresses itself off the task ($R^2 = 0.49$ at $\beta = 0.1$, $0.18$ at
-$\beta = 0.5$) while every EPB curve keeps $R^2 \ge 0.76$ flat out to
-$\beta = 25$.
+read on the sampled posterior, and the residual $I(X;Z|Y)$ uses a
+Gaussian-kernel-weighted mixture of the test posteriors
+($\hat q(z|y)=\sum_j w_j(y)\,q(z|x_j)$, with the bandwidth fitted on the
+training split), evaluated exactly by logsumexp; every term is a KL between
+proper densities, so the estimate is non-negative by construction. The
+two panels of Fig.~\ref{fig:info-plane-extra} show the same phenomenon:
+CEB's residual and task information fall toward zero together, whereas EPB ends
+strong compression on a small positive residual plateau whose task-information
+level grows with the scale; every EPB curve keeps its $R^2$ flat out to the
+strongest compression, so compression again stops where the task information
+sits.
 
 \begin{figure*}[t]
 \centering
