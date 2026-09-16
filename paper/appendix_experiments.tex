@@ -102,9 +102,9 @@ strongest.
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\par\medskip
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
-\caption{Alignment and separation diagnostics deferred from the main text. (a) Accuracy
-against $\widehat D$ (color $=\beta$, marker $=a$). (b) Slack percentiles
-(p05--p50--p95). (c) Cal.\ Housing anchor
+\caption{Alignment and separation diagnostics. (a) ImageNet-100 (MLP) accuracy
+against $\widehat D$ (color $=\beta$, marker $=a$). (b) ImageNet-100 (MLP) slack
+percentile band (5th, 50th, and 95th percentiles). (c) Cal.\ Housing anchor
 mismatch against $\beta$ by isometric scale $\rho$. (d) Cal.\ Housing bin-pair separation against
 the declared prior distance at $\rho=6$ (color $=\beta$; identity line: exact
 transfer).}
@@ -156,8 +156,7 @@ excludes masking rather than establishing a causal geometry effect.
 \includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_linf_mnist.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_l2_mnist.png}
 \caption{Transfer PGD curves on MNIST (gradient-masking check). Targeted adversaries
-are generated on one model and evaluated on another; CEB-to-OPB transfer remains far
-below OPB's own white-box attack. The targeted white-box curves are in the main text.}
+are generated on one model and evaluated on another. The targeted white-box curves are in the main text.}
 \label{fig:adv-transfer}
 \end{figure*}
 \subsection{Factor-wise ablations}
@@ -185,7 +184,6 @@ variant & switched factor & construction \\
 NCM-learn & IB term & encoder output used deterministically ($z=\mu_\phi(x)$, no posterior, no KL), energy readout on trainable prototypes \\
 NCM-ortho & IB term, geometry & same, with the prototypes fixed to the orthogonal frame $a\,e_k$ \\
 CEB-energy & readout & CEB reference and KL, free head replaced by the energy readout \\
-CEB-tied & readout & CEB reference and KL, free head replaced by the tied projection \\
 OPB-FS & fixed scale & orthogonal frame and energy readout, learnable anchor radius \\
 GPB-L & readout & GPB's orthogonal-frame prior with a free linear head \\
 OPB-RV & frame trainability & all trainable prior parameters frozen \\
@@ -209,8 +207,7 @@ reproduces the classification behavior.
 \includegraphics[width=0.48\linewidth]{figures/fig_beta_acc_housing.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_beta_kl_housing.png}
 \caption{California Housing compression sweep (MLP). Left: test $R^2$; right:
-realized conditional KL over $\beta$. EPB maintains a task plateau through strong
-compression, while the $\rho=1$ weak-compression points exhibit a large variance term.}
+realized conditional KL over $\beta$.}
 \label{fig:compression-housing}
 \end{figure*}
 \subsection{Anchor-scale sensitivity}
@@ -263,9 +260,8 @@ compression levels, not a causal attribution to geometry.
 \begin{table}[t]
 \centering\small
 \setlength{\tabcolsep}{4pt}
-\caption{Matched-compression information-plane comparison (means; standard deviations
-are in the stored evaluation report). The OPB configuration is the one whose
-estimated $I(X;Z)$ is nearest to the CEB point.}
+\caption{Matched-compression information-plane comparison. The OPB configuration
+is the one whose estimated $I(X;Z)$ is nearest to the CEB point.}
 \label{tab:info-plane-matched}
 \begin{tabular}{l c c c c c c}
 \hline
@@ -301,9 +297,6 @@ sits.
 \includegraphics[width=0.48\linewidth]{figures/fig_info_plane_housing.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_certificate_plane_housing.png}
 \caption{Information plane (a) and certificate plane (b) for Cal.~Housing,
-companion panels to Fig.~\ref{fig:compression-main}(c,d): identical estimators,
-$\beta$ grid (log $x$-scale in both panels), lines connect $\beta$ in
-ascending order. CEB
-one curve per panel; EPB three ($\rho \in \{1, 6, 12\}$).}
+companion panels to Fig.~\ref{fig:compression-main}(c,d).}
 \label{fig:info-plane-extra}
 \end{figure*}

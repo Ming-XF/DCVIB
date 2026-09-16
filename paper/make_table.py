@@ -629,27 +629,33 @@ def gen_result_ci():
     out = "\n".join(head)
     captions = {
         "tab:main_result_ci_baselines": (
-            "Paired-difference 95\\% confidence intervals of GPB over the plain "
-            "backbone and VIB (GPB minus baseline, per setting; classification in "
-            "percentage points, regression in $R^2$). Bold: lower CI bound above "
-            "zero; $^{\\dagger}$: lower bound within the non-inferiority margin "
+            "Paired-difference 95\\% confidence intervals of GPB over Base and "
+            "VIB; GPB minus baseline, per setting; classification in percentage "
+            "points, regression in $R^2$. Bold: lower CI bound above zero; "
+            "$^{\\dagger}$: lower bound within the non-inferiority margin "
             "$\\delta_{\\rm NI}$ (tied)."
         ),
         "tab:main_result_ci_svib_nib": (
-            "Paired-difference 95\\% confidence intervals of GPB over SVIB and NIB "
-            "(GPB minus baseline, per setting; classification in percentage points, "
-            "regression in $R^2$). Bold/† as in the baselines table."
+            "Paired-difference 95\\% confidence intervals of GPB over SVIB and "
+            "NIB; GPB minus baseline, per setting; classification in percentage "
+            "points, regression in $R^2$. Bold: lower CI bound above zero; "
+            "$^{\\dagger}$: lower bound within the non-inferiority margin "
+            "$\\delta_{\\rm NI}$ (tied)."
         ),
         "tab:main_result_ci_variants": (
-            "Paired-difference 95\\% confidence intervals of GPB over CEB and DVCCA "
-            "(GPB minus baseline, per setting; classification in percentage points, "
-            "regression in $R^2$). Bold/† as in the baselines table."
+            "Paired-difference 95\\% confidence intervals of GPB over CEB and "
+            "DVCCA; GPB minus baseline, per setting; classification in "
+            "percentage points, regression in $R^2$. Bold: lower CI bound above "
+            "zero; $^{\\dagger}$: lower bound within the non-inferiority margin "
+            "$\\delta_{\\rm NI}$ (tied)."
         ),
         "tab:main_result_ci_external": (
-            "Paired-difference 95\\% confidence intervals of GPB over the external "
-            "non-IB baselines NCBD (classification settings only) and AdaCap "
-            "(regression settings only); GPB minus baseline, classification in "
-            "percentage points, regression in $R^2$. Bold/† as in the baselines table."
+            "Paired-difference 95\\% confidence intervals of GPB over NCBD "
+            "(classification settings only) and AdaCap (regression settings "
+            "only); GPB minus baseline, per setting; classification in "
+            "percentage points, regression in $R^2$. Bold: lower CI bound above "
+            "zero; $^{\\dagger}$: lower bound within the non-inferiority margin "
+            "$\\delta_{\\rm NI}$ (tied)."
         ),
     }
     for cols, label in CI_COL_GROUPS:
@@ -923,16 +929,15 @@ def gen_table_std(grid):
     out += block_float(
         ["base", "vib", "svib", "nib", "ncbd"],
         "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
-        "the plain backbone, the variational baselines, and NCBD (classification "
-        "settings only); same configurations as Table~\\ref{tab:main_result}.",
+        "Base, VIB, SVIB, NIB, and NCBD (classification settings only); same "
+        "configurations as Table~\\ref{tab:main_result}.",
         "tab:main_result_std_baselines",
     )
     out += block_float(
         ["ceb", "dvcca", "adacap", "opb"],
         "Test accuracy (\\%) and test $R^2$ with standard deviations over runs: "
         "CEB, DVCCA, AdaCap (regression settings only), and our method; same "
-        "configurations as Table~\\ref{tab:main_result}. GPB is "
-        "separated from the references by the vertical rule.",
+        "configurations as Table~\\ref{tab:main_result}.",
         "tab:main_result_std_variants",
     )
     return out

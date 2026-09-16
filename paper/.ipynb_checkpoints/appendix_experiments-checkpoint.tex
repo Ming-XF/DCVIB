@@ -102,9 +102,9 @@ strongest.
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_cls_iii_slack.png}\par\medskip
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_c_housing_d_beta.png}\hfill
 \includegraphics[width=0.49\linewidth]{figures/fig_mismatch_appendix_reg_binscatter.png}
-\caption{Alignment and separation diagnostics deferred from the main text. (a) Accuracy
-against $\widehat D$ (color $=\beta$, marker $=a$). (b) Slack percentiles
-(p05--p50--p95). (c) Cal.\ Housing anchor
+\caption{Alignment and separation diagnostics. (a) ImageNet-100 (MLP) accuracy
+against $\widehat D$ (color $=\beta$, marker $=a$). (b) ImageNet-100 (MLP) slack
+percentile band (5th, 50th, and 95th percentiles). (c) Cal.\ Housing anchor
 mismatch against $\beta$ by isometric scale $\rho$. (d) Cal.\ Housing bin-pair separation against
 the declared prior distance at $\rho=6$ (color $=\beta$; identity line: exact
 transfer).}
@@ -156,66 +156,43 @@ excludes masking rather than establishing a causal geometry effect.
 \includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_linf_mnist.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_adv_transfer_l2_mnist.png}
 \caption{Transfer PGD curves on MNIST (gradient-masking check). Targeted adversaries
-are generated on one model and evaluated on another; CEB-to-OPB transfer remains far
-below OPB's own white-box attack. The targeted white-box curves are in the main text.}
+are generated on one model and evaluated on another. The targeted white-box curves are in the main text.}
 \label{fig:adv-transfer}
 \end{figure*}
 \subsection{Factor-wise ablations}
 \label{app:ablation}
 The factor-wise ablation ladder switches geometry, anchor scale, readout, and the IB
-term separately; each variant is evaluated at its best validation-selected
-configuration (Table~\ref{tab:ablation}). The complete means are reported in
+term separately; every variant is searched on the same 30-configuration budget as
+the main comparison and evaluated at its best validation-selected configuration,
+with the variant definitions in Table~\ref{tab:ablation-variants} and the
+complete means in
 Table~\ref{tab:ablation}. The paired bootstrap intervals are in the main text
-(Table~\ref{tab:ablation-ci}) for the classification contrasts and in
-Table~\ref{tab:ablation-ci-epb} for the regression mirrors; all paired differences
-use the shared seeds at each variant's best validation-selected configuration,
-and the intervals are $95\%$ bootstrap percentile CIs with $B=10{,}000$ and a fixed
-seed. The factor ranking and
+(Table~\ref{tab:ablation-ci}) for the classification contrasts, computed with the
+same paired percentile protocol as Section~\ref{app:main-ci}. The factor ranking and
 the sign-flip and negative-result patterns are read in the main text
 (Section~\ref{sec:ablation}).
 
-\emph{NCM-learn} removes the bottleneck entirely: the encoder output is used
-deterministically ($z=\mu_\phi(x)$, no posterior and no KL) and classified by an
-energy readout on trainable prototypes. \emph{NCM-ortho} is the same, except that
-the prototypes are fixed to the orthogonal frame $a\,e_k$ (fixed geometry, still no
-IB). \emph{CEB-energy} and \emph{CEB-tied} keep CEB's trainable free reference and
-KL but replace its free head by the energy readout (resp.\ the tied projection).
-\emph{OPB-FS} and \emph{EPB-FS} keep the orthogonal frame and the energy (resp.\
-tied) readout but make the anchor radius learnable, so only the fixed scale is
-switched off. \emph{GPB-L} is GPB's free-head counterpart on the classification
-settings (identical orthogonal-frame prior, free linear head), and \emph{EPB-L}
-and \emph{EPB} are the regression counterparts of GPB-L and GPB on Housing,
-keeping the isometric-axis prior with a free head (resp.\ the tied projection).
-\emph{OPB-RV} freezes all trainable prior parameters on the classification
-settings, and \emph{EPB-RV} freezes all trainable prior parameters on the
-regression settings.
-
-\input{ablation_result}
-
 \begin{table}[t]
-\centering
-\tiny
-\caption{Regression mirrors of the factor-wise paired differences ($R^2$ on
-Housing; $95\%$ bootstrap percentile CIs; positive values favor the first
-term).}
-\label{tab:ablation-ci-epb}
-\begin{tabular}{l l c}
+\centering\small
+\caption{Ablation variant definitions: each variant switches one factor of the
+full model while keeping the rest.}
+\label{tab:ablation-variants}
+\begin{tabular}{l l p{6.8cm}}
 \hline
-factor & comparison & Housing \\
+variant & switched factor & construction \\
 \hline
-readout (EPB) & EPB $-$ EPB-L & $-0.00$ [$_{-0.01}$, $_{-0.00}$] \\
-geometry (EPB) & EPB-FS $-$ CEB-tied & $+0.01$ [$_{-0.00}$, $_{0.01}$] \\
-fixed scale (EPB) & EPB $-$ EPB-FS & $+0.00$ [$_{-0.01}$, $_{0.01}$] \\
-frame trainability (EPB) & EPB $-$ EPB-RV & $-0.00$ [$_{-0.00}$, $_{0.00}$] \\
+NCM-learn & IB term & encoder output used deterministically ($z=\mu_\phi(x)$, no posterior, no KL), energy readout on trainable prototypes \\
+NCM-ortho & IB term, geometry & same, with the prototypes fixed to the orthogonal frame $a\,e_k$ \\
+CEB-energy & readout & CEB reference and KL, free head replaced by the energy readout \\
+OPB-FS & fixed scale & orthogonal frame and energy readout, learnable anchor radius \\
+GPB-L & readout & GPB's orthogonal-frame prior with a free linear head \\
+OPB-RV & frame trainability & all trainable prior parameters frozen \\
 \hline
 \end{tabular}
 \end{table}
 
-\emph{Reading the regression mirrors.} The frame-trainability contrast is a
-null on Housing (Table~\ref{tab:ablation-ci-epb}): freezing all trainable prior
-parameters costs nothing, so the trainable rotation carries no benefit in
-regression, unlike the classification settings where it adds $+0.83$ on
-ImageNet-100 (Table~\ref{tab:ablation-ci}).
+\input{ablation_result}
+
 \subsection{Regression compression curves}
 \label{app:compression}
 Section~\ref{sec:sweep} shows the compression sweep on classification; this
@@ -230,8 +207,7 @@ reproduces the classification behavior.
 \includegraphics[width=0.48\linewidth]{figures/fig_beta_acc_housing.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/fig_beta_kl_housing.png}
 \caption{California Housing compression sweep (MLP). Left: test $R^2$; right:
-realized conditional KL over $\beta$. EPB maintains a task plateau through strong
-compression, while the $\rho=1$ weak-compression points exhibit a large variance term.}
+realized conditional KL over $\beta$.}
 \label{fig:compression-housing}
 \end{figure*}
 \subsection{Anchor-scale sensitivity}
@@ -260,29 +236,24 @@ on a plateau; the operating point is therefore sensitive to the scale
 only through this collapse boundary.
 \subsection{Information-plane estimates}
 \label{app:info-plane}
-Estimator protocol.\ $I(X;Z)$ is estimated by the InfoNCE lower bound
+\textbf{Estimator protocol.}\ $I(X;Z)$ is estimated by the InfoNCE lower bound
 \citep{oord2018representation} ($\log N_{\rm neg}-\mathcal{L}_{\mathrm{NCE}}$, $N_{\rm neg}=4096$; one
 critic per run, trained on the training split, the bound read off the test split with
 $z\sim q(z|x)$). $I(Y;Z)$ is read on the same sampled posterior: $H(Y)-\mathrm{CE}$
 with the cross-entropy averaged over $M=20$ draws $z\sim q(z|x)$ per test point
 (still a lower bound, as $\mathrm{CE}\ge H(Y|Z)$). The residual $I(X;Z|Y)$ is
-estimated directly rather than as a difference: every $q(z|x)$ is a known Gaussian,
-so the class-conditional mixture
+read on the known Gaussian posteriors: the class-conditional mixture
 $q(z|y)=\frac{1}{N_y}\sum_{j:y_j=y}q(z|x_j)$ over the test samples is evaluated
 exactly by logsumexp, and
 $I(X;Z|Y)=\mathbb{E}_{x,y}\,\mathrm{KL}(q(z|x)\,\|\,q(z|y))$ is read by Monte
-Carlo---an exact estimate up to $z$-sampling noise and the finite per-class test
-sample, not a difference of bounds. The certificate-plane axis is drawn linear
-because the collapsed CEB trajectory lands on zero. The MNIST panels appear in
-Fig.~\ref{fig:compression-main}(c,d) of the main text.
+Carlo, exact up to $z$-sampling noise and the finite per-class test sample. The
+certificate-plane axis is drawn linear because the collapsed CEB trajectory lands
+on zero.
 
-Matched-compression performance.
-Table~\ref{tab:info-plane-matched} pairs each CEB point with the OPB configuration of
-nearest estimated $I(X;Z)$. At $\approx2.0$ nat, CEB ($\beta=0.5$) retains $86.0\%$
-while OPB ($a=1$, $\beta=0.5$) retains $97.8\%$; at $\approx2.5$ nat ($\beta=0.1$) the
-two tie ($98.2\%$ vs.\ $98.1\%$). The directly estimated residual is comparable or
-slightly larger for OPB at both points ($0.41$ vs.\ $0.47$ nat at $\beta=0.1$;
-$0.20$ vs.\ $0.21$ nat at $\beta=0.5$), so OPB's task plateau is not bought by extra
+\textbf{Matched-compression performance.}
+Table~\ref{tab:info-plane-matched} pairs each CEB point with the OPB configuration
+of nearest estimated $I(X;Z)$: at equal compression OPB retains no less accuracy
+and its residual is comparable, so OPB's task plateau is not bought by extra
 residual compression. These are paired empirical comparisons at two estimated
 compression levels, not a causal attribution to geometry.
 
@@ -293,43 +264,34 @@ compression levels, not a causal attribution to geometry.
 are in the stored evaluation report). The OPB configuration is the one whose
 estimated $I(X;Z)$ is nearest to the CEB point.}
 \label{tab:info-plane-matched}
-\begin{tabular}{l c c c l c c c}
+\begin{tabular}{l c c c c c c}
 \hline
-& \multicolumn{3}{c}{CEB} & \multicolumn{4}{c}{OPB}\\
-\cline{2-4}\cline{5-8}
-Setting & $I(X;Z)$ & $I(X;Z|Y)$ & Acc. & config. & $I(X;Z)$ & $I(X;Z|Y)$ & Acc.\\
+& \multicolumn{3}{c}{CEB} & \multicolumn{3}{c}{OPB}\\
+\cline{2-4}\cline{5-7}
+Setting & $I(X;Z)$ & $I(X;Z|Y)$ & Acc. & $I(X;Z)$ & $I(X;Z|Y)$ & Acc.\\
 \hline
-MNIST, $\beta=0.1$ & $2.54$ & $0.41$ & $98.2$ & $a=1,\beta=0.1$ & $2.55$ & $0.47$ & $98.1$\\
-MNIST, $\beta=0.5$ & $1.96$ & $0.20$ & $86.0$ & $a=1,\beta=0.5$ & $2.01$ & $0.21$ & $97.8$\\
+MNIST & $2.54$ & $0.41$ & $98.2$ & $2.55$ & $0.47$ & $98.1$\\
+MNIST & $1.96$ & $0.20$ & $86.0$ & $2.01$ & $0.21$ & $97.8$\\
 \hline
 \end{tabular}
 \end{table}
-\subsection{Information-plane panels for Cal.~Housing}
-\label{app:info-plane-extra}
-
-Figure~\ref{fig:info-plane-extra} completes panels (c)--(d) of
-Fig.~\ref{fig:compression-main} in the main text with the regression setting, under
-the same $\beta$ grid and five runs per point; here
+\textbf{Regression companion.}\ Figure~\ref{fig:info-plane-extra} verifies on the
+regression setting what the classification panels of Section~\ref{sec:info-plane}
+establish, namely what each method compresses and discards as compression
+deepens; here
 $I(Y;Z)$ is the Gaussian approximation
 $\tfrac12 \ln\bigl(\mathrm{Var}(y)/\mathrm{Var}(y-\hat y_{\mathrm{MC}})\bigr)$
-read on the sampled posterior, and the residual $I(X;Z|Y)$ is estimated directly
-rather than as a difference of the two: $\hat q(z|y)$ is the
-Gaussian-kernel-weighted mixture $\sum_j w_j(y)\,q(z|x_j)$ over the test samples
-($w_j$ a softmax in $-(y-y_j)^2/2h^2$, truncated to the $2048$ nearest labels and
-renormalized, with Silverman's $h$ fitted on the training split), the mixture
-density is evaluated exactly by logsumexp, and
-$I(X;Z|Y)=\mathbb{E}_{x,y}\,\mathrm{KL}(q(z|x)\,\|\,\hat q(z|y))$ is read by Monte
-Carlo; every term is a KL between proper densities, so the estimate is
-non-negative by construction (doubling $h$ shifts it by a median $6.5\%$, at most
-$12\%$). The certificate panel now reads directly: CEB's residual falls from
-$\approx 2.9$ nat at weak compression to near zero together with its task
-information, whereas EPB at $\rho=6,12$ ends strong compression on a small
-positive residual plateau of $0.05$--$0.15$ nat with $I(Y;Z)$ held at
-$0.52$--$0.67$ nat---compression again stops near the task-information level, now
-on a non-negative direct estimate. The information plane is informative: CEB
-compresses itself off the task ($R^2 = 0.49$ at $\beta = 0.1$, $0.18$ at
-$\beta = 0.5$) while every EPB curve keeps $R^2 \ge 0.76$ flat out to
-$\beta = 25$.
+read on the sampled posterior, and the residual $I(X;Z|Y)$ uses a
+Gaussian-kernel-weighted mixture of the test posteriors
+($\hat q(z|y)=\sum_j w_j(y)\,q(z|x_j)$, with the bandwidth fitted on the
+training split), evaluated exactly by logsumexp; every term is a KL between
+proper densities, so the estimate is non-negative by construction. The
+two panels of Fig.~\ref{fig:info-plane-extra} show the same phenomenon:
+CEB's residual and task information fall toward zero together, whereas EPB ends
+strong compression on a small positive residual plateau whose task-information
+level grows with the scale; every EPB curve keeps its $R^2$ flat out to the
+strongest compression, so compression again stops where the task information
+sits.
 
 \begin{figure*}[t]
 \centering
