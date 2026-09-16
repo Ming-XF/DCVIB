@@ -163,59 +163,38 @@ below OPB's own white-box attack. The targeted white-box curves are in the main 
 \subsection{Factor-wise ablations}
 \label{app:ablation}
 The factor-wise ablation ladder switches geometry, anchor scale, readout, and the IB
-term separately; each variant is evaluated at its best validation-selected
-configuration (Table~\ref{tab:ablation}). The complete means are reported in
+term separately; every variant is searched on the same 30-configuration budget as
+the main comparison and evaluated at its best validation-selected configuration,
+with the variant definitions in Table~\ref{tab:ablation-variants} and the
+complete means in
 Table~\ref{tab:ablation}. The paired bootstrap intervals are in the main text
-(Table~\ref{tab:ablation-ci}) for the classification contrasts and in
-Table~\ref{tab:ablation-ci-epb} for the regression mirrors; all paired differences
-use the shared seeds at each variant's best validation-selected configuration,
-and the intervals are $95\%$ bootstrap percentile CIs with $B=10{,}000$ and a fixed
-seed. The factor ranking and
+(Table~\ref{tab:ablation-ci}) for the classification contrasts, computed with the
+same paired percentile protocol as Section~\ref{app:main-ci}. The factor ranking and
 the sign-flip and negative-result patterns are read in the main text
 (Section~\ref{sec:ablation}).
 
-\emph{NCM-learn} removes the bottleneck entirely: the encoder output is used
-deterministically ($z=\mu_\phi(x)$, no posterior and no KL) and classified by an
-energy readout on trainable prototypes. \emph{NCM-ortho} is the same, except that
-the prototypes are fixed to the orthogonal frame $a\,e_k$ (fixed geometry, still no
-IB). \emph{CEB-energy} and \emph{CEB-tied} keep CEB's trainable free reference and
-KL but replace its free head by the energy readout (resp.\ the tied projection).
-\emph{OPB-FS} and \emph{EPB-FS} keep the orthogonal frame and the energy (resp.\
-tied) readout but make the anchor radius learnable, so only the fixed scale is
-switched off. \emph{GPB-L} is GPB's free-head counterpart on the classification
-settings (identical orthogonal-frame prior, free linear head), and \emph{EPB-L}
-and \emph{EPB} are the regression counterparts of GPB-L and GPB on Housing,
-keeping the isometric-axis prior with a free head (resp.\ the tied projection).
-\emph{OPB-RV} freezes all trainable prior parameters on the classification
-settings, and \emph{EPB-RV} freezes all trainable prior parameters on the
-regression settings.
-
-\input{ablation_result}
-
 \begin{table}[t]
-\centering
-\tiny
-\caption{Regression mirrors of the factor-wise paired differences ($R^2$ on
-Housing; $95\%$ bootstrap percentile CIs; positive values favor the first
-term).}
-\label{tab:ablation-ci-epb}
-\begin{tabular}{l l c}
+\centering\small
+\caption{Ablation variant definitions: each variant switches one factor of the
+full model while keeping the rest.}
+\label{tab:ablation-variants}
+\begin{tabular}{l l p{6.8cm}}
 \hline
-factor & comparison & Housing \\
+variant & switched factor & construction \\
 \hline
-readout (EPB) & EPB $-$ EPB-L & $-0.00$ [$_{-0.01}$, $_{-0.00}$] \\
-geometry (EPB) & EPB-FS $-$ CEB-tied & $+0.01$ [$_{-0.00}$, $_{0.01}$] \\
-fixed scale (EPB) & EPB $-$ EPB-FS & $+0.00$ [$_{-0.01}$, $_{0.01}$] \\
-frame trainability (EPB) & EPB $-$ EPB-RV & $-0.00$ [$_{-0.00}$, $_{0.00}$] \\
+NCM-learn & IB term & encoder output used deterministically ($z=\mu_\phi(x)$, no posterior, no KL), energy readout on trainable prototypes \\
+NCM-ortho & IB term, geometry & same, with the prototypes fixed to the orthogonal frame $a\,e_k$ \\
+CEB-energy & readout & CEB reference and KL, free head replaced by the energy readout \\
+CEB-tied & readout & CEB reference and KL, free head replaced by the tied projection \\
+OPB-FS & fixed scale & orthogonal frame and energy readout, learnable anchor radius \\
+GPB-L & readout & GPB's orthogonal-frame prior with a free linear head \\
+OPB-RV & frame trainability & all trainable prior parameters frozen \\
 \hline
 \end{tabular}
 \end{table}
 
-\emph{Reading the regression mirrors.} The frame-trainability contrast is a
-null on Housing (Table~\ref{tab:ablation-ci-epb}): freezing all trainable prior
-parameters costs nothing, so the trainable rotation carries no benefit in
-regression, unlike the classification settings where it adds $+0.83$ on
-ImageNet-100 (Table~\ref{tab:ablation-ci}).
+\input{ablation_result}
+
 \subsection{Regression compression curves}
 \label{app:compression}
 Section~\ref{sec:sweep} shows the compression sweep on classification; this

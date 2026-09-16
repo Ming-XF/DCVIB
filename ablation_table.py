@@ -196,7 +196,7 @@ def main():
                 if is_reg[ds]:
                     cells.append(f"${mean:.3f}_{{\\pm {std:.3f}}}${cfg}")
                 else:
-                    cells.append(f"${mean * 100:.1f}_{{\\pm {std * 100:.1f}}}$" + cfg)
+                    cells.append(f"${mean * 100:.2f} \\pm {std * 100:.2f}$" + cfg)
         print(name + " & " + " & ".join(cells) + r" \\")
     print(r"\hline")
     print(r"\end{tabular}")
