@@ -6,8 +6,7 @@
 2. 配对 bootstrap CI 表（同 seed 配对、B=10000、固定 seed 42，与
    main_result_CI 同口径）：因素归因阶梯
    - 读出：GPB − GPB-L（分类）、EPB − EPB-L（回归）、CEB-energy − CEB；
-   - 几何：OPB-FS − CEB-energy（分类）、EPB-FS − CEB-tied（回归）；
-   - 尺度：GPB − OPB-FS（分类）、EPB − EPB-FS（回归）；
+   - 几何：GPB − CEB-energy（分类）、EPB − CEB-tied（回归）；
    - 帧可训练性（审稿人关键消融）：GPB − OPB-FF（分类，固定帧 [e_1..e_K]）、
      EPB − EPB-FA（回归，固定轴 e_1）；
    - IB 增量：GPB − NCM-ortho（分类，注明 NCM-ortho 帧固定、OPB 帧可训练，
@@ -176,8 +175,8 @@ def main():
     print(r"variant & MNIST (Acc \%) & ImageNet-100 (Acc \%) & Cora (Acc \%) & Housing ($R^2$) \\")
     print(r"\hline")
     variants = ["Base", "NCM-learn", "NCM-ortho", "CEB", "CEB-energy", "GPB-L",
-                "GPB", "OPB-FF", "OPB-FV", "OPB-RV", "OPB-FS", "CEB-tied",
-                "EPB-L", "EPB", "EPB-FA", "EPB-RV", "EPB-FS"]
+                "GPB", "OPB-FF", "OPB-FV", "OPB-RV", "CEB-tied",
+                "EPB-L", "EPB", "EPB-FA", "EPB-RV"]
     for name in variants:
         cells = []
         for ds, _ in settings:
@@ -213,12 +212,9 @@ def main():
         ("readout (EPB)", "EPB − EPB-L", "california", "EPB", "EPB-L"),
         ("readout (自由几何)", "CEB-energy − CEB", "mnist", "CEB-energy", "CEB"),
         ("readout (自由几何)", "CEB-energy − CEB", "imagenet100", "CEB-energy", "CEB"),
-        ("geometry", "OPB-FS − CEB-energy", "mnist", "OPB-FS", "CEB-energy"),
-        ("geometry", "OPB-FS − CEB-energy", "imagenet100", "OPB-FS", "CEB-energy"),
-        ("geometry (EPB)", "EPB-FS − CEB-tied", "california", "EPB-FS", "CEB-tied"),
-        ("fixed scale", "GPB − OPB-FS", "mnist", "GPB", "OPB-FS"),
-        ("fixed scale", "GPB − OPB-FS", "imagenet100", "GPB", "OPB-FS"),
-        ("fixed scale (EPB)", "EPB − EPB-FS", "california", "EPB", "EPB-FS"),
+        ("geometry", "GPB − CEB-energy", "mnist", "GPB", "CEB-energy"),
+        ("geometry", "GPB − CEB-energy", "imagenet100", "GPB", "CEB-energy"),
+        ("geometry (EPB)", "EPB − CEB-tied", "california", "EPB", "CEB-tied"),
         ("frame trainability", "GPB − OPB-FF", "mnist", "GPB", "OPB-FF"),
         ("frame trainability", "GPB − OPB-FF", "imagenet100", "GPB", "OPB-FF"),
         ("frame trainability", "GPB − OPB-FF", "cora", "GPB", "OPB-FF"),
