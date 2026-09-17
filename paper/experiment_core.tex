@@ -220,7 +220,15 @@ resolves factors only where the task margin is large enough. The frozen-prior
 ablation (Appendix~\ref{app:ablation}) shows the trainable frame carries task
 benefit on classification: GPB exceeds the variant with all prior parameters
 frozen by $+0.10$ on MNIST and $+0.83$ on ImageNet-100
-(Table~\ref{tab:ablation-ci}, frame trainability). These interventions
+(Table~\ref{tab:ablation-ci}, frame trainability). The prior encoder plays the
+role of CEB's backward encoder: $r(z|y)$ models the representation distribution
+under the label and co-adapts with the posterior $q(z|x)$, and freezing it removes
+the co-adaptation on which the conditional KL relies
+\citep{fischer2020conditional}. The freedom it exercises is a rotation, which the
+posterior-mean head absorbs exactly (the isotropic-prior KL and the energy readout
+are invariant), so the trainable-frame gain reflects the co-adaptation mechanism
+at the optimization level rather than an increase in representational capacity.
+These interventions
 change the fitted training problem and therefore support factor-wise attribution,
 not a unique causal decomposition.
 
@@ -347,7 +355,8 @@ below the declared margin. The orthogonal frame fixes all pairwise anchor
 distances, so the framework does not claim to recover arbitrary semantic class
 similarities; the trainable frame is a rotation channel whose certificate-zero set
 contains full-retention rotated codes, so the framework pins the geometry of the
-code rather than the retained label information. Data-driven comparator certificates
-and tighter information estimates are natural
+code rather than the retained label information. Data-driven comparator certificates,
+tighter information estimates, and alternative anchor geometries
+(hierarchy-aware or similarity-preserving) are natural
 next steps. Proofs and all
 supplementary evidence are collected in Appendices~\ref{app:theory}--\ref{sec:related}.
