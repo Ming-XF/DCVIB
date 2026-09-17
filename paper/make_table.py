@@ -492,16 +492,147 @@ def parse_run_metrics(log_path: Path):
     return (key, vals) if vals else (None, None)
 
 
-def paired_diff_ci(a_vals, b_vals):
-    """同 seed 配对的差值 bootstrap 95% CI（百分位法，固定 seed 可复现）。
-    返回 (n, mean_diff, ci_low, ci_high)；n=0 时均值/CI 为 None。"""
+def paired_diff_boot(a_vals, b_vals):
+    """同 seed 配对的差值 bootstrap 分布；返回 (n, diffs, means)；
+    n=0 时 diffs/means 为 None。"""
     n = min(len(a_vals), len(b_vals))
     if n == 0:
-        return 0, None, None, None
+        return 0, None, None
     diffs = np.array(a_vals[:n]) - np.array(b_vals[:n])
     rng = np.random.default_rng(DIFF_CI_SEED)
     means = diffs[rng.integers(0, n, size=(DIFF_CI_B, n))].mean(axis=1)
+    return n, diffs, means
+
+
+def paired_diff_ci(a_vals, b_vals):
+    """同 seed 配对的差值 bootstrap 95% CI（百分位法，固定 seed 可复现）。
+    返回 (n, mean_diff, ci_low, ci_high)；n=0 时均值/CI 为 None。"""
+    n, diffs, means = paired_diff_boot(a_vals, b_vals)
+    if n == 0:
+        return 0, None, None, None
     return n, float(diffs.mean()), float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
+
+
+def _gp_baseline_vals(task, backbone, best, col):
+    """GPB 与 col 的逐 run 指标值；返回 (key, gp_vals, b_vals)，缺失 None。"""
+    gp = best.get("opb")
+    # base 列对应基础骨干模型（html 里模型名为 mlp/cnn/gcn/rnn；
+    # gnn 骨干的基础模型名为 gcn）
+    model_key = ("gcn" if backbone == "gnn" else backbone) if col == "base" else col
+    base = best.get(model_key)
+    if gp is None or base is None:
+        return None
+    key = "Acc" if gp[0] == "Acc" else "R2"
+    # 目录名用数据集名（如 housing → california），与 tune 的 get_dataset_name 一致
+    ds = {"housing": "california"}.get(task, task)
+    gp_dir = RESULTS_DIR / _combo_dir_name(ds, backbone, "opb", gp[1], gp[2])
+    b_dir = RESULTS_DIR / _combo_dir_name(ds, backbone, model_key, base[1], base[2])
+    gp_key, gp_vals = parse_run_metrics(gp_dir / "train.log")
+    b_key, b_vals = parse_run_metrics(b_dir / "train.log")
+    if not gp_vals or not b_vals:
+        return None
+    return key, gp_vals, b_vals
+
+
+def gp_baseline_ci(task, backbone, best, col):
+    """GPB − col 的配对差值 bootstrap 95% CI 原始值；返回
+    (key, mean_d, lo, hi)；GPB 或 col 缺失/无逐 run 数据时返回 None。"""
+    r = _gp_baseline_vals(task, backbone, best, col)
+    if r is None:
+        return None
+    key, gp_vals, b_vals = r
+    n, mean_d, lo, hi = paired_diff_ci(gp_vals, b_vals)
+    if mean_d is None:
+        return None
+    return key, mean_d, lo, hi
+
+
+def gp_baseline_pvalue(task, backbone, best, col):
+    """GPB − col 的两侧 p 值与差值符号；返回 (key, p, mean_d)，缺失 None。
+    p = bootstrap 均值分布跨零比例 × 2（与百分位 CI 反演一致）。"""
+    r = _gp_baseline_vals(task, backbone, best, col)
+    if r is None:
+        return None
+    key, gp_vals, b_vals = r
+    n, diffs, means = paired_diff_boot(gp_vals, b_vals)
+    if n == 0:
+        return None
+    share_neg = float((means <= 0).mean())
+    return key, 2 * min(share_neg, 1 - share_neg), float(diffs.mean())
+
+
+def ordered_keys(grid):
+    """(task, backbone) 键按 ROW_ORDER 排序（分类在前、回归在后）。"""
+    order = {k: i for i, k in enumerate(ROW_ORDER)}
+    keys = sorted(grid, key=lambda k: (order.get(k, len(order)), k))
+    return ([k for k in keys if k[0] in CLASSIFICATION_TASKS]
+            + [k for k in keys if k[0] not in CLASSIFICATION_TASKS])
+
+
+def gp_holm_counts(all_keys, cfg_grid):
+    """全部适用逐对比较的 Holm--Bonferroni 检验（α=0.05）；返回
+    (n_rejected, wins, losses, m)。逐比较 p 值来自与 CI 表相同的 bootstrap
+    分布，m = 适用比较总数（分类/回归行各 7 个 baseline）。"""
+    items = []
+    for task, backbone in all_keys:
+        best = cfg_grid.get((task, backbone), {})
+        for col in COLUMN_ORDER:
+            if col == "opb":
+                continue
+            r = gp_baseline_pvalue(task, backbone, best, col)
+            if r is None:
+                continue
+            _, p, diff = r
+            items.append((p, diff))
+    m = len(items)
+    items.sort(key=lambda t: t[0])
+    rejected = []
+    for i, (p, diff) in enumerate(items):
+        if p <= 0.05 / (m - i):
+            rejected.append(diff)
+        else:
+            break
+    wins = sum(1 for d in rejected if d > 0)
+    losses = sum(1 for d in rejected if d < 0)
+    return len(rejected), wins, losses, m
+
+
+def gp_wl_counts(task, backbone, best):
+    """GPB 在该 setting 上显著更优/显著更劣的 baseline 计数 (wins, losses, n_app)。
+
+    胜 = GPB − baseline 的 95% CI 下限 > 0，负 = CI 上限 < 0；n_app =
+    该行适用的 baseline 列数（ncbd 仅分类行、adacap 仅回归行，缺失跳过）。"""
+    wins = losses = n_app = 0
+    for col in COLUMN_ORDER:
+        if col == "opb":
+            continue
+        r = gp_baseline_ci(task, backbone, best, col)
+        if r is None:
+            continue
+        _, _, lo, hi = r
+        n_app += 1
+        if lo > 0:
+            wins += 1
+        elif hi < 0:
+            losses += 1
+    return wins, losses, n_app
+
+
+def collect_best_configs():
+    """→ {(task, backbone): {model: (key, beta, anchor)}}；每个 (task, backbone)
+    的各模型 best 行（beta/anchor 供定位日志目录）；同一 (task, backbone) 的
+    多个 html 合并（ncbd/adacap 单模型表与汇总表并存）。"""
+    grid = {}
+    for path in sorted(RESULTS_DIR.glob("*.html")):
+        task, backbone, rows = parse_file_rows(path)
+        best = {}
+        for model, entries in rows.items():
+            bests = [e for e in entries if e[0]]
+            pool = bests or entries
+            _, key, mean, std, b, a = max(pool, key=lambda e: e[2])
+            best[model] = (key, b, a)
+        grid.setdefault((task, backbone), {}).update(best)
+    return grid
 
 
 def gen_result_ci():
@@ -517,18 +648,7 @@ def gen_result_ci():
     """
     if not list(RESULTS_DIR.glob("*.html")):
         return None
-    # 每个 (task, backbone) 的各模型 best 行（beta/anchor 供定位日志目录）；
-    # 同一 (task, backbone) 的多个 html 合并（ncbd/adacap 单模型表与汇总表并存）
-    grid = {}
-    for path in sorted(RESULTS_DIR.glob("*.html")):
-        task, backbone, rows = parse_file_rows(path)
-        best = {}
-        for model, entries in rows.items():
-            bests = [e for e in entries if e[0]]
-            pool = bests or entries
-            _, key, mean, std, b, a = max(pool, key=lambda e: e[2])
-            best[model] = (key, b, a)
-        grid.setdefault((task, backbone), {}).update(best)
+    grid = collect_best_configs()
     if not grid:
         return None
 
@@ -538,28 +658,12 @@ def gen_result_ci():
     reg_keys = [k for k in keys if k[0] not in CLASSIFICATION_TASKS]
     all_keys = cls_keys + reg_keys
 
-    # 目录名用数据集名（如 housing → california），与 tune 的 get_dataset_name 一致
-    dataset = {"housing": "california"}.get
-
     def diff_cell(task, backbone, best, col):
         """GPB − col 的 CI 单元格（含加粗/tied 标记）；异常返回 None。"""
-        gp = best.get("opb")
-        # base 列对应基础骨干模型（html 里模型名为 mlp/cnn/gcn/rnn；
-        # gnn 骨干的基础模型名为 gcn）
-        model_key = ("gcn" if backbone == "gnn" else backbone) if col == "base" else col
-        base = best.get(model_key)
-        if gp is None or base is None:
+        r = gp_baseline_ci(task, backbone, best, col)
+        if r is None:
             return None
-        key = "Acc" if gp[0] == "Acc" else "R2"
-        gp_dir = RESULTS_DIR / _combo_dir_name(dataset(task, task), backbone, "opb", gp[1], gp[2])
-        b_dir = RESULTS_DIR / _combo_dir_name(dataset(task, task), backbone, model_key, base[1], base[2])
-        gp_key, gp_vals = parse_run_metrics(gp_dir / "train.log")
-        b_key, b_vals = parse_run_metrics(b_dir / "train.log")
-        if not gp_vals or not b_vals:
-            return None
-        n, mean_d, lo, hi = paired_diff_ci(gp_vals, b_vals)
-        if mean_d is None:
-            return None
+        key, mean_d, lo, hi = r
         scale = 100.0 if key == "Acc" else 1.0
         delta = DIFF_CI_DELTA[key]
         # 小数位随指标收敛（分类 1 位、回归 3 位），控制表宽
@@ -766,11 +870,12 @@ def fmt_std(key, mean, std):
     return f"{mean:.4f}$\\pm${std:.4f}"
 
 
-def _block_lines(grid, row_keys, fmt_fn, col_subset=None):
+def _block_lines(grid, row_keys, fmt_fn, col_subset=None, wl_rows=None):
     """生成表格主体行；col_subset 缺省用全部列，子集用于拆表（std 版按列拆两表）。
 
-    加粗/次优下划线始终按该行全部列（grid 全列）的均值判定，与主表一致——
-    拆表不改变最优/次优归属。
+    加粗/次优下划线始终按该行全部表列（COLUMN_ORDER）的均值判定，与主表一致——
+    拆表不改变最优/次优归属。wl_rows 给出时（仅主表）每行末尾追加 W/L 列
+    （GPB 显著更优/显著更劣的 baseline 数，胜/负）。
     """
     cols = col_subset or COLUMN_ORDER
     out = []
@@ -778,9 +883,12 @@ def _block_lines(grid, row_keys, fmt_fn, col_subset=None):
         label = TASK_NAMES.get(task, task)
         backbone_label = BACKBONE_NAMES.get(backbone, backbone)
         cells = grid[(task, backbone)]
-        best_mean = max(mean for _, mean, _ in cells.values())
+        # 最优/次优只在表内列上判定——grid 里可能有非表列（如调参 html 的
+        # opbl 别名行），不能参与加粗/下划线比较
+        table_cells = {c: cells[c] for c in COLUMN_ORDER if c in cells}
+        best_mean = max(mean for _, mean, _ in table_cells.values())
         # 次优 = 去重得分的第二档；并列次优（同分）全部加下划线
-        uniques = sorted({mean for _, mean, _ in cells.values()}, reverse=True)
+        uniques = sorted({mean for _, mean, _ in table_cells.values()}, reverse=True)
         second_mean = uniques[1] if len(uniques) > 1 else None
         parts = [label, backbone_label]
         for col in cols:
@@ -795,17 +903,25 @@ def _block_lines(grid, row_keys, fmt_fn, col_subset=None):
             elif mean == second_mean:
                 text = "\\underline{" + text + "}"
             parts.append(text)
+        if wl_rows is not None:
+            wins, losses, n_app = wl_rows[(task, backbone)]
+            parts.append(f"{wins}/{losses}" if n_app else "--")
         out.append(" & ".join(parts) + " \\\\")
     return out
 
 
-def _gen_table(grid, fmt_fn, with_std):
+def _gen_table(grid, fmt_fn, with_std, with_wl=False, cfg_grid=None):
     """主结果表公共生成逻辑：gen_table（仅均值）与 gen_table_std（均值±标准差）
-    共用；with_std 决定文件头注释、caption 与 label。"""
+    共用；with_std 决定文件头注释、caption 与 label。with_wl=True（仅主表）时
+    追加末列 W/L（GPB 显著更优/显著更劣的 baseline 数）；cfg_grid 为
+    collect_best_configs() 的最优配置表（W/L 计数与 CI 表同源）。"""
     order = {k: i for i, k in enumerate(ROW_ORDER)}
     keys = sorted(grid, key=lambda k: (order.get(k, len(order)), k))
     cls_keys = [k for k in keys if k[0] in CLASSIFICATION_TASKS]
     reg_keys = [k for k in keys if k[0] not in CLASSIFICATION_TASKS]
+    all_keys = cls_keys + reg_keys
+    wl_rows = ({kk: gp_wl_counts(kk[0], kk[1], cfg_grid.get(kk, {})) for kk in all_keys}
+               if with_wl else None)
 
     std_note = "均值±标准差" if with_std else "多次运行均值（不含标准差）"
     lines = [
@@ -815,33 +931,44 @@ def _gen_table(grid, fmt_fn, with_std):
         "% 每行（数据集）的最优指标加粗、次优（并列次优全部）加下划线；表尾两行统计各方法跨行的平均排名（越低越好）与最优/并列最优次数。",
         "% NCBD/AdaCap 为非 IB 外部基线：NCBD 仅分类 7 行、AdaCap 仅回归 5 行有值（其余行 --），",
         "% 排名与最优计数均只在该模型适用的行上计算。",
+    ]
+    if with_wl:
+        lines += [
+            "% 末列 W/L：GPB 显著更优/显著更劣的 baseline 数（配对 95% CI 下限 > 0 / 上限 < 0，",
+            "% 逐对口径、未做多重比较校正；分母 = 该行适用的 baseline 列数）。",
+        ]
+    lines += [
         "\\begin{table*}[t]",
         "\\centering",
         "\\caption{Test accuracy (\\%) on classification tasks and test $R^2$ on regression "
         + ("tasks (mean over runs" if not with_std else "tasks (mean $\\pm$ std. over runs")
         + "); the best entry per dataset is bolded and the second-best underlined. "
-        "Dashes mark the settings where a method does not apply.}",
+        "Dashes mark the settings where a method does not apply."
+        + (" The last column reports, per setting, the number of baselines GPB "
+           "significantly outperforms / is significantly outperformed by, based on "
+           "paired confidence intervals." if with_wl else "")
+        + "}",
         "\\label{tab:main_result_std}" if with_std else "\\label{tab:main_result}",
         "\\small",
         "{",  # 花括号限定 tabcolsep 只在本表生效，不泄漏到论文其他表格
         "\\setlength{\\tabcolsep}{2pt}",  # 压缩列间距以收窄表格
         # opb 左侧插入竖线：GPB/GPB-L 与前面的 baseline 方法隔开
         "\\begin{tabular}{ll" + "c" * COLUMN_ORDER.index("opb") + "|"
-        + "c" * (len(COLUMN_ORDER) - COLUMN_ORDER.index("opb")) + "}",
+        + "c" * (len(COLUMN_ORDER) - COLUMN_ORDER.index("opb")) + ("c" if with_wl else "") + "}",
         "\\hline",
-        " & ".join(["Dataset", "Backbone"] + [COLUMN_NAMES[c] for c in COLUMN_ORDER]) + " \\\\",
+        " & ".join(["Dataset", "Backbone"] + [COLUMN_NAMES[c] for c in COLUMN_ORDER]
+                  + (["W/L"] if with_wl else [])) + " \\\\",
         "\\hline",
     ]
 
-    lines.extend(_block_lines(grid, cls_keys, fmt_fn))
+    lines.extend(_block_lines(grid, cls_keys, fmt_fn, wl_rows=wl_rows))
     lines.append("\\hline\\hline")  # 分类块与回归块的分界（上方 Acc、下方 R²）
-    lines.extend(_block_lines(grid, reg_keys, fmt_fn))
+    lines.extend(_block_lines(grid, reg_keys, fmt_fn, wl_rows=wl_rows))
     lines.append("\\hline")
 
     # 表尾两行汇总：各方法在其适用数据集行上的平均排名（并列取平均名次，越小越好）
     # 与 最优/并列最优 次数（每行最优分相同时各并列方法均计数）；
     # 排名只在适用列上计算（NCBD 仅分类 7 行、AdaCap 仅回归 5 行，其余行缺失不参与）
-    all_keys = cls_keys + reg_keys
     rank_sums = [0.0] * len(COLUMN_ORDER)
     best_counts = [0] * len(COLUMN_ORDER)
     n_applicable = [0] * len(COLUMN_ORDER)
@@ -857,12 +984,12 @@ def _gen_table(grid, fmt_fn, with_std):
             n_applicable[idx] += 1
             if means[j] == best_mean:
                 best_counts[idx] += 1
-    n_rows = len(all_keys)
+    wl_fill = " & --" if with_wl else ""
     lines.append("\\multicolumn{2}{l}{Mean rank} & %s \\\\" % (
         " & ".join(f"{rank_sums[j] / n_applicable[j]:.2f}" if n_applicable[j] else "--"
-                   for j in range(len(COLUMN_ORDER)))))
+                   for j in range(len(COLUMN_ORDER))) + wl_fill))
     lines.append("\\multicolumn{2}{l}{Best or tied-best} & %s \\\\" % (
-        " & ".join(str(c) for c in best_counts)))
+        " & ".join(str(c) for c in best_counts) + wl_fill))
     lines.append("\\hline")
     lines.append("\\end{tabular}")
     lines.append("}")
@@ -871,8 +998,9 @@ def _gen_table(grid, fmt_fn, with_std):
 
 
 def gen_table(grid):
-    r"""生成 main_result.tex 内容（仅均值，table* 浮动体，可直接 \input{}）。"""
-    return _gen_table(grid, fmt, False)
+    r"""生成 main_result.tex 内容（仅均值，table* 浮动体，可直接 \input{}）；
+    末列 W/L 为 GPB 显著更优/显著更劣的 baseline 数（配对 95% CI 口径）。"""
+    return _gen_table(grid, fmt, False, with_wl=True, cfg_grid=collect_best_configs())
 
 
 def gen_table_std(grid):
@@ -1027,6 +1155,10 @@ def main():
         print(f"{task:12s} {backbone:8s} | {detail}")
     OUT_PATH.write_text(gen_table(grid), encoding="utf-8")
     print(f"\n已生成 {OUT_PATH}")
+    # 多重比较稳健性：正文 57/84 聚合句的 Holm–Bonferroni 校正计数
+    holm = gp_holm_counts(ordered_keys(grid), collect_best_configs())
+    print(f"Holm--Bonferroni（α=0.05，m={holm[3]} 个适用逐对比较）："
+          f"显著 {holm[0]} 个（{holm[1]} 胜 / {holm[2]} 负）")
     MAIN_RESULT_STD_PATH.write_text(gen_table_std(grid), encoding="utf-8")
     print(f"已生成 {MAIN_RESULT_STD_PATH}（主结果表带标准差版，均值±std，"
           f"加粗/下划线/排名与主表一致）")

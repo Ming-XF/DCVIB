@@ -4,33 +4,35 @@
 % 每行（数据集）的最优指标加粗、次优（并列次优全部）加下划线；表尾两行统计各方法跨行的平均排名（越低越好）与最优/并列最优次数。
 % NCBD/AdaCap 为非 IB 外部基线：NCBD 仅分类 7 行、AdaCap 仅回归 5 行有值（其余行 --），
 % 排名与最优计数均只在该模型适用的行上计算。
+% 末列 W/L：GPB 显著更优/显著更劣的 baseline 数（配对 95% CI 下限 > 0 / 上限 < 0，
+% 逐对口径、未做多重比较校正；分母 = 该行适用的 baseline 列数）。
 \begin{table*}[t]
 \centering
-\caption{Test accuracy (\%) on classification tasks and test $R^2$ on regression tasks (mean over runs); the best entry per dataset is bolded and the second-best underlined. Dashes mark the settings where a method does not apply.}
+\caption{Test accuracy (\%) on classification tasks and test $R^2$ on regression tasks (mean over runs); the best entry per dataset is bolded and the second-best underlined. Dashes mark the settings where a method does not apply. The last column reports, per setting, the number of baselines GPB significantly outperforms / is significantly outperformed by, based on paired confidence intervals.}
 \label{tab:main_result}
 \small
 {
 \setlength{\tabcolsep}{2pt}
-\begin{tabular}{llcccccccc|c}
+\begin{tabular}{llcccccccc|cc}
 \hline
-Dataset & Backbone & Base & VIB & SVIB & NIB & CEB & DVCCA & NCBD & AdaCap & GPB \\
+Dataset & Backbone & Base & VIB & SVIB & NIB & CEB & DVCCA & NCBD & AdaCap & GPB & W/L \\
 \hline
-MNIST & MLP & 98.33 & 98.28 & 98.15 & 98.27 & \underline{98.43} & 98.24 & 97.95 & -- & \textbf{98.54} \\
-MNIST & CNN & 99.13 & 99.28 & 99.23 & 99.22 & \underline{99.30} & 99.29 & 99.18 & -- & \textbf{99.32} \\
-ImageNet-100 & MLP & 83.12 & 82.84 & 83.02 & 82.35 & 82.77 & 82.99 & \underline{83.64} & -- & \textbf{84.40} \\
-ImageNet-100 & CNN & \underline{83.40} & 82.94 & 83.11 & 82.91 & 82.97 & 83.21 & 80.56 & -- & \textbf{86.08} \\
-Cora & GCN & \underline{87.68} & 86.83 & 86.46 & 86.35 & 86.27 & 86.90 & 87.34 & -- & \textbf{88.12} \\
-IMDb & RNN & 84.85 & 85.50 & 85.99 & 86.14 & 85.55 & 85.69 & \underline{86.69} & -- & \textbf{86.84} \\
-AG News & RNN & \textbf{92.94} & 92.72 & 92.86 & \underline{92.91} & 92.83 & 92.78 & 92.37 & -- & 92.87 \\
+MNIST & MLP & 98.33 & 98.28 & 98.15 & 98.27 & \underline{98.43} & 98.24 & 97.95 & -- & \textbf{98.54} & 7/0 \\
+MNIST & CNN & 99.13 & 99.28 & 99.23 & 99.22 & \underline{99.30} & 99.29 & 99.18 & -- & \textbf{99.32} & 4/0 \\
+ImageNet-100 & MLP & 83.12 & 82.84 & 83.02 & 82.35 & 82.77 & 82.99 & \underline{83.64} & -- & \textbf{84.40} & 7/0 \\
+ImageNet-100 & CNN & \underline{83.40} & 82.94 & 83.11 & 82.91 & 82.97 & 83.21 & 80.56 & -- & \textbf{86.08} & 7/0 \\
+Cora & GCN & \underline{87.68} & 86.83 & 86.46 & 86.35 & 86.27 & 86.90 & 87.34 & -- & \textbf{88.12} & 6/0 \\
+IMDb & RNN & 84.85 & 85.50 & 85.99 & 86.14 & 85.55 & 85.69 & \underline{86.69} & -- & \textbf{86.84} & 6/0 \\
+AG News & RNN & \textbf{92.94} & 92.72 & 92.86 & \underline{92.91} & 92.83 & 92.78 & 92.37 & -- & 92.87 & 2/0 \\
 \hline\hline
-Cal. Housing & MLP & 0.7618 & \textbf{0.7901} & \underline{0.7897} & 0.7862 & 0.7894 & 0.7878 & -- & 0.7758 & 0.7895 \\
-STS-B & RNN & \textbf{0.2899} & 0.2719 & 0.2697 & 0.2417 & 0.2668 & 0.2713 & -- & 0.1613 & \underline{0.2762} \\
-ZINC & GCN & \underline{0.6348} & 0.6339 & 0.6325 & 0.6178 & 0.6257 & 0.6294 & -- & \textbf{0.6770} & 0.6344 \\
-AgeDB & MLP & 0.2180 & 0.3173 & 0.3385 & 0.2710 & 0.3317 & 0.3180 & -- & \underline{0.3482} & \textbf{0.3536} \\
-AgeDB & CNN & 0.3914 & 0.3342 & 0.3323 & 0.3337 & 0.3882 & 0.3205 & -- & \underline{0.4684} & \textbf{0.4700} \\
+Cal. Housing & MLP & 0.7618 & \textbf{0.7901} & \underline{0.7897} & 0.7862 & 0.7894 & 0.7878 & -- & 0.7758 & 0.7895 & 2/0 \\
+STS-B & RNN & \textbf{0.2899} & 0.2719 & 0.2697 & 0.2417 & 0.2668 & 0.2713 & -- & 0.1613 & \underline{0.2762} & 2/1 \\
+ZINC & GCN & \underline{0.6348} & 0.6339 & 0.6325 & 0.6178 & 0.6257 & 0.6294 & -- & \textbf{0.6770} & 0.6344 & 3/1 \\
+AgeDB & MLP & 0.2180 & 0.3173 & 0.3385 & 0.2710 & 0.3317 & 0.3180 & -- & \underline{0.3482} & \textbf{0.3536} & 5/0 \\
+AgeDB & CNN & 0.3914 & 0.3342 & 0.3323 & 0.3337 & 0.3882 & 0.3205 & -- & \underline{0.4684} & \textbf{0.4700} & 6/0 \\
 \hline
-\multicolumn{2}{l}{Mean rank} & 4.08 & 4.83 & 4.67 & 6.00 & 5.00 & 5.00 & 5.43 & 4.00 & 1.58 \\
-\multicolumn{2}{l}{Best or tied-best} & 2 & 1 & 0 & 0 & 0 & 0 & 0 & 1 & 8 \\
+\multicolumn{2}{l}{Mean rank} & 4.08 & 4.83 & 4.67 & 6.00 & 5.00 & 5.00 & 5.43 & 4.00 & 1.58 & -- \\
+\multicolumn{2}{l}{Best or tied-best} & 2 & 1 & 0 & 0 & 0 & 0 & 0 & 1 & 8 & -- \\
 \hline
 \end{tabular}
 }
