@@ -38,14 +38,18 @@ SVIB, NIB, CEB, supervised $\beta$-DVCCA, and the external non-IB
 baselines NCBD (unit-hypersphere prototypes with a simplex-ETF
 contrastive optimum) and AdaCap (contrastive loss with a closed-form
 readout); GPB is OPB on classification rows and EPB on
-regression rows. The main comparison is single-dimensional in tuned
-hyperparameters: the plain backbone has no method-specific
-hyperparameters, every $\beta$-weighted method is swept over the same
-30-point $\beta$ grid (six decades, five values per decade), and NCBD and
-AdaCap use 30-value grids of their own. GPB's anchor scale $a$ (resp.\
-isometric scale $\rho$) is fixed and selected on the five-value grid
-$\{1,3,6,9,12\}$, so GPB searches a two-dimensional grid of $6\times5=30$
-configurations, matching the baselines' budget. For each method and setting,
+regression rows. The main comparison equalizes the search budget across methods: the plain
+backbone has no method-specific hyperparameters; VIB, SVIB, NIB, CEB, and
+DVCCA are swept over the same 30-point $\beta$ grid (six decades, five
+values per decade); NCBD and AdaCap use 30-value grids of their own; and
+GPB searches a two-dimensional grid of $6\times5=30$ configurations,
+$\beta\in\{10^{-4},10^{-3},10^{-2},10^{-1},1,10\}$ (one value per decade)
+times the anchor scale $a$ (resp.\ isometric scale $\rho$) on the
+five-value grid $\{1,3,6,9,12\}$. The diagnostics in
+Secs.~\ref{sec:direct-mismatch}, \ref{sec:robustness}, \ref{sec:sweep},
+and \ref{sec:info-plane} read trained configurations on extended grids
+beyond the selection grid ($\beta$ up to $25$, anchor scales
+$\{1,6,12\}$) and play no role in model selection. For each method and setting,
 the configuration with the best mean validation metric is selected
 (accuracy on classification settings, $R^2$ on regression settings). The
 reported results are means with standard deviations over seeds, and
@@ -216,7 +220,8 @@ null, so the fixed-covariance reference is empirically benign.
 \subsection{Compression sweeps}
 \label{sec:sweep}
 This subsection shows the classification sweep on ImageNet-100 (MLP):
-test accuracy and realized conditional KL against $\beta$, for CEB and OPB at anchor
+test accuracy and realized conditional KL against the extended $\beta$
+grid from $5\cdot10^{-5}$ to $25$, for CEB and OPB at anchor
 scales $a\in\{1,6,12\}$ (Fig.~\ref{fig:compression-main}a,b); the California Housing
 regression companion is in Appendix~\ref{app:compression}.
 
@@ -245,8 +250,8 @@ term, whereas OPB's KL stays anchored at the geometric scale of its fixed prior
 ($48$ at $\beta=0.1$, $21$ at $\beta=1$) and is dominated by anchor alignment, so
 the structure is retained rather than absorbed. Together the curves make the
 anchor-scale/compression trade-off visible across the useful operating range.
-The complementary scale-axis view, reading the full five-point scale
-grid $\{1,3,6,9,12\}$ at three fixed $\beta$ levels, is reported in
+The complementary scale-axis view, reading the full nine-value scale
+grid $\{1,2,4,6,8,10,12,14,16\}$ at three fixed $\beta$ levels, is reported in
 Appendix~\ref{app:scale-sensitivity}.
 
 \subsection{Information-plane diagnostic}
