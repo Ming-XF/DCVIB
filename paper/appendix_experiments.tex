@@ -172,7 +172,7 @@ The item-wise ablations switch the prior geometry, the readout, the prior
 variance, frame trainability, and the IB term separately; every variant is
 evaluated at its best validation-selected configuration, with the variant
 definitions in Table~\ref{tab:ablation-variants}. The paired differences with
-bootstrap intervals and both means are in the main text
+bootstrap intervals and the variant's mean are in the main text
 (Table~\ref{tab:ablation-ci}) for the classification contrasts, computed with the
 same paired percentile protocol as Section~\ref{app:main-ci}. The factor ranking
 is read in the main text (Section~\ref{sec:ablation}).
@@ -182,17 +182,17 @@ is read in the main text (Section~\ref{sec:ablation}).
 \caption{Ablation variant definitions: each variant switches one factor of the
 full model while keeping the rest.}
 \label{tab:ablation-variants}
-\begin{tabular}{l l p{6.8cm}}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l l p{8.5cm}}
 \hline
 variant & switched factor & construction \\
 \hline
-GPB-L & readout & GPB's orthogonal-frame prior with a free linear head \\
-CEB-energy & geometry & CEB reference and KL, free head replaced by the energy readout \\
-GPB-FixVar & variance & GPB with the per-class prior variance fixed to $\tau^2=1$ (frozen at initialization) \\
-OPB-RV & prior freeze & all trainable prior parameters frozen (identity frame, randomly initialized variance) \\
-NCM-ortho & IB term & encoder output used deterministically ($z=\mu_\phi(x)$, no posterior, no KL), energy readout with the prototypes fixed to the orthogonal frame $a\,e_k$ \\
+GPB-H & readout & GPB with the prediction head replaced by a free linear head \\
+GPB-G & geometry & GPB with the geometric construction removed \\
+GPB-V & variance & GPB with the prior variance set to learnable \\
+GPB-P & prior freeze & GPB with all trainable prior parameters frozen \\
+NCM-G & IB term & GPB with the IB term removed, i.e., a deterministic encoder output with the energy readout on the fixed orthogonal frame \\
 \hline
-\end{tabular}
+\end{tabular*}
 \end{table}
 
 \subsection{Regression compression curves}

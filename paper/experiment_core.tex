@@ -195,43 +195,23 @@ item-wise ablations that switch five design factors independently, namely the
 prior geometry, the readout, the prior variance, the trainability of the prior
 frame, and the IB term itself. Every variant is trained on ImageNet-100 (MLP
 backbone) at its best validation-selected configuration, and all comparisons are
-paired by seed. GPB is held at its main-comparison configuration ($\beta=1$,
-$a=14$); the readout contrast pairs the two variants at that same configuration,
-and each remaining variant is reported at its own best validation-selected
-configuration. Each row of Table~\ref{tab:ablation-ci} pairs two variants that
+paired by seed. Each row of Table~\ref{tab:ablation-ci} pairs two variants that
 differ in the factor named in its first column and reports the paired difference
-with its bootstrap CI together with both means; the variant definitions are in
-Appendix~\ref{app:ablation}.
+with its bootstrap CI together with the variant's mean; the variant definitions
+are in Appendix~\ref{app:ablation}.
 
 \input{ablation_result_ci}
 
-The paired contrasts
-(Table~\ref{tab:ablation-ci}; accuracy-point differences) rank
-the factors on ImageNet-100: geometry is the largest ($+2.81$,
-GPB over CEB-energy), followed by the IB term ($+2.07$, GPB over NCM-ortho,
-which additionally contains frame trainability), the frozen prior ($+1.02$,
-GPB over OPB-RV), and the tied readout ($+0.96$, GPB over GPB-L), while fixing
-the prior variance is a null ($+0.05$, CI spanning zero). The readout contrast
-is read at the shared main-comparison configuration ($\beta=1$, $a=14$), where
-the tied form gains about one point, so binding the readout to the declared
-geometry is never a liability. The frozen-prior
-ablation (Table~\ref{tab:ablation-ci}, prior freeze) shows the trainable prior
-carries task benefit on classification: GPB exceeds the variant with all prior
-parameters frozen (frame and variance) by $+1.02$ points. Since the variance
-contrast shows that variance learnability alone is a null, this gain is
-attributable to the frame co-adaptation. The prior encoder plays the
-role of CEB's backward encoder: $r(z|y)$ models the representation distribution
-under the label and co-adapts with the posterior $q(z|x)$, and freezing it removes
-the co-adaptation on which the conditional KL relies
-\citep{fischer2020conditional}. The freedom it exercises is a rotation, which the
-posterior-mean head absorbs exactly (the isotropic-prior KL and the energy readout
-are invariant), so the trainable-frame gain reflects the co-adaptation mechanism
-at the optimization level rather than an increase in representational capacity.
-The variance null completes the picture: at matched tuning budget, fixing
-$\tau^2=1$ costs nothing, so the fixed-covariance reference of the method is
-empirically benign. These interventions
-change the fitted training problem and therefore support item-wise attribution,
-not a unique causal decomposition.
+The table shows the ablation results, in which two factors dominate. The
+orthogonal frame fixes all pairwise anchor distances and the posterior inherits
+this structure, so removing the geometric construction costs by far the most.
+The conditional compression is no passenger on that geometry: removing the
+stochastic bottleneck and its KL while keeping the frame and readout still
+loses accuracy on its own. Freezing the prior frame removes the co-adaptation
+on which the conditional KL relies, at real cost to accuracy. A free head can
+refit the boundaries independently of the frame and undo part of the geometry,
+while the tied readout keeps prediction on it. Only the variance switch is a
+null, so the fixed-covariance reference is empirically benign.
 
 \subsection{Compression sweeps}
 \label{sec:sweep}
