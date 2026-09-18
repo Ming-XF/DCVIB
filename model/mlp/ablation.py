@@ -13,6 +13,12 @@
 - OPBFixedFrame（OPB-FF，仅分类）：GPB 完全同构（随机后验、KL、tied 锚点能量
   读出、逐类可学习先验方差），仅先验帧冻结为恒等帧 [e_1..e_K]（fixed_frame
   梯度钩子，锚点恒为 a·e_k）——只关掉"帧可训练性"一个因素（审稿人关键消融）。
+- OPBNoOrth（GPB-NoOrth，仅分类）：GPB 完全同构（能量读出、逐类可学习先验
+  方差、IB），仅先验均值跳过 QR 正交化（锚点 = a×原始均值）——只关掉
+  "正交几何"一个因素。
+- OPBFixedVar（GPB-FixVar，仅分类）：GPB 完全同构（能量读出、QR 帧可训练、
+  IB），仅先验方差冻结在置零初始值 τ²=1（fixed_prior_var 梯度钩子）——
+  只关掉"方差可学习性"一个因素。
 - EPBFixedAxis（EPB-FA，仅回归）：EPB 完全同构（随机后验、KL、tied 投影读出、
   可学习先验 logvar），仅先验轴冻结为 e_1（fixed_axis）——只关掉"轴可训练性"
   一个因素。
@@ -182,6 +188,39 @@ class OPBRandVar(OPB):
             bound = 1.0 / math.sqrt(self.prior_net.weight.shape[1])
             nn.init.uniform_(self.prior_net.bias[z_dim:], -bound, bound)
         self.prior_net.requires_grad_(False)
+
+
+class OPBNoOrth(OPB):
+    """GPB 几何消融（GPB-NoOrth，仅分类）：GPB 完全同构（能量读出、逐类可
+    学习先验方差、随机后验、KL、IB），仅先验均值跳过 QR 正交化——锚点恒为
+    a×原始均值（prior_net 均值块恒等初始化，训练起点与 GPB 相同：
+    a·[e_1..e_K]）。只关掉"正交几何"一个因素。"""
+
+    def __init__(self, **kwargs):
+        if kwargs.get("continuous_y"):
+            raise ValueError("OPBNoOrth 仅分类")
+        kwargs["energy_classifier"] = True
+        super().__init__(**kwargs)
+
+    def _prior_table(self):
+        prior_out = self.prior_net(self.class_eye)  # (K, 2*z_dim)
+        prior_mu_raw, prior_logvar_table = prior_out.chunk(2, dim=1)
+        prior_mu = self.anchor_scale * prior_mu_raw  # 无 QR：a×原始均值 (K, z_dim)
+        return prior_mu, prior_logvar_table
+
+
+class OPBFixedVar(OPB):
+    """GPB 方差消融（GPB-FixVar，仅分类）：GPB 完全同构（能量读出、QR 帧可
+    训练、随机后验、KL、IB），仅先验方差冻结——fixed_prior_var 梯度钩子把
+    方差块梯度清零、停在置零初始值 τ²=1，先验恒为 N(a·q_k, I)。只关掉
+    "方差可学习性"一个因素。"""
+
+    def __init__(self, **kwargs):
+        if kwargs.get("continuous_y"):
+            raise ValueError("OPBFixedVar 仅分类")
+        kwargs["energy_classifier"] = True
+        kwargs["fixed_prior_var"] = True
+        super().__init__(**kwargs)
 
 
 class OPBFreeScale(OPB):

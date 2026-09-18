@@ -1,8 +1,8 @@
 """模型包：MLP / VIB / SVIB / CEB / FGIB / OPB / NIB / DVCCA / NCBD / AdaCap 及公共工具函数。"""
 
 from .ablation import (CEBEnergy, CEBTied, EPBFixedAxis, EPBRandVar,
-                       OPBFixedFrame, OPBFixedFrameVar, OPBFreeScale,
-                       OPBRandVar)
+                       OPBFixedFrame, OPBFixedFrameVar, OPBFixedVar,
+                       OPBFreeScale, OPBNoOrth, OPBRandVar)
 from .adacap import AdaCap
 from .ceb import CEB
 from .dvcca import DVCCA

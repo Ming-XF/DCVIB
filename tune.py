@@ -58,13 +58,15 @@ def build_tune_parser():
     parser = build_parser()
     replace_arg(
         parser, "model", ["--model"],
-        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "opbl", "svib", "nib", "dvcca", "ncbd", "adacap"],
+        nargs="+", choices=["mlp", "cnn", "gcn", "rnn", "vib", "ceb", "fgib", "opb", "opbl", "svib", "nib", "dvcca", "ncbd", "adacap",
+                            "opb-noorth", "opb-fixedvar"],
         default=["mlp"],
         help="模型列表，调参网格的一维；基础模型无 beta/anchor 维度，"
         "vib/ceb/svib/nib/dvcca/ncbd/adacap 仅 beta 维度（ncbd 的 beta 槽位为"
-        "温度 τ、adacap 的 beta 槽位为 Tikhonov λ 初始值），fgib/opb/opbl 为 "
-        "beta × anchor-scale 两维（opbl 为 opb 的结果显示别名，仅 tune/rebuild "
-        "层使用，train.py 不认识；默认 [mlp]）",
+        "温度 τ、adacap 的 beta 槽位为 Tikhonov λ 初始值），fgib/opb/opbl/"
+        "opb-noorth/opb-fixedvar 为 beta × anchor-scale 两维（opbl 为 opb 的"
+        "结果显示别名，仅 tune/rebuild 层使用，train.py 不认识；opb-noorth/"
+        "opb-fixedvar 为逐项消融变体，强制能量读出；默认 [mlp]）",
     )
     replace_arg(
         parser, "beta", ["--beta"],
@@ -411,8 +413,8 @@ def main():
     models = args.model
     betas = args.beta
     anchors = args.anchor_scale
-    if "fgib" not in models and "opb" not in models and "opbl" not in models and len(anchors) > 1:
-        print(f"警告：模型列表中没有 fgib/opb/opbl，--anchor-scale 列表不会被使用")
+    if not any(m in models for m in ("fgib", "opb", "opbl", "opb-noorth", "opb-fixedvar")) and len(anchors) > 1:
+        print(f"警告：模型列表中没有 fgib/opb/opbl/opb-noorth/opb-fixedvar，--anchor-scale 列表不会被使用")
 
     results_root = ROOT / args.results_dir
     results_root.mkdir(parents=True, exist_ok=True)
@@ -421,7 +423,7 @@ def main():
     for model in models:
         if model in BASELINES:
             combos.append((model, None, None))
-        elif model in ("fgib", "opb", "opbl"):
+        elif model in ("fgib", "opb", "opbl", "opb-noorth", "opb-fixedvar"):
             combos.extend((model, b, a) for b in betas for a in anchors)
         else:
             combos.extend((model, b, None) for b in betas)

@@ -1,22 +1,21 @@
 \begin{table}[t]
 \centering
 \small
-\setlength{\tabcolsep}{3pt}
-\caption{Factor-wise paired differences (accuracy points on MNIST and
-ImageNet-100; $95\%$ bootstrap percentile CIs; positive values favor the
-first term).}
+\setlength{\tabcolsep}{4pt}
+\caption{Item-wise ablations on ImageNet-100 (MLP): for each contrast, the
+paired difference in accuracy points with its $95\%$ bootstrap percentile CI
+and the variant's mean $\pm$ standard deviation over five seeds;
+positive values favor the first term.}
 \label{tab:ablation-ci}
 \begin{tabular}{l l c c}
 \hline
-factor & comparison & MNIST & ImageNet-100 \\
+factor & comparison & difference [95\% CI] & variant mean $\pm$ std \\
 \hline
-readout & GPB $-$ GPB-L & $+0.02$ [$_{-0.05}$, $_{0.08}$] & $+0.82$ [$_{0.34}$, $_{1.17}$] \\
-readout (free geometry) & CEB-energy $-$ CEB & $-0.21$ [$_{-0.30}$, $_{-0.12}$] & $-1.19$ [$_{-1.50}$, $_{-0.96}$] \\
-geometry & GPB $-$ CEB-energy & $+0.23$ [$_{0.10}$, $_{0.36}$] & $+2.63$ [$_{2.41}$, $_{2.88}$] \\
-frame trainability & GPB $-$ OPB-RV & $+0.10$ [$_{0.05}$, $_{0.15}$] & $+0.83$ [$_{0.29}$, $_{1.19}$] \\
-IB increment & GPB $-$ NCM-ortho & $+0.34$ [$_{0.22}$, $_{0.45}$] & $+1.89$ [$_{1.41}$, $_{2.36}$] \\
-prototype structure & NCM-ortho $-$ NCM-learn & $-0.06$ [$_{-0.20}$, $_{0.11}$] & $+0.16$ [$_{-0.49}$, $_{0.82}$] \\
-prototype readout alone & NCM-learn $-$ Base & $-0.16$ [$_{-0.28}$, $_{-0.05}$] & $-0.96$ [$_{-1.30}$, $_{-0.69}$] \\
+readout & GPB $-$ GPB-L & $+0.96$ [$0.77$, $1.11$] & $83.44\pm0.41$ \\
+geometry & GPB $-$ CEB-energy & $+2.81$ [$2.62$, $3.04$] & $81.59\pm0.21$ \\
+variance & GPB $-$ GPB-FixVar & $+0.05$ [$-0.27$, $0.58$] & $84.35\pm0.64$ \\
+prior freeze & GPB $-$ OPB-RV & $+1.02$ [$0.45$, $1.40$] & $83.38\pm0.52$ \\
+IB increment & GPB $-$ NCM-ortho & $+2.07$ [$1.59$, $2.55$] & $82.33\pm0.60$ \\
 \hline
 \end{tabular}
 \end{table}

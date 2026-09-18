@@ -166,18 +166,16 @@ excludes masking rather than establishing a causal geometry effect.
 are generated on one model and evaluated on another. The targeted white-box curves are in the main text.}
 \label{fig:adv-transfer}
 \end{figure*}
-\subsection{Factor-wise ablations}
+\subsection{Item-wise ablations}
 \label{app:ablation}
-The factor-wise ablation ladder switches the prior geometry, the readout, the IB
-term, and frame trainability separately; every variant is evaluated at its best
-validation-selected
-configuration, with the variant definitions in Table~\ref{tab:ablation-variants}
-and the complete means in
-Table~\ref{tab:ablation}. The paired bootstrap intervals are in the main text
+The item-wise ablations switch the prior geometry, the readout, the prior
+variance, frame trainability, and the IB term separately; every variant is
+evaluated at its best validation-selected configuration, with the variant
+definitions in Table~\ref{tab:ablation-variants}. The paired differences with
+bootstrap intervals and both means are in the main text
 (Table~\ref{tab:ablation-ci}) for the classification contrasts, computed with the
-same paired percentile protocol as Section~\ref{app:main-ci}. The factor ranking and
-the sign-flip and negative-result patterns are read in the main text
-(Section~\ref{sec:ablation}).
+same paired percentile protocol as Section~\ref{app:main-ci}. The factor ranking
+is read in the main text (Section~\ref{sec:ablation}).
 
 \begin{table}[t]
 \centering\small
@@ -188,16 +186,14 @@ full model while keeping the rest.}
 \hline
 variant & switched factor & construction \\
 \hline
-NCM-learn & IB term & encoder output used deterministically ($z=\mu_\phi(x)$, no posterior, no KL), energy readout on trainable prototypes \\
-NCM-ortho & IB term, geometry & same, with the prototypes fixed to the orthogonal frame $a\,e_k$ \\
-CEB-energy & readout & CEB reference and KL, free head replaced by the energy readout \\
 GPB-L & readout & GPB's orthogonal-frame prior with a free linear head \\
-OPB-RV & frame trainability & all trainable prior parameters frozen \\
+CEB-energy & geometry & CEB reference and KL, free head replaced by the energy readout \\
+GPB-FixVar & variance & GPB with the per-class prior variance fixed to $\tau^2=1$ (frozen at initialization) \\
+OPB-RV & prior freeze & all trainable prior parameters frozen (identity frame, randomly initialized variance) \\
+NCM-ortho & IB term & encoder output used deterministically ($z=\mu_\phi(x)$, no posterior, no KL), energy readout with the prototypes fixed to the orthogonal frame $a\,e_k$ \\
 \hline
 \end{tabular}
 \end{table}
-
-\input{ablation_result}
 
 \subsection{Regression compression curves}
 \label{app:compression}

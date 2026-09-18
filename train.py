@@ -78,8 +78,8 @@ from datasets.stsb import get_stsb_dataloaders
 from datasets.zinc import get_zinc_dataloaders
 from model import (AdaCap, CEB, CEBEnergy, CEBTied, CNN, DVCCA, EPBFixedAxis,
                    EPBRandVar, FGIB, GCN, MLP, NCBD, NCMLearn, NCMOrtho, NIB,
-                   OPB, OPBFixedFrame, OPBFixedFrameVar, OPBFreeScale,
-                   OPBRandVar, SVIB, VIB)
+                   OPB, OPBFixedFrame, OPBFixedFrameVar, OPBFixedVar,
+                   OPBFreeScale, OPBNoOrth, OPBRandVar, SVIB, VIB)
 from model.cnn import AdaCap as CNNAdaCap, CEB as CNNCEB, DVCCA as CNNDVCCA, FGIB as CNNFGIB, NCBD as CNNNCBD, NIB as CNNNIB, OPB as CNNOPB, SVIB as CNNSVIB, VIB as CNNVIB
 from model.gnn import AdaCap as GNNAdaCap, CEB as GNNCEB, DVCCA as GNNDVCCA, FGIB as GNNFGIB, NCBD as GNNNCBD, NIB as GNNNIB, OPB as GNNOPB, OPBFixedFrame as GNNOPBFixedFrame, OPBFixedFrameVar as GNNOPBFixedFrameVar, OPBRandVar as GNNOPBRandVar, SVIB as GNNSVIB, VIB as GNNVIB
 from model.rnn import (
@@ -396,6 +396,10 @@ MODEL_CLASSES = {
     ("opb-fixed-frame-randvar", "gnn"): GNNOPBRandVar,
     ("opb-fixed-axis", "mlp"): EPBFixedAxis,
     ("opb-rand-var", "mlp"): EPBRandVar,
+    # 逐项消融新变体（论文主消融方案）：去掉正交化 GPB-NoOrth /
+    # 先验方差固定 1 GPB-FixVar（均强制能量读出、仅 MLP、仅分类）
+    ("opb-noorth", "mlp"): OPBNoOrth,
+    ("opb-fixedvar", "mlp"): OPBFixedVar,
 }
 
 
@@ -446,14 +450,16 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
             parser.error("--tied-head 仅回归任务支持（分类任务无等距轴）")
     # 消融变体的任务范围约束（仅注册任务的组合）
     if args.model in ("ncm", "ncmo", "ceb-energy", "ceb-tied", "opb-free-scale",
-                      "opb-fixed-axis", "opb-rand-var"):
+                      "opb-fixed-axis", "opb-rand-var",
+                      "opb-noorth", "opb-fixedvar"):
         if args.backbone != "mlp":
             parser.error(f"--model {args.model} 仅 MLP 骨干")
     if args.model in ("opb-fixed-frame", "opb-fixed-frame-var",
                       "opb-fixed-frame-randvar") and args.backbone not in ("mlp", "gnn"):
         parser.error(f"--model {args.model} 仅 MLP/GNN 骨干")
     if args.model in ("ncm", "ncmo", "ceb-energy", "opb-fixed-frame",
-                      "opb-fixed-frame-var", "opb-fixed-frame-randvar"):
+                      "opb-fixed-frame-var", "opb-fixed-frame-randvar",
+                      "opb-noorth", "opb-fixedvar"):
         if args.task in ("housing", "stsb", "zinc", "agedb"):
             parser.error(f"--model {args.model} 仅分类任务（无类别原型表/回归未实现）")
     if args.model in ("ceb-tied", "opb-fixed-axis", "opb-rand-var") and args.task != "housing":
@@ -467,7 +473,7 @@ def build_model(parser, args, vocab_size=None, glove_matrix=None,
     if args.model in ("fgib", "opb", "ncmo", "opb-free-scale",
                       "opb-fixed-frame", "opb-fixed-frame-var",
                       "opb-fixed-frame-randvar", "opb-fixed-axis",
-                      "opb-rand-var"):
+                      "opb-rand-var", "opb-noorth", "opb-fixedvar"):
         model_kwargs["anchor_scale"] = args.anchor_scale
     # 审稿人基线复用 --beta 槽位作其唯一超参数：ncbd 的温度 τ、adacap 的
     # Tikhonov λ 初始值；未显式指定 --beta 时用原文默认值（τ=0.1 / λ_init=100）
@@ -556,7 +562,7 @@ def build_parser():
                  "ncm", "ncmo", "ceb-energy", "ceb-tied", "opb-free-scale",
                  "opb-fixed-frame", "opb-fixed-frame-var",
                  "opb-fixed-frame-randvar", "opb-fixed-axis",
-                 "opb-rand-var"],
+                 "opb-rand-var", "opb-noorth", "opb-fixedvar"],
         default="mlp",
         help="svib is Squared-IB (ICLR 2019 Caveats): a VIB subclass whose forward "
         "returns the squared KL (loss becomes CE + β·KL²), mainly for classification; "
